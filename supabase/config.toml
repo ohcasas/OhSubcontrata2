@@ -1,0 +1,15 @@
+# Configuración de Supabase CLI — proyecto todavía no vinculado a un
+# proyecto real de Supabase. Placeholder de Fase 0.
+project_id = "oh-casas-subcontratas"
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enable_signup = true
+jwt_expiry = 900          # 15 minutos, según lo propuesto en el informe técnico
+enable_refresh_token_rotation = true
+
+[storage]
+enabled = true

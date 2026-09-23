@@ -1,0 +1,13 @@
+{
+  "name": "oh-casas-subcontratas",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Portal de Subcontratas — OH Casas Modulares (monorepo)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm --workspace apps/mobile run start"
+  }
+}
