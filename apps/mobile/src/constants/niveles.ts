@@ -11,11 +11,11 @@ export type NivelPartner = 'bronce' | 'plata' | 'oro' | 'platino';
 
 /**
  * Obras que una empresa debe completar para desbloquear el Club OH Partner
- * (los puntos empiezan a sumarse con la 3ª obra y el canje se habilita).
+ * (los puntos se acreditan y el canje se habilita desde esta obra incluida).
  * Espejo de las constantes `c_obras_para_puntos` / `c_obras_para_canje` de
- * las funciones SQL `cambiar_estado_obra()` y `solicitar_canje()`.
+ * las funciones SQL `cambiar_estado_obra()` y `solicitar_canje()` (0021).
  */
-export const OBRAS_PARA_DESBLOQUEAR_CLUB = 3;
+export const OBRAS_PARA_DESBLOQUEAR_CLUB = 1;
 
 export const ORDEN_NIVELES: NivelPartner[] = ['bronce', 'plata', 'oro', 'platino'];
 

@@ -313,14 +313,14 @@ export default function GremioDetalleScreen() {
               className="bg-surface rounded-xl border border-border p-3.5"
             >
               <Text className="text-ink text-sm font-sansBold">{c.nombre_completo}</Text>
-              <View className="flex-row gap-2 mt-2">
+              <View className="gap-2 mt-2">
                 {c.email !== null && (
                   <Pressable
                     onPress={() => Linking.openURL(`mailto:${c.email}`)}
-                    className="flex-1 flex-row items-center justify-center gap-1.5 bg-canvas border border-border rounded-lg py-2"
+                    className="flex-row items-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3"
                   >
                     <Feather name="mail" size={14} color={colors.action} />
-                    <Text className="text-action text-xs font-sansSemiBold" numberOfLines={1}>
+                    <Text className="text-action text-xs font-sansSemiBold flex-1" numberOfLines={1} ellipsizeMode="tail">
                       {c.email}
                     </Text>
                   </Pressable>
@@ -328,7 +328,7 @@ export default function GremioDetalleScreen() {
                 {c.telefono !== null && (
                   <Pressable
                     onPress={() => Linking.openURL(`tel:${c.telefono}`)}
-                    className="flex-row items-center justify-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3"
+                    className="flex-row items-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3 self-start"
                   >
                     <Feather name="phone" size={14} color={colors.action} />
                     <Text className="text-action text-xs font-sansSemiBold">{c.telefono}</Text>

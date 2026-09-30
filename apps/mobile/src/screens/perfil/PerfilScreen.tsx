@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Pressable,
   Linking,
+  Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -19,6 +20,7 @@ import { subirImagenPublica, subirArchivoPrivado, obtenerUrlFirmada } from '../.
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
+import { URL_POLITICA_PRIVACIDAD } from '../../constants/enlaces';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 
@@ -107,6 +109,7 @@ export default function PerfilScreen() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
+  const [eliminandoCuenta, setEliminandoCuenta] = useState(false);
   const [bioEnEdicion, setBioEnEdicion] = useState('');
   const [editandoBio, setEditandoBio] = useState(false);
   const [guardandoBio, setGuardandoBio] = useState(false);
@@ -313,6 +316,32 @@ export default function PerfilScreen() {
     await supabase.auth.signOut();
     // Sin manejo manual de navegación: RootNavigator detecta la sesión
     // nula vía onAuthStateChange y vuelve solo a la pantalla de Login.
+  };
+
+  const handleEliminarCuenta = () => {
+    Alert.alert(
+      'Eliminar tu cuenta',
+      'Se borrarán tu nombre, teléfono, foto y biografía, y dejarás de poder acceder con este usuario. Las obras y puntos de tu empresa no se ven afectados. Esta acción no se puede deshacer. ¿Seguro que quieres continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar mi cuenta',
+          style: 'destructive',
+          onPress: async () => {
+            setEliminandoCuenta(true);
+            const { error: errorRpc } = await supabase.rpc('eliminar_mi_cuenta');
+            if (errorRpc) {
+              setEliminandoCuenta(false);
+              setError(`No se ha podido eliminar la cuenta: ${errorRpc.message}`);
+              return;
+            }
+            // La fila de auth.users ya no existe: cerrar sesión limpia el
+            // token local y RootNavigator vuelve solo a Login.
+            await supabase.auth.signOut();
+          },
+        },
+      ],
+    );
   };
 
   if (cargando) {
@@ -648,6 +677,22 @@ export default function PerfilScreen() {
             )}
             <Text className="text-error font-sansBold text-sm">Cerrar sesión</Text>
           </View>
+        </Pressable>
+
+        <Pressable
+          onPress={handleEliminarCuenta}
+          disabled={eliminandoCuenta || cerrandoSesion}
+          className="items-center py-3 mt-2"
+        >
+          {eliminandoCuenta ? (
+            <ActivityIndicator size="small" color={colors.inkMuted} />
+          ) : (
+            <Text className="text-inkMuted text-xs underline">Eliminar mi cuenta</Text>
+          )}
+        </Pressable>
+
+        <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)} className="items-center py-2">
+          <Text className="text-inkMuted text-xs underline">Política de privacidad</Text>
         </Pressable>
       </ScrollView>
     </View>

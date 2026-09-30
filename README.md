@@ -51,11 +51,12 @@ App funcional completa para ambos roles (subcontratista y admin), con el redise�
 - Ciclo de vida de la obra, con un único camino de cambio de estado (`cambiar_estado_obra()`): abierta → adjudicada → en curso → finalizada, o cancelada desde cualquiera de las tres primeras
 - Progreso semanal de obra: la empresa adjudicataria registra qué se ha hecho (+ % opcional) mientras la obra está en curso; admin y empresa ven el mismo historial
 - Rechazo de postulación con motivo (sugerido o libre)
-- Club OH Partner: se desbloquea a partir de la 3ª obra completada; el nivel se calcula sobre puntos **totales** (nunca baja al canjear); recompensas con nivel mínimo; canjes gestionables por el admin
+- Club OH Partner: se desbloquea desde la 1ª obra completada; el nivel se calcula sobre puntos **totales** (nunca baja al canjear); recompensas con nivel mínimo; canjes gestionables por el admin
 - Notificaciones: bandeja dentro de la app (campana) + **push real** al dispositivo (Expo Push Service)
 - Gremios: empresas por nivel, valoración, documentos de homologación con estado editable
 - Perfil (ambos roles): avatar, bio, documentos, obras completadas
 - Webhooks hacia n8n/Odoo en cada evento de negocio relevante — vacíos hasta que se configure una URL
+- Eliminar cuenta (in-app y por email) y política de privacidad publicada
 
 **Seguridad revisada:** 4 agujeros de permisos encontrados y cerrados (ver migración `0016`) — el más importante, que cualquier usuario podía editar su propio rol o cambiarse de empresa.
 
@@ -162,6 +163,7 @@ Ejecutar en orden desde el SQL Editor de Supabase:
 | 18 | `0018_webhooks_n8n.sql` | Webhooks salientes hacia n8n/Odoo |
 | 19 | `0019_avances_obra.sql` | Progreso semanal de obra |
 | 20 | `0020_push_tokens.sql` | Token de push por dispositivo + envío real vía Expo Push Service |
+| 21 | `0021_puntos_desde_primera_obra_y_borrado_cuenta.sql` | Los puntos y el desbloqueo del Club Partner pasan de exigir 3 obras a exigir 1 (decisión de Ainhoa); función `eliminar_mi_cuenta()` (borrado de cuenta, requisito de Google Play) |
 
 Si `0017` o `0018` fallan porque `pg_cron` o `pg_net` no están activas: Database → Extensions en Supabase, activarlas, y volver a ejecutar solo ese archivo.
 
@@ -169,12 +171,12 @@ Opcionalmente, los `seed_*.sql` para datos de prueba.
 
 ## Pendiente antes de publicar en Google Play
 
-1. **Subir la clave de servicio de Firebase a EAS** (`eas credentials` → Android → FCM V1) y confirmar que llegan notificaciones push de verdad en una development build — en marcha.
-2. **Borrado de cuenta** desde la app y desde una página web — Google Play lo exige y hoy no existe ninguna de las dos.
-3. **Política de privacidad** publicada en una URL.
-4. **Cuenta de organización** en Play Console (necesita D-U-N-S de OH Casas Modulares) — evita la prueba cerrada obligatoria de 12 testers/14 días de las cuentas personales nuevas.
-5. **Tabla de configuración de niveles del Club Partner** — los umbrales (1.000/2.500/5.000) están en `constants/niveles.ts` y duplicados en SQL, no en una tabla editable.
-6. **Recuperar contraseña**: no existe ninguna vía dentro de la app (se retiró) — hoy solo se puede restablecer manualmente desde el panel de Supabase.
+1. **Notificaciones push**: subir la clave de servicio de Firebase a EAS — en marcha.
+2. ~~Borrado de cuenta~~ — hecho: botón "Eliminar mi cuenta" en Perfil (subcontratista) + página web para quien no tenga la app instalada: https://claude.ai/artifact/SR5xssqbVJsPtunUBBJnra
+3. ~~Política de privacidad~~ — hecho, publicada en: https://claude.ai/artifact/VdKDRxLv4P9Mbz56U8R5DF (contacto de ejemplo `privacidad@ohcasas.es` — confirmar que es el email real que se quiere usar, o cambiarlo)
+4. ~~Cuenta de organización en Play Console~~ — hecho.
+5. ~~Tabla de configuración de niveles del Club Partner~~ — decisión: se queda tal cual (hardcodeado en `constants/niveles.ts` + SQL), no se construye una tabla editable.
+6. **Recuperar contraseña**: sigue sin existir ninguna vía dentro de la app — solo se puede restablecer manualmente desde el panel de Supabase.
 7. Pase final de QA end-to-end antes de abrir la app al público.
 
 ## Límites conocidos, aceptados por ahora

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Política de privacidad — OH Contratas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --canvas: #F8FAFD;
+    --surface: #FFFFFF;
+    --ink: #0B1F35;
+    --ink-muted: #52657A;
+    --action: #0057FF;
+    --border: #D7E0EB;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    line-height: 1.6;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .top {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .wordmark {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  main {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 36px);
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .fecha {
+    color: var(--ink-muted);
+    font-size: 14px;
+    margin: 0 0 40px;
+  }
+  h2 {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 40px 0 12px;
+  }
+  p, li {
+    font-size: 16px;
+    color: var(--ink);
+  }
+  p { margin: 0 0 14px; }
+  ul { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  a { color: var(--action); text-decoration: underline; }
+  .caja {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin: 24px 0;
+  }
+  .caja p:last-child { margin-bottom: 0; }
+  footer {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+    color: var(--ink-muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div class="top"><span class="wordmark">OH Contratas</span></div>
+  <main>
+    <h1>Política de privacidad</h1>
+    <p class="fecha">Última actualización: septiembre de 2026</p>
+
+    <p>OH Contratas es la app con la que OH Casas Modulares gestiona a sus empresas subcontratistas: licitaciones de obra, postulaciones, seguimiento de progreso y el Club OH Partner. Esta página explica qué datos usa la app, para qué, y qué puedes hacer si quieres consultarlos o eliminarlos.</p>
+
+    <h2>Quién es responsable de tus datos</h2>
+    <p>OH Casas Modulares es quien decide qué datos se recogen y para qué se usan. Los datos se almacenan con Supabase (base de datos e infraestructura) y las notificaciones se envían a través del servicio de Expo, que a su vez usa Firebase (Android) y Apple (iOS) para hacerlas llegar al dispositivo.</p>
+
+    <h2>Qué datos recogemos</h2>
+    <ul>
+      <li><strong>Al registrarte:</strong> nombre y apellidos, teléfono, email, y los datos de tu empresa (nombre, CIF, especialidad).</li>
+      <li><strong>Al usar la app:</strong> las obras a las que postulas, tus ofertas económicas, los avances de obra que registras, los documentos que subes (homologación, adjuntos de postulación) y tu foto de perfil, si añades una.</li>
+      <li><strong>Para las notificaciones:</strong> un identificador técnico de tu dispositivo (token de push), que no permite identificarte por sí solo.</li>
+      <li><strong>Para el Club OH Partner:</strong> los puntos que acumulas y los canjes que solicitas.</li>
+    </ul>
+    <p>No pedimos ni almacenamos datos de pago dentro de la app.</p>
+
+    <h2>Para qué usamos estos datos</h2>
+    <p>Únicamente para el funcionamiento del propio servicio: gestionar licitaciones y postulaciones, coordinar obras con tu empresa, avisarte de novedades relevantes (una postulación aceptada, una obra finalizada, un recordatorio) y llevar la cuenta de puntos y recompensas.</p>
+
+    <h2>Con quién se comparten</h2>
+    <p>No se venden ni se comparten con terceros para publicidad. Solo se comparten con los proveedores que hacen posible el servicio (Supabase para almacenarlos, Expo/Firebase/Apple para las notificaciones), bajo sus propias condiciones de tratamiento de datos.</p>
+
+    <h2>Cuánto tiempo se conservan</h2>
+    <p>Mientras tu cuenta esté activa. Si eliminas tu cuenta, tus datos personales (nombre, teléfono, foto, biografía) se borran. Los datos de la relación comercial entre tu empresa y OH Casas (obras realizadas, puntos acreditados, historial de postulaciones) se conservan, igual que se conservaría cualquier registro contable de un cliente o proveedor.</p>
+
+    <h2>Tus derechos</h2>
+    <p>Puedes pedir en cualquier momento: acceder a tus datos, corregirlos, o eliminar tu cuenta. Eliminar tu cuenta se puede hacer directamente desde la app (Perfil → Eliminar mi cuenta) o solicitarlo sin necesidad de tener la app instalada.</p>
+
+    <div class="caja">
+      <p><strong>¿Quieres eliminar tu cuenta y tus datos?</strong></p>
+      <p>Puedes hacerlo desde la propia app, o si ya no la tienes instalada, desde esta página: <a href="https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html">Solicitar eliminación de cuenta</a>.</p>
+    </div>
+
+    <h2>Menores de edad</h2>
+    <p>OH Contratas está pensada para empresas y profesionales del sector de la construcción, no para menores de edad.</p>
+
+    <h2>Cambios en esta política</h2>
+    <p>Si esta política cambia de forma relevante, se actualizará esta misma página con la nueva fecha.</p>
+
+    <h2>Contacto</h2>
+    <p>Para cualquier duda sobre tus datos, escribe a <a href="mailto:software@ohcasas.es">software@ohcasas.es</a>.</p>
+  </main>
+  <footer>OH Casas Modulares · OH Contratas</footer>
+</body>
+</html>

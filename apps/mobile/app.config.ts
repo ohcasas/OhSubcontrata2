@@ -38,13 +38,16 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        image: './assets/branding/splash.png',
-        // El PNG ya es una pantalla de carga completa (fondo, logo y
-        // wordmark ya compuestos), no un icono suelto sobre fondo liso —
-        // por eso "cover" (llena la pantalla) y no imageWidth (que la
-        // encogería a un recuadro diminuto).
-        resizeMode: 'cover',
-        backgroundColor: '#F8FAFD',
+        // Desde la migración a la Splash Screen API de Android 12 (que
+        // Expo adoptó en la SDK 52), Android ya NO admite una pantalla de
+        // carga a pantalla completa — solo un icono centrado sobre un
+        // color de fondo. La imagen compuesta (splash.png, con wordmark y
+        // fondo decorativo) ya no se puede usar tal cual en Android; se
+        // usa solo el icono limpio (adaptive-icon-foreground.png).
+        image: './assets/branding/adaptive-icon-foreground.png',
+        resizeMode: 'contain',
+        imageWidth: 200,
+        backgroundColor: '#0057FF',
       },
     ],
   ],

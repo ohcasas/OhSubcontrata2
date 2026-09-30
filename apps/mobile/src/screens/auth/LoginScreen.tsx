@@ -8,8 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { URL_POLITICA_PRIVACIDAD } from '../../constants/enlaces';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -170,9 +172,12 @@ export default function LoginScreen() {
             </Pressable>
           </View>
 
-          <Text className="text-inkMuted text-xs text-center mt-6">
-            Al continuar aceptas la <Text className="text-action font-sansMedium">política de privacidad</Text>.
-          </Text>
+          <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)}>
+            <Text className="text-inkMuted text-xs text-center mt-6">
+              Al continuar aceptas la{' '}
+              <Text className="text-action font-sansMedium">política de privacidad</Text>.
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </View>

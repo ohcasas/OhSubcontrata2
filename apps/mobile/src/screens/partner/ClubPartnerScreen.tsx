@@ -222,7 +222,8 @@ export default function ClubPartnerScreen() {
                 <Feather name="lock" size={19} color={colors.white} />
               </View>
               <Text className="text-ink text-sm font-sansSemiBold text-center mt-3">
-                Llevas {empresa.obras_completadas} de {OBRAS_PARA_DESBLOQUEAR_CLUB} obras completadas
+                Llevas {empresa.obras_completadas} de {OBRAS_PARA_DESBLOQUEAR_CLUB}{' '}
+                {OBRAS_PARA_DESBLOQUEAR_CLUB === 1 ? 'obra completada' : 'obras completadas'}
               </Text>
               <View className="w-full mt-3">
                 <View className="h-2 rounded-full bg-border overflow-hidden">
@@ -233,7 +234,8 @@ export default function ClubPartnerScreen() {
                 </View>
               </View>
               <Text className="text-inkMuted text-xs text-center mt-3">
-                Completa {OBRAS_PARA_DESBLOQUEAR_CLUB} obras para desbloquear puntos, niveles y recompensas.
+                Completa {OBRAS_PARA_DESBLOQUEAR_CLUB} {OBRAS_PARA_DESBLOQUEAR_CLUB === 1 ? 'obra' : 'obras'} para
+                desbloquear puntos, niveles y recompensas.
               </Text>
             </View>
           )}

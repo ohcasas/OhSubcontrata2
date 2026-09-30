@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Eliminar cuenta — OH Contratas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --canvas: #F8FAFD;
+    --surface: #FFFFFF;
+    --ink: #0B1F35;
+    --ink-muted: #52657A;
+    --action: #0057FF;
+    --action-tint: #E8F0FF;
+    --border: #D7E0EB;
+    --error: #B33A3A;
+    --error-tint: #FCE8E8;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: 'DM Sans', system-ui, sans-serif;
+    line-height: 1.6;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .top {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .wordmark {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 36px);
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  p, li { font-size: 16px; }
+  p { margin: 0 0 14px; }
+  a { color: var(--action); }
+  .caja {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    margin: 28px 0;
+  }
+  .caja h2 { font-size: 18px; margin: 0 0 10px; }
+  .paso {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .paso:last-child { margin-bottom: 0; }
+  .numero {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--action-tint);
+    color: var(--action);
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .paso p { margin: 0; }
+  .paso strong { display: block; margin-bottom: 2px; }
+  .boton {
+    display: inline-block;
+    background: var(--action);
+    color: #FFFFFF;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 22px;
+    border-radius: 12px;
+    margin-top: 6px;
+  }
+  .aviso {
+    background: var(--error-tint);
+    color: var(--error);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 14px;
+    margin: 24px 0;
+  }
+  .aviso strong { color: var(--error); }
+  footer {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+    color: var(--ink-muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div class="top"><span class="wordmark">OH Contratas</span></div>
+  <main>
+    <h1>Eliminar tu cuenta</h1>
+    <p>Puedes pedir que se elimine tu cuenta y tus datos personales de OH Contratas en cualquier momento, tengas o no la app instalada.</p>
+
+    <div class="caja">
+      <h2>Si tienes la app instalada</h2>
+      <div class="paso">
+        <span class="numero">1</span>
+        <p>Abre OH Contratas e inicia sesión.</p>
+      </div>
+      <div class="paso">
+        <span class="numero">2</span>
+        <p>Ve a la pestaña <strong>Perfil</strong>.</p>
+      </div>
+      <div class="paso">
+        <span class="numero">3</span>
+        <p>Al final de la pantalla, toca <strong>Eliminar mi cuenta</strong> y confirma. Se elimina al instante.</p>
+      </div>
+    </div>
+
+    <div class="caja">
+      <h2>Si no tienes la app instalada</h2>
+      <p>Escríbenos desde el email con el que te registraste, indicando el nombre de tu empresa y pidiendo la eliminación de tu cuenta.</p>
+      <a class="boton" href="mailto:software@ohcasas.es?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta%20-%20OH%20Contratas&body=Nombre%20de%20la%20empresa%3A%0AEmail%20con%20el%20que%20me%20registr%C3%A9%3A%0A">
+        Solicitar por email
+      </a>
+      <p style="margin-top: 14px;">Procesaremos tu solicitud en un plazo máximo de 30 días.</p>
+    </div>
+
+    <h2 style="font-size: 19px;">Qué se elimina y qué se conserva</h2>
+    <p><strong>Se elimina:</strong> tu nombre, teléfono, foto de perfil, biografía y el acceso a tu cuenta.</p>
+    <p><strong>Se conserva:</strong> el historial de obras, postulaciones y puntos de tu empresa — son datos de la relación comercial entre tu empresa y OH Casas Modulares, no datos personales tuyos, igual que se conservaría cualquier registro contable.</p>
+
+    <div class="aviso">
+      Esta acción no se puede deshacer. Si tu empresa tiene más de una persona con acceso a la cuenta, avisa antes a tu equipo.
+    </div>
+
+    <p>Más información en la <a href="https://ohcasas.github.io/OhSubcontrata2/privacidad.html">política de privacidad</a>.</p>
+  </main>
+  <footer>OH Casas Modulares · OH Contratas</footer>
+</body>
+</html>

@@ -290,14 +290,14 @@ export default function AdminPostulacionesScreen() {
               </Text>
 
               {contactos[item.empresa_id] !== undefined && (
-                <View className="flex-row gap-2 mt-3">
+                <View className="gap-2 mt-3">
                   {contactos[item.empresa_id].email !== null && (
                     <Pressable
                       onPress={() => Linking.openURL(`mailto:${contactos[item.empresa_id].email}`)}
-                      className="flex-1 flex-row items-center justify-center gap-1.5 bg-canvas border border-border rounded-lg py-2"
+                      className="flex-row items-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3"
                     >
                       <Feather name="mail" size={14} color={colors.action} />
-                      <Text className="text-action text-xs font-sansSemiBold" numberOfLines={1}>
+                      <Text className="text-action text-xs font-sansSemiBold flex-1" numberOfLines={1} ellipsizeMode="tail">
                         {contactos[item.empresa_id].email}
                       </Text>
                     </Pressable>
@@ -309,7 +309,7 @@ export default function AdminPostulacionesScreen() {
                           `tel:${contactos[item.empresa_id].telefono ?? item.telefono_contacto}`,
                         )
                       }
-                      className="flex-row items-center justify-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3"
+                      className="flex-row items-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3 self-start"
                     >
                       <Feather name="phone" size={14} color={colors.action} />
                       <Text className="text-action text-xs font-sansSemiBold">
