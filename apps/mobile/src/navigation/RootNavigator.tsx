@@ -14,11 +14,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
+import { registrarPush } from '../services/pushNotifications';
 import { colors } from '../design-system/tokens';
 import AuthStack from './AuthStack';
 import SubcontratistaTabs from './SubcontratistaTabs';
 import AdminTabs from './AdminTabs';
 import DetalleObraScreen from '../screens/obras/DetalleObraScreen';
+import NotificacionesScreen from '../screens/notificaciones/NotificacionesScreen';
+import GremioDetalleScreen from '../screens/admin/GremioDetalleScreen';
+import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
 import type { RootStackParamList } from './types';
 
 type Rol = 'subcontratista' | 'admin' | 'superadmin';
@@ -42,6 +46,16 @@ export default function RootNavigator() {
 
     return () => subscription.subscription.unsubscribe();
   }, []);
+
+  // Registra el token de push de este dispositivo en cuanto hay sesión —
+  // una vez por inicio de sesión, no en cada render. Sin efecto en Expo Go
+  // (ver services/pushNotifications.ts); en una development build, guarda
+  // el token para que el servidor pueda enviar avisos reales.
+  useEffect(() => {
+    if (session !== null) {
+      registrarPush(session.user.id);
+    }
+  }, [session]);
 
   useEffect(() => {
     if (!session) {
@@ -74,8 +88,8 @@ export default function RootNavigator() {
 
   if (cargando || (session !== null && rol === null)) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator color={colors.primary} />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color={colors.action} />
       </View>
     );
   }
@@ -86,7 +100,31 @@ export default function RootNavigator() {
         {!session ? (
           <Stack.Screen name="Auth" component={AuthStack} />
         ) : rol === 'admin' || rol === 'superadmin' ? (
-          <Stack.Screen name="AppAdmin" component={AdminTabs} />
+          <>
+            <Stack.Screen name="AppAdmin" component={AdminTabs} />
+            <Stack.Screen
+              name="GremioDetalle"
+              component={GremioDetalleScreen}
+              options={{
+                headerShown: true,
+                title: 'Empresa',
+                headerStyle: { backgroundColor: colors.canvas },
+                headerTintColor: colors.ink,
+                headerTitleStyle: { color: colors.ink },
+              }}
+            />
+            <Stack.Screen
+              name="AdminObraDetalle"
+              component={AdminObraDetalleScreen}
+              options={{
+                headerShown: true,
+                title: 'Obra',
+                headerStyle: { backgroundColor: colors.canvas },
+                headerTintColor: colors.ink,
+                headerTitleStyle: { color: colors.ink },
+              }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen name="AppSubcontratista" component={SubcontratistaTabs} />
@@ -96,9 +134,20 @@ export default function RootNavigator() {
               options={{
                 headerShown: true,
                 title: 'Detalle de obra',
-                headerStyle: { backgroundColor: colors.primary },
-                headerTintColor: colors.onPrimary,
-                headerTitleStyle: { color: colors.onPrimary },
+                headerStyle: { backgroundColor: colors.canvas },
+                headerTintColor: colors.ink,
+                headerTitleStyle: { color: colors.ink },
+              }}
+            />
+            <Stack.Screen
+              name="Notificaciones"
+              component={NotificacionesScreen}
+              options={{
+                headerShown: true,
+                title: 'Notificaciones',
+                headerStyle: { backgroundColor: colors.canvas },
+                headerTintColor: colors.ink,
+                headerTitleStyle: { color: colors.ink },
               }}
             />
           </>

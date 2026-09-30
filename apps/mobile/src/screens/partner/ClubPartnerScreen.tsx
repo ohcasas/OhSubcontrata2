@@ -1,17 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
-
-type NivelPartner = 'bronce' | 'plata' | 'oro' | 'platino';
+import CampanaNotificaciones from '../../components/CampanaNotificaciones';
+import {
+  ETIQUETA_NIVEL,
+  OBRAS_PARA_DESBLOQUEAR_CLUB,
+  ORDEN_NIVELES,
+  numeroNivel,
+  progresoHaciaSiguiente,
+} from '../../constants/niveles';
+import type { NivelPartner } from '../../constants/niveles';
 
 type Empresa = {
   id: string;
   nombre: string;
   nivel_partner: NivelPartner;
   puntos_disponibles: number;
+  puntos_totales: number;
+  obras_completadas: number;
 };
 
 type Movimiento = {
@@ -28,45 +38,22 @@ type Recompensa = {
   descripcion: string | null;
   puntos_requeridos: number;
   categoria: string | null;
+  nivel_minimo: NivelPartner;
 };
 
-// Umbrales de nivel — regla de negocio que todavía no vive en la base de
-// datos (no hay tabla de configuración para esto); de momento se fija aquí.
-const ORDEN_NIVELES: NivelPartner[] = ['bronce', 'plata', 'oro', 'platino'];
-const UMBRAL_NIVEL: Record<NivelPartner, number> = {
-  bronce: 0,
-  plata: 1000,
-  oro: 2500,
-  platino: 5000,
-};
-const ETIQUETA_NIVEL: Record<NivelPartner, string> = {
-  bronce: 'Bronce',
-  plata: 'Plata',
-  oro: 'Oro',
-  platino: 'Platino',
+type Canje = {
+  id: string;
+  puntos_gastados: number;
+  estado: 'pendiente' | 'completado' | 'cancelado';
+  created_at: string;
+  recompensas_catalogo: { nombre: string } | null;
 };
 
-function calcularProgreso(puntos: number) {
-  const nivelActualIndex = ORDEN_NIVELES.reduce(
-    (acc, nivel, i) => (puntos >= UMBRAL_NIVEL[nivel] ? i : acc),
-    0,
-  );
-  const nivelActual = ORDEN_NIVELES[nivelActualIndex];
-  const siguienteNivel = ORDEN_NIVELES[nivelActualIndex + 1] ?? null;
-
-  if (!siguienteNivel) {
-    return { nivelActual, siguienteNivel: null, progreso: 1, puntosFaltan: 0 };
-  }
-  const umbralActual = UMBRAL_NIVEL[nivelActual];
-  const umbralSiguiente = UMBRAL_NIVEL[siguienteNivel];
-  const progreso = (puntos - umbralActual) / (umbralSiguiente - umbralActual);
-  return {
-    nivelActual,
-    siguienteNivel,
-    progreso: Math.min(Math.max(progreso, 0), 1),
-    puntosFaltan: umbralSiguiente - puntos,
-  };
-}
+const ETIQUETA_CANJE: Record<Canje['estado'], { texto: string; badge: string; color: string }> = {
+  pendiente: { texto: 'En proceso', badge: 'bg-warningTint', color: 'text-warning' },
+  completado: { texto: 'Completado', badge: 'bg-successTint', color: 'text-success' },
+  cancelado: { texto: 'Cancelado · puntos devueltos', badge: 'bg-errorTint', color: 'text-error' },
+};
 
 export default function ClubPartnerScreen() {
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
@@ -77,9 +64,11 @@ export default function ClubPartnerScreen() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canjeandoId, setCanjeandoId] = useState<string | null>(null);
+  const [canjes, setCanjes] = useState<Canje[]>([]);
   const [mensajeCanje, setMensajeCanje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(
     null,
   );
+  const primeraCarga = useRef(true);
 
   const cargarTodo = useCallback(async () => {
     setError(null);
@@ -102,11 +91,15 @@ export default function ClubPartnerScreen() {
     }
     setSinEmpresa(false);
 
-    const [{ data: empresaData, error: errorEmpresa }, { data: movData }, { data: catData }] =
-      await Promise.all([
+    const [
+      { data: empresaData, error: errorEmpresa },
+      { data: movData },
+      { data: catData },
+      { data: canjesData },
+    ] = await Promise.all([
         supabase
           .from('empresas_subcontratistas')
-          .select('id, nombre, nivel_partner, puntos_disponibles')
+          .select('id, nombre, nivel_partner, puntos_disponibles, puntos_totales, obras_completadas')
           .eq('id', empresaId)
           .single(),
         supabase
@@ -117,9 +110,15 @@ export default function ClubPartnerScreen() {
           .limit(20),
         supabase
           .from('recompensas_catalogo')
-          .select('id, nombre, descripcion, puntos_requeridos, categoria')
+          .select('id, nombre, descripcion, puntos_requeridos, categoria, nivel_minimo')
           .eq('activo', true)
           .order('puntos_requeridos', { ascending: true }),
+        supabase
+          .from('canjes')
+          .select('id, puntos_gastados, estado, created_at, recompensas_catalogo(nombre)')
+          .eq('empresa_id', empresaId)
+          .order('created_at', { ascending: false })
+          .limit(20),
       ]);
 
     if (errorEmpresa) {
@@ -129,12 +128,21 @@ export default function ClubPartnerScreen() {
     setEmpresa(empresaData as Empresa);
     setMovimientos((movData as Movimiento[] | null) ?? []);
     setCatalogo((catData as Recompensa[] | null) ?? []);
+    setCanjes((canjesData as unknown as Canje[] | null) ?? []);
   }, []);
 
-  useEffect(() => {
-    setCargando(true);
-    cargarTodo().finally(() => setCargando(false));
-  }, [cargarTodo]);
+  // Recarga al volver a la pestaña: así los puntos que acredita el admin al
+  // finalizar una obra aparecen sin tener que refrescar a mano.
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        if (primeraCarga.current) setCargando(true);
+        await cargarTodo();
+        primeraCarga.current = false;
+        setCargando(false);
+      })();
+    }, [cargarTodo]),
+  );
 
   const handleRefrescar = async () => {
     setRefrescando(true);
@@ -153,10 +161,12 @@ export default function ClubPartnerScreen() {
     if (errorRpc) {
       setMensajeCanje({
         tipo: 'error',
-        texto:
-          errorRpc.message.includes('No tienes suficientes')
-            ? 'No tienes suficientes puntos para este canje.'
-            : 'No se ha podido completar el canje. Inténtalo de nuevo.',
+        // Los mensajes propios de la función ya están redactados para el usuario.
+        texto: ['No tienes suficientes', 'se desbloquea', 'requiere nivel', 'ya no está disponible'].some((m) =>
+          errorRpc.message.includes(m),
+        )
+          ? errorRpc.message
+          : 'No se ha podido completar el canje. Inténtalo de nuevo.',
       });
       return;
     }
@@ -166,90 +176,139 @@ export default function ClubPartnerScreen() {
 
   if (cargando) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator color={colors.primary} />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color={colors.action} />
       </View>
     );
   }
 
+  const desbloqueado = empresa !== null && empresa.obras_completadas >= OBRAS_PARA_DESBLOQUEAR_CLUB;
+
   return (
-    <View className="flex-1 bg-surface">
-      <ScreenHeader title="Club OH Partner" />
+    <View className="flex-1 bg-canvas">
+      <ScreenHeader title="Partner" rightElement={<CampanaNotificaciones />} />
 
       {sinEmpresa ? (
         <View className="items-center mt-16 px-6">
-          <Feather name="briefcase" size={28} color={colors.outline} />
-          <Text className="text-onSurface text-base font-semibold text-center mt-3">
+          <Feather name="briefcase" size={28} color={colors.inkSubtle} />
+          <Text className="text-ink text-base font-sansSemiBold text-center mt-3">
             Tu usuario todavía no está vinculado a ninguna empresa subcontratista
           </Text>
-          <Text className="text-onSurfaceVariant text-sm text-center mt-2">
-            Contacta con OH Casas para poder ver tus puntos y recompensas.
+          <Text className="text-inkMuted text-sm text-center mt-2">
+            Contacta con OH Contratas para poder ver tus puntos y recompensas.
           </Text>
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
           refreshControl={
-            <RefreshControl
-              refreshing={refrescando}
-              onRefresh={handleRefrescar}
-              colors={[colors.primary]}
-            />
+            <RefreshControl refreshing={refrescando} onRefresh={handleRefrescar} colors={[colors.action]} />
           }
         >
           {error !== null && (
-            <View className="bg-errorContainer rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
-              <Feather name="alert-circle" size={16} color={colors.onErrorContainer} />
-              <Text className="text-onErrorContainer text-sm flex-1">{error}</Text>
+            <View className="bg-errorTint rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
+              <Feather name="alert-circle" size={17} color={colors.error} />
+              <Text className="text-error text-sm flex-1">{error}</Text>
+            </View>
+          )}
+
+          {empresa !== null && !desbloqueado && (
+            <View className="bg-surface border border-border rounded-3xl p-5 items-center">
+              <View className="border border-border rounded-full items-center justify-center" style={{ width: 56, height: 56 }}>
+                <Feather name="award" size={24} color={colors.ink} />
+              </View>
+              <Text className="text-ink text-xl font-sansBold mt-3 text-center">Club OH Partner</Text>
+              <View className="bg-action rounded-full items-center justify-center mt-3" style={{ width: 44, height: 44 }}>
+                <Feather name="lock" size={19} color={colors.white} />
+              </View>
+              <Text className="text-ink text-sm font-sansSemiBold text-center mt-3">
+                Llevas {empresa.obras_completadas} de {OBRAS_PARA_DESBLOQUEAR_CLUB} obras completadas
+              </Text>
+              <View className="w-full mt-3">
+                <View className="h-2 rounded-full bg-border overflow-hidden">
+                  <View
+                    className="h-full rounded-full bg-action"
+                    style={{ width: `${Math.min(empresa.obras_completadas / OBRAS_PARA_DESBLOQUEAR_CLUB, 1) * 100}%` }}
+                  />
+                </View>
+              </View>
+              <Text className="text-inkMuted text-xs text-center mt-3">
+                Completa {OBRAS_PARA_DESBLOQUEAR_CLUB} obras para desbloquear puntos, niveles y recompensas.
+              </Text>
             </View>
           )}
 
           {empresa !== null &&
+            desbloqueado &&
             (() => {
-              const { nivelActual, siguienteNivel, progreso, puntosFaltan } = calcularProgreso(
-                empresa.puntos_disponibles,
-              );
+              const nivel = empresa.nivel_partner;
+              const { siguiente, progreso, puntosFaltan } = progresoHaciaSiguiente(nivel, empresa.puntos_totales);
               return (
-                <View className="bg-primary rounded-2xl p-4">
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-1.5">
-                      <Feather name="award" size={13} color={colors.accentGold} />
-                      <Text className="text-onPrimary/70 text-xs font-bold uppercase tracking-wider">
-                        Nivel actual
+                <View className="bg-action rounded-3xl p-4">
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1 pr-3">
+                      <View className="flex-row items-center gap-1.5">
+                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.white }} />
+                        <Text className="text-white/80 text-[12px] font-sansBold uppercase" style={{ letterSpacing: 1 }}>
+                          Categoría oficial
+                        </Text>
+                      </View>
+                      <Text className="text-white text-2xl font-sansBold mt-1.5">Socio {ETIQUETA_NIVEL[nivel]}</Text>
+                      <Text className="text-white/70 text-xs mt-0.5">
+                        Nivel {numeroNivel(nivel)} de {ORDEN_NIVELES.length}
                       </Text>
                     </View>
-                    <View className="bg-onPrimary/15 rounded-md px-2 py-0.5">
-                      <Text className="text-onPrimary text-xs font-bold">
-                        {ETIQUETA_NIVEL[nivelActual]}
+                    <View className="bg-white/15 border border-white/25 rounded-xl px-3 py-2 items-center">
+                      <Text className="text-white/70 text-[12px] font-sansBold uppercase" style={{ letterSpacing: 1 }}>
+                        Obras completadas
                       </Text>
+                      <View className="flex-row items-center gap-1 mt-0.5">
+                        <Feather name="check-circle" size={15} color={colors.white} />
+                        <Text className="text-white text-base font-sansBold">{empresa.obras_completadas}</Text>
+                      </View>
                     </View>
                   </View>
-                  <Text className="text-onPrimary text-3xl font-extrabold mt-2">
-                    {empresa.puntos_disponibles.toLocaleString('es-ES')} pts
-                  </Text>
 
-                  {siguienteNivel !== null ? (
+                  <View className="bg-black/15 border border-white/10 rounded-2xl p-4 mt-4">
+                    <View className="flex-row justify-between items-start">
+                      <Text className="text-white/80 text-[13px] font-sansBold uppercase flex-1 pr-2" style={{ letterSpacing: 1 }}>
+                        Puntos acumulados disponibles
+                      </Text>
+                      <View className="rounded-md px-2 py-0.5 border border-white/40">
+                        <Text className="text-white text-[12px] font-sansBold">Canjeables</Text>
+                      </View>
+                    </View>
+                    <View className="flex-row items-end gap-2 mt-2">
+                      <Text className="text-white text-4xl font-sansBold">
+                        {empresa.puntos_disponibles.toLocaleString('es-ES')}
+                      </Text>
+                      <Text className="text-white/90 text-xs font-sansBold uppercase mb-1.5">Puntos OH</Text>
+                    </View>
+                    <Text className="text-white/60 text-[13px] mt-1.5">
+                      {empresa.puntos_totales.toLocaleString('es-ES')} pts ganados en total · definen tu rango
+                    </Text>
+                  </View>
+
+                  {siguiente !== null ? (
                     <View className="mt-4">
-                      <View className="flex-row justify-between mb-1">
-                        <Text className="text-onPrimary/80 text-xs">
-                          Rumbo a {ETIQUETA_NIVEL[siguienteNivel]}
+                      <View className="flex-row justify-between mb-1.5">
+                        <Text className="text-white text-xs font-sansMedium">
+                          Rumbo a <Text className="font-sansBold uppercase">Socio {ETIQUETA_NIVEL[siguiente]}</Text>
                         </Text>
-                        <Text className="text-onPrimary text-xs font-bold">
-                          {Math.round(progreso * 100)}%
-                        </Text>
+                        <Text className="text-white text-xs font-sansBold">{Math.round(progreso * 100)}% completado</Text>
                       </View>
-                      <View className="h-2 rounded-full bg-onPrimary/20 overflow-hidden">
-                        <View
-                          className="h-full rounded-full bg-tertiaryLight"
-                          style={{ width: `${progreso * 100}%` }}
-                        />
+                      <View className="h-2 rounded-full bg-white/20 overflow-hidden">
+                        <View className="h-full rounded-full bg-white" style={{ width: `${progreso * 100}%` }} />
                       </View>
-                      <Text className="text-onPrimary/70 text-[11px] mt-1.5">
-                        Te faltan {puntosFaltan.toLocaleString('es-ES')} pts
+                      <Text className="text-white/70 text-[13px] mt-1.5">
+                        Te faltan {puntosFaltan.toLocaleString('es-ES')} pts para {ETIQUETA_NIVEL[siguiente]}.
                       </Text>
                     </View>
                   ) : (
-                    <Text className="text-onPrimary/80 text-xs mt-3">Nivel máximo alcanzado</Text>
+                    <View className="flex-row items-center gap-1.5 mt-4">
+                      <Feather name="check-circle" size={15} color={colors.white} />
+                      <Text className="text-white/80 text-xs">Has alcanzado el nivel máximo.</Text>
+                    </View>
                   )}
                 </View>
               );
@@ -258,75 +317,71 @@ export default function ClubPartnerScreen() {
           {mensajeCanje !== null && (
             <View
               className={`rounded-lg px-3 py-2 mt-3 flex-row items-center gap-2 ${
-                mensajeCanje.tipo === 'ok' ? 'bg-success/15' : 'bg-errorContainer'
+                mensajeCanje.tipo === 'ok' ? 'bg-successTint' : 'bg-errorTint'
               }`}
             >
               <Feather
                 name={mensajeCanje.tipo === 'ok' ? 'check-circle' : 'alert-circle'}
-                size={15}
-                color={mensajeCanje.tipo === 'ok' ? colors.success : colors.onErrorContainer}
+                size={16}
+                color={mensajeCanje.tipo === 'ok' ? colors.success : colors.error}
               />
-              <Text
-                className={`text-sm flex-1 ${
-                  mensajeCanje.tipo === 'ok' ? 'text-success' : 'text-onErrorContainer'
-                }`}
-              >
+              <Text className={`text-sm flex-1 ${mensajeCanje.tipo === 'ok' ? 'text-success' : 'text-error'}`}>
                 {mensajeCanje.texto}
               </Text>
             </View>
           )}
 
           <View className="flex-row items-center gap-1.5 mt-5 mb-2">
-            <Feather name="gift" size={12} color={colors.onSurface} />
-            <Text className="text-onSurface text-xs font-extrabold uppercase tracking-wider">
+            <Feather name="gift" size={14} color={colors.ink} />
+            <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
               Catálogo de canje
             </Text>
           </View>
           {catalogo.length === 0 ? (
-            <Text className="text-onSurfaceVariant text-sm">
-              No hay recompensas disponibles ahora mismo.
-            </Text>
+            <Text className="text-inkMuted text-sm">No hay recompensas disponibles ahora mismo.</Text>
           ) : (
             <View className="gap-2.5">
               {catalogo.map((recompensa) => {
-                const puedeCanjear = (empresa?.puntos_disponibles ?? 0) >= recompensa.puntos_requeridos;
+                const nivelOk =
+                  empresa !== null &&
+                  ORDEN_NIVELES.indexOf(empresa.nivel_partner) >= ORDEN_NIVELES.indexOf(recompensa.nivel_minimo);
+                const puedeCanjear =
+                  desbloqueado && nivelOk && (empresa?.puntos_disponibles ?? 0) >= recompensa.puntos_requeridos;
+                const etiquetaBoton = !desbloqueado ? 'Bloqueado' : !nivelOk ? 'Nivel' : 'Canjear';
                 return (
                   <View
                     key={recompensa.id}
-                    className="bg-surfaceContainerLowest rounded-xl border border-outlineVariant p-3.5 flex-row items-center justify-between"
+                    className="bg-surface rounded-xl border border-border p-3.5 flex-row items-center justify-between"
                   >
                     <View className="flex-row items-center flex-1 pr-3">
-                      <View className="w-9 h-9 rounded-lg bg-secondaryContainer items-center justify-center mr-2.5">
-                        <Feather name="gift" size={15} color={colors.onSecondaryContainer} />
+                      <View className="w-9 h-9 rounded-lg bg-actionTint items-center justify-center mr-2.5">
+                        <Feather name="gift" size={16} color={colors.action} />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-onSurface text-sm font-bold">{recompensa.nombre}</Text>
+                        <Text className="text-ink text-sm font-sansBold">{recompensa.nombre}</Text>
                         {recompensa.descripcion !== null && (
-                          <Text className="text-onSurfaceVariant text-xs mt-0.5">
-                            {recompensa.descripcion}
-                          </Text>
+                          <Text className="text-inkMuted text-xs mt-0.5">{recompensa.descripcion}</Text>
                         )}
-                        <Text className="text-secondary text-xs font-bold mt-1">
+                        <Text className="text-action text-xs font-sansBold mt-1">
                           {recompensa.puntos_requeridos.toLocaleString('es-ES')} pts
+                          {recompensa.nivel_minimo !== 'bronce' ? (
+                            <Text className={nivelOk ? 'text-inkMuted' : 'text-error'}>
+                              {`  ·  Requiere nivel ${ETIQUETA_NIVEL[recompensa.nivel_minimo]}`}
+                            </Text>
+                          ) : null}
                         </Text>
                       </View>
                     </View>
                     <Pressable
                       onPress={() => handleCanjear(recompensa)}
                       disabled={!puedeCanjear || canjeandoId === recompensa.id}
-                      className={`rounded-lg px-3.5 py-2 ${
-                        puedeCanjear ? 'bg-primary' : 'bg-surfaceContainerHigh'
-                      }`}
+                      className={`rounded-lg px-3.5 py-2 ${puedeCanjear ? 'bg-action' : 'bg-canvas border border-border'}`}
                     >
                       {canjeandoId === recompensa.id ? (
-                        <ActivityIndicator size="small" color={colors.onPrimary} />
+                        <ActivityIndicator size="small" color={colors.white} />
                       ) : (
-                        <Text
-                          className={`text-xs font-bold ${
-                            puedeCanjear ? 'text-onPrimary' : 'text-onSurfaceVariant'
-                          }`}
-                        >
-                          Canjear
+                        <Text className={`text-xs font-sansBold ${puedeCanjear ? 'text-white' : 'text-inkMuted'}`}>
+                          {etiquetaBoton}
                         </Text>
                       )}
                     </Pressable>
@@ -336,37 +391,76 @@ export default function ClubPartnerScreen() {
             </View>
           )}
 
+          {canjes.length > 0 && (
+            <View>
+              <View className="flex-row items-center gap-1.5 mt-6 mb-2">
+                <Feather name="package" size={14} color={colors.ink} />
+                <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
+                  Mis canjes
+                </Text>
+              </View>
+              <View className="bg-surface rounded-xl border border-border">
+                {canjes.map((canje, index) => {
+                  const et = ETIQUETA_CANJE[canje.estado];
+                  return (
+                    <View
+                      key={canje.id}
+                      className={`flex-row items-center justify-between px-3.5 py-3 ${
+                        index > 0 ? 'border-t border-border' : ''
+                      }`}
+                    >
+                      <View className="flex-1 pr-2">
+                        <Text className="text-ink text-sm font-sansSemiBold">
+                          {canje.recompensas_catalogo?.nombre ?? 'Recompensa'}
+                        </Text>
+                        <Text className="text-inkMuted text-xs mt-0.5">
+                          {new Date(canje.created_at).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}{' '}
+                          · {canje.puntos_gastados.toLocaleString('es-ES')} pts
+                        </Text>
+                      </View>
+                      <View className={`rounded-md px-2 py-0.5 ${et.badge}`}>
+                        <Text className={`text-[12px] font-sansBold ${et.color}`}>{et.texto}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <View className="flex-row items-center gap-1.5 mt-6 mb-2">
-            <Feather name="clock" size={12} color={colors.onSurface} />
-            <Text className="text-onSurface text-xs font-extrabold uppercase tracking-wider">
+            <Feather name="clock" size={14} color={colors.ink} />
+            <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
               Historial de puntos
             </Text>
           </View>
           {movimientos.length === 0 ? (
-            <Text className="text-onSurfaceVariant text-sm">Todavía no hay movimientos.</Text>
+            <Text className="text-inkMuted text-sm">Todavía no hay movimientos.</Text>
           ) : (
-            <View className="bg-surfaceContainerLowest rounded-xl border border-outlineVariant">
+            <View className="bg-surface rounded-xl border border-border">
               {movimientos.map((mov, index) => (
                 <View
                   key={mov.id}
-                  className={`flex-row items-center px-3.5 py-3 ${
-                    index > 0 ? 'border-t border-outlineVariant' : ''
-                  }`}
+                  className={`flex-row items-center px-3.5 py-3 ${index > 0 ? 'border-t border-border' : ''}`}
                 >
                   <View
                     className={`w-7 h-7 rounded-full items-center justify-center mr-2.5 ${
-                      mov.puntos >= 0 ? 'bg-success/15' : 'bg-errorContainer'
+                      mov.puntos >= 0 ? 'bg-successTint' : 'bg-errorTint'
                     }`}
                   >
                     <Feather
                       name={mov.puntos >= 0 ? 'plus' : 'minus'}
-                      size={13}
+                      size={15}
                       color={mov.puntos >= 0 ? colors.success : colors.error}
                     />
                   </View>
                   <View className="flex-1 pr-2">
-                    <Text className="text-onSurface text-sm font-semibold">{mov.concepto}</Text>
-                    <Text className="text-onSurfaceVariant text-xs mt-0.5">
+                    <Text className="text-ink text-sm font-sansSemiBold">{mov.concepto}</Text>
+                    <Text className="text-inkMuted text-xs mt-0.5">
                       {new Date(mov.created_at).toLocaleDateString('es-ES', {
                         day: 'numeric',
                         month: 'short',
@@ -374,9 +468,7 @@ export default function ClubPartnerScreen() {
                       })}
                     </Text>
                   </View>
-                  <Text
-                    className={`text-sm font-extrabold ${mov.puntos >= 0 ? 'text-success' : 'text-error'}`}
-                  >
+                  <Text className={`text-sm font-sansBold ${mov.puntos >= 0 ? 'text-success' : 'text-error'}`}>
                     {mov.puntos >= 0 ? '+' : ''}
                     {mov.puntos.toLocaleString('es-ES')} pts
                   </Text>

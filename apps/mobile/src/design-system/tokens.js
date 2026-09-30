@@ -13,6 +13,71 @@
  * tsconfig.json, así que no se pierde el autocompletado.
  */
 
+// ============================================================================
+// Rediseño visual (Fase 1-3, aprobado sobre el proyecto "OH Proyectos" en
+// Manus). Estos son los tokens NUEVOS, tal cual la guía de estilo. Los de
+// abajo (colors originales) se mantienen como alias hacia estos mismos
+// valores para no romper las pantallas que aún no se han migrado; cuando
+// todas las pantallas usen los nombres nuevos, los alias se podrán borrar.
+// ============================================================================
+const colorsRediseno = {
+  canvas: '#F8FAFD',
+  surface: '#FFFFFF',
+  ink: '#0B1F35',
+  inkMuted: '#52657A',
+  inkSubtle: '#6B7C8F',
+  action: '#0057FF',
+  actionDark: '#0046CC',
+  actionTint: '#E8F0FF',
+  border: '#D7E0EB',
+  borderStrong: '#B8C7D8',
+  navySurface: '#102A46',
+  white: '#FFFFFF',
+  success: '#197A55',
+  successTint: '#E4F5ED',
+  warning: '#9A6100',
+  warningTint: '#FFF4D8',
+  error: '#B33A3A',
+  errorTint: '#FCE8E8',
+  urgent: '#A34A17',
+  urgentTint: '#FFF0E5',
+  bronze: '#8A5A2B',
+  bronzeTint: '#F3E9DD',
+  silver: '#64748B',
+  silverTint: '#EEF2F6',
+  gold: '#8A6A12',
+  goldTint: '#FFF3C7',
+  platinum: '#526A7C',
+  platinumTint: '#E7F0F5',
+};
+
+const radiusRediseno = { xs: 6, sm: 10, md: 16, lg: 24, pill: 999 };
+
+/** Sombras de una sola capa (ver GUIA_ESTILO_FASE_1.md, sección 3). */
+const shadowRediseno = {
+  card: {
+    shadowColor: '#0B1F35',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  active: {
+    shadowColor: '#0057FF',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    elevation: 6,
+  },
+  nav: {
+    shadowColor: '#0B1F35',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+};
+
 const colors = {
   // Superficies
   surface: '#f8f9ff',
@@ -70,6 +135,12 @@ const colors = {
   slateGraphite: '#121820',
   onBackground: '#181c22',
   background: '#f8f9ff',
+
+  // Tokens del rediseño, fusionados aquí para que `colors.action`,
+  // `colors.ink`, etc. también funcionen en código JS/TS normal (no solo
+  // como clase de Tailwind). Van al final para que, si algún nombre
+  // coincidiera con uno antiguo, gane el del rediseño.
+  ...colorsRediseno,
 };
 
 /** Semántica de estado — mapea directamente a los badges vistos en el diseño */
@@ -95,12 +166,14 @@ const typography = {
   labelSm: { fontSize: 11, fontWeight: '700', lineHeight: 14, letterSpacing: 0.08 * 16 },
 };
 
+// Tipografía del rediseño: DM Sans (ver GUIA_ESTILO_FASE_1.md, sección 2).
+// Los nombres son los que registra useFonts() en App.tsx.
 const fontFamily = {
-  sans: 'PlusJakartaSans-Regular',
-  sansMedium: 'PlusJakartaSans-Medium',
-  sansSemiBold: 'PlusJakartaSans-SemiBold',
-  sansBold: 'PlusJakartaSans-Bold',
-  sansExtraBold: 'PlusJakartaSans-ExtraBold',
+  sans: 'DMSans_400Regular',
+  sansMedium: 'DMSans_500Medium',
+  sansSemiBold: 'DMSans_600SemiBold',
+  sansBold: 'DMSans_700Bold',
+  sansExtraBold: 'DMSans_700Bold',
 };
 
 /** Radios — en px, para React Native (no rem) */
@@ -151,7 +224,30 @@ const elevation = {
   },
 };
 
-const designSystem = { colors, stateColors, typography, fontFamily, radius, spacing, elevation };
+const designSystem = {
+  colors,
+  stateColors,
+  typography,
+  fontFamily,
+  radius,
+  spacing,
+  elevation,
+  colorsRediseno,
+  radiusRediseno,
+  shadowRediseno,
+};
 
-module.exports = { colors, stateColors, typography, fontFamily, radius, spacing, elevation, designSystem };
+module.exports = {
+  colors,
+  stateColors,
+  typography,
+  fontFamily,
+  radius,
+  spacing,
+  elevation,
+  colorsRediseno,
+  radiusRediseno,
+  shadowRediseno,
+  designSystem,
+};
 module.exports.default = designSystem;

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "534564744922",
+    "project_id": "oh-contratas",
+    "storage_bucket": "oh-contratas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:534564744922:android:71d724579dcf1d442bffe3",
+        "android_client_info": {
+          "package_name": "es.ohcasas.subcontratas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDagj4jfJiIy_X84SeKiuAyhy4f-68fkrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

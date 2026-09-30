@@ -9,30 +9,33 @@ type Props = {
 };
 
 /**
- * Cabecera de marca — navy con marca "OH" y, opcionalmente, un elemento a
- * la derecha (botón, badge...). Incluye el padding del área segura
- * superior, así que la pantalla que la usa no necesita aplicarlo aparte.
+ * Cabecera de marca del rediseño — clara (`canvas`), con el wordmark
+ * "OH CONTRATAS" en mayúsculas pequeñas encima del título grande de
+ * la pantalla, y un elemento opcional a la derecha (campana, ajustes...).
+ * Sustituye a la cabecera navy con el logo en caja de la versión anterior.
+ * Incluye el padding del área segura superior.
  */
 export default function ScreenHeader({ title, subtitle, rightElement }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View className="bg-primary px-4 pb-3" style={{ paddingTop: insets.top + 12 }}>
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center flex-1 pr-2">
-          <View className="w-8 h-8 rounded-lg bg-onPrimary/15 items-center justify-center mr-2.5">
-            <Text className="text-onPrimary text-xs font-extrabold">OH</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-onPrimary text-lg font-bold" numberOfLines={1}>
-              {title}
+    <View className="bg-canvas px-4 pb-4" style={{ paddingTop: insets.top + 16 }}>
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1 pr-3">
+          <Text
+            className="text-ink text-[13px] font-sansSemiBold uppercase"
+            style={{ letterSpacing: 2.2 }}
+          >
+            OH CONTRATAS
+          </Text>
+          <Text className="text-ink text-[28px] font-sans mt-0.5" numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle !== undefined && (
+            <Text className="text-inkMuted text-sm mt-0.5" numberOfLines={1}>
+              {subtitle}
             </Text>
-            {subtitle !== undefined && (
-              <Text className="text-onPrimary/70 text-xs mt-0.5" numberOfLines={1}>
-                {subtitle}
-              </Text>
-            )}
-          </View>
+          )}
         </View>
         {rightElement}
       </View>

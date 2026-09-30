@@ -1,29 +1,53 @@
 import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: 'OH Casas — Portal Subcontratas',
+  name: 'OH Contratas',
   slug: 'oh-casas-subcontratas',
+  owner: 'softwareoh',
   scheme: 'ohcasas',
   version: '0.0.1',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
-  // Nota: sin icono/splash propios todavía — pendiente del logo real de
-  // OH Casas. Usa el icono por defecto de Expo mientras tanto (evita el
-  // aviso "Unable to resolve asset" en vez de apuntar a un PNG que no existe).
-  // Nota: en SDK 57 la splash screen ya no se declara aquí — se configura
-  // vía el plugin expo-splash-screen (pendiente de añadir cuando haya
-  // assets reales de marca; de momento se deja fuera).
+  icon: './assets/branding/icon.png',
+  extra: {
+    eas: {
+      projectId: '229d325c-77bd-4732-8c92-a482abd11b74',
+    },
+  },
   ios: {
     bundleIdentifier: 'es.ohcasas.subcontratas',
     supportsTablet: false,
   },
   android: {
     package: 'es.ohcasas.subcontratas',
+    googleServicesFile: './google-services.json',
     adaptiveIcon: {
-      backgroundColor: '#0B192C',
+      foregroundImage: './assets/branding/adaptive-icon-foreground.png',
+      backgroundColor: '#0057FF',
     },
   },
-  plugins: ['expo-secure-store'],
+  plugins: [
+    'expo-secure-store',
+    [
+      'expo-notifications',
+      {
+        icon: './assets/branding/adaptive-icon-foreground.png',
+        color: '#0057FF',
+      },
+    ],
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/branding/splash.png',
+        // El PNG ya es una pantalla de carga completa (fondo, logo y
+        // wordmark ya compuestos), no un icono suelto sobre fondo liso —
+        // por eso "cover" (llena la pantalla) y no imageWidth (que la
+        // encogería a un recuadro diminuto).
+        resizeMode: 'cover',
+        backgroundColor: '#F8FAFD',
+      },
+    ],
+  ],
 };
 
 export default config;

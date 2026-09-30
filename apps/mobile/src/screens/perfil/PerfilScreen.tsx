@@ -1,16 +1,32 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Image,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  Pressable,
+  Linking,
+} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { supabase } from '../../services/supabase';
+import { subirImagenPublica, subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 
 type Perfil = {
   nombre_completo: string;
   telefono: string | null;
+  bio: string | null;
+  avatar_url: string | null;
 };
 
 type Empresa = {
@@ -31,6 +47,7 @@ type Documento = {
   descripcion: string | null;
   cobertura_eur: number | null;
   fecha_vencimiento: string | null;
+  storage_path: string | null;
 };
 
 type ObraCompletada = {
@@ -57,15 +74,16 @@ const ICONO_TIPO_DOCUMENTO: Record<TipoDocumento, NombreIcono> = {
 
 const ESTILO_ESTADO_DOCUMENTO: Record<
   EstadoDocumento,
-  { badge: string; texto: string; etiqueta: string; icono: NombreIcono }
+  { badge: string; texto: string; etiqueta: string; icono: NombreIcono; icocolor: string }
 > = {
-  vigente: { badge: 'bg-success/15', texto: 'text-success', etiqueta: 'Vigente', icono: 'check-circle' },
-  vencido: { badge: 'bg-errorContainer', texto: 'text-onErrorContainer', etiqueta: 'Vencido', icono: 'alert-triangle' },
+  vigente: { badge: 'bg-successTint', texto: 'text-success', etiqueta: 'Vigente', icono: 'check-circle', icocolor: colors.success },
+  vencido: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Vencido', icono: 'alert-triangle', icocolor: colors.error },
   pendiente_revision: {
-    badge: 'bg-secondaryContainer',
-    texto: 'text-onSecondaryContainer',
+    badge: 'bg-warningTint',
+    texto: 'text-warning',
     etiqueta: 'Pendiente de revisión',
     icono: 'clock',
+    icocolor: colors.warning,
   },
 };
 
@@ -79,6 +97,8 @@ function formatearMoneda(valor: number, moneda: string): string {
 }
 
 export default function PerfilScreen() {
+  const [usuarioId, setUsuarioId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [documentos, setDocumentos] = useState<Documento[]>([]);
@@ -87,44 +107,65 @@ export default function PerfilScreen() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
+  const [bioEnEdicion, setBioEnEdicion] = useState('');
+  const [editandoBio, setEditandoBio] = useState(false);
+  const [guardandoBio, setGuardandoBio] = useState(false);
+  const [subiendoAvatar, setSubiendoAvatar] = useState(false);
+  const [falloAvatar, setFalloAvatar] = useState(false);
+  const [mostrandoFormDocumento, setMostrandoFormDocumento] = useState(false);
+  const [tipoDocumentoNuevo, setTipoDocumentoNuevo] = useState<TipoDocumento>('alta_autonomo');
+  const [archivoDocumentoNuevo, setArchivoDocumentoNuevo] = useState<{
+    uri: string;
+    nombre: string;
+    mimeType: string;
+  } | null>(null);
+  const [subiendoDocumento, setSubiendoDocumento] = useState(false);
+  const [abriendoDocumentoId, setAbriendoDocumentoId] = useState<string | null>(null);
 
   const cargarTodo = useCallback(async () => {
     setError(null);
 
     const { data: userData } = await supabase.auth.getUser();
-    const usuarioId = userData.user?.id;
-    if (!usuarioId) return;
+    const usuarioIdActual = userData.user?.id;
+    if (!usuarioIdActual) return;
+    setUsuarioId(usuarioIdActual);
 
     const { data: perfilData, error: errorPerfil } = await supabase
       .from('profiles')
-      .select('nombre_completo, telefono, empresa_id')
-      .eq('id', usuarioId)
+      .select('nombre_completo, telefono, bio, avatar_url, empresa_id')
+      .eq('id', usuarioIdActual)
       .single();
 
     if (errorPerfil || !perfilData) {
       setError('No se ha podido cargar tu perfil.');
       return;
     }
-    setPerfil({ nombre_completo: perfilData.nombre_completo, telefono: perfilData.telefono });
+    setPerfil({
+      nombre_completo: perfilData.nombre_completo,
+      telefono: perfilData.telefono,
+      bio: perfilData.bio,
+      avatar_url: perfilData.avatar_url,
+    });
 
-    const empresaId = perfilData.empresa_id as string | null;
-    if (!empresaId) return;
+    const idEmpresa = perfilData.empresa_id as string | null;
+    setEmpresaId(idEmpresa);
+    if (!idEmpresa) return;
 
     const [{ data: empresaData }, { data: docsData }, { data: obrasData }] = await Promise.all([
       supabase
         .from('empresas_subcontratistas')
         .select('nombre, especialidad, homologado, rating_medio, obras_completadas')
-        .eq('id', empresaId)
+        .eq('id', idEmpresa)
         .single(),
       supabase
         .from('documentos_homologacion')
-        .select('id, tipo, estado, descripcion, cobertura_eur, fecha_vencimiento')
-        .eq('empresa_id', empresaId)
+        .select('id, tipo, estado, descripcion, cobertura_eur, fecha_vencimiento, storage_path')
+        .eq('empresa_id', idEmpresa)
         .order('tipo', { ascending: true }),
       supabase
         .from('postulaciones')
         .select('id, oferta_economica, obras(titulo, moneda)')
-        .eq('empresa_id', empresaId)
+        .eq('empresa_id', idEmpresa)
         .eq('estado', 'aceptada'),
     ]);
 
@@ -144,6 +185,129 @@ export default function PerfilScreen() {
     setRefrescando(false);
   };
 
+  const handleCambiarAvatar = async () => {
+    if (usuarioId === null) return;
+    const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permiso.granted) {
+      setError(
+        permiso.canAskAgain
+          ? 'Necesitamos permiso para acceder a tus fotos.'
+          : 'El permiso de fotos está bloqueado. Actívalo desde los ajustes del sistema para esta app.',
+      );
+      return;
+    }
+
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (resultado.canceled) return;
+    const asset = resultado.assets[0];
+
+    setSubiendoAvatar(true);
+    try {
+      const url = await subirImagenPublica(
+        'avatares',
+        usuarioId,
+        asset.uri,
+        asset.mimeType ?? 'image/jpeg',
+      );
+      const { error: errorUpdate } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url })
+        .eq('id', usuarioId);
+      if (errorUpdate) throw errorUpdate;
+      setPerfil((prev) => (prev !== null ? { ...prev, avatar_url: url } : prev));
+      setFalloAvatar(false);
+    } catch {
+      setError('No se ha podido actualizar tu foto de perfil.');
+    } finally {
+      setSubiendoAvatar(false);
+    }
+  };
+
+  const handleElegirArchivoDocumento = async () => {
+    const resultado = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*'],
+      copyToCacheDirectory: true,
+    });
+    if (resultado.canceled) return;
+    const asset = resultado.assets[0];
+    setArchivoDocumentoNuevo({
+      uri: asset.uri,
+      nombre: asset.name,
+      mimeType: asset.mimeType ?? 'application/octet-stream',
+    });
+  };
+
+  const handleSubirDocumento = async () => {
+    if (empresaId === null || archivoDocumentoNuevo === null) return;
+    setSubiendoDocumento(true);
+    try {
+      const storagePath = await subirArchivoPrivado(
+        'documentos-homologacion',
+        empresaId,
+        archivoDocumentoNuevo.uri,
+        archivoDocumentoNuevo.mimeType,
+        archivoDocumentoNuevo.nombre,
+      );
+      const { data, error: errorInsert } = await supabase
+        .from('documentos_homologacion')
+        .insert({
+          empresa_id: empresaId,
+          tipo: tipoDocumentoNuevo,
+          storage_path: storagePath,
+        })
+        .select('id, tipo, estado, descripcion, cobertura_eur, fecha_vencimiento, storage_path')
+        .single();
+
+      if (errorInsert || !data) throw errorInsert ?? new Error('sin datos');
+
+      setDocumentos((prev) => [...prev, data as Documento]);
+      setArchivoDocumentoNuevo(null);
+      setMostrandoFormDocumento(false);
+    } catch {
+      setError('No se ha podido subir el documento.');
+    } finally {
+      setSubiendoDocumento(false);
+    }
+  };
+
+  const handleAbrirDocumento = async (doc: Documento) => {
+    if (doc.storage_path === null) return;
+    setAbriendoDocumentoId(doc.id);
+    try {
+      const url = await obtenerUrlFirmada('documentos-homologacion', doc.storage_path);
+      await Linking.openURL(url);
+    } catch {
+      setError('No se ha podido abrir el documento.');
+    } finally {
+      setAbriendoDocumentoId(null);
+    }
+  };
+
+  const handleEmpezarEdicionBio = () => {
+    setBioEnEdicion(perfil?.bio ?? '');
+    setEditandoBio(true);
+  };
+
+  const handleGuardarBio = async () => {
+    if (usuarioId === null) return;
+    setGuardandoBio(true);
+    const { error: errorUpdate } = await supabase
+      .from('profiles')
+      .update({ bio: bioEnEdicion.trim() || null })
+      .eq('id', usuarioId);
+    setGuardandoBio(false);
+
+    if (!errorUpdate && perfil !== null) {
+      setPerfil({ ...perfil, bio: bioEnEdicion.trim() || null });
+      setEditandoBio(false);
+    }
+  };
+
   const handleCerrarSesion = async () => {
     setCerrandoSesion(true);
     await supabase.auth.signOut();
@@ -153,8 +317,8 @@ export default function PerfilScreen() {
 
   if (cargando) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator color={colors.primary} />
+      <View className="flex-1 items-center justify-center bg-canvas">
+        <ActivityIndicator color={colors.action} />
       </View>
     );
   }
@@ -168,38 +332,54 @@ export default function PerfilScreen() {
     : '?';
 
   return (
-    <View className="flex-1 bg-surface">
-      <ScreenHeader title="Perfil Profesional" />
+    <View className="flex-1 bg-canvas">
+      <ScreenHeader title="Perfil" rightElement={<CampanaNotificaciones />} />
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl refreshing={refrescando} onRefresh={handleRefrescar} colors={[colors.primary]} />
+          <RefreshControl refreshing={refrescando} onRefresh={handleRefrescar} colors={[colors.action]} />
         }
       >
         {error !== null && (
-          <View className="bg-errorContainer rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
-            <Feather name="alert-circle" size={16} color={colors.onErrorContainer} />
-            <Text className="text-onErrorContainer text-sm flex-1">{error}</Text>
+          <View className="bg-errorTint rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
+            <Feather name="alert-circle" size={17} color={colors.error} />
+            <Text className="text-error text-sm flex-1">{error}</Text>
           </View>
         )}
 
         {/* Cabecera de perfil */}
-        <View className="bg-surfaceContainerLowest rounded-2xl border border-outlineVariant p-4 flex-row items-center">
-          <View className="w-16 h-16 rounded-xl bg-primary items-center justify-center mr-3.5">
-            <Text className="text-onPrimary text-xl font-extrabold">{iniciales}</Text>
-          </View>
+        <View className="bg-surface rounded-2xl border border-border p-4 flex-row items-center">
+          <Pressable onPress={handleCambiarAvatar} disabled={subiendoAvatar} className="mr-3.5">
+            {perfil?.avatar_url && !falloAvatar ? (
+              <Image
+                source={{ uri: perfil.avatar_url }}
+                style={{ width: 64, height: 64, borderRadius: 12 }}
+                resizeMode="cover"
+                onError={() => setFalloAvatar(true)}
+              />
+            ) : (
+              <View className="w-16 h-16 rounded-xl bg-action items-center justify-center">
+                <Text className="text-white text-xl font-sansBold">{iniciales}</Text>
+              </View>
+            )}
+            <View className="absolute -bottom-1 -right-1 bg-surface rounded-full p-1.5 border border-border">
+              {subiendoAvatar ? (
+                <ActivityIndicator size="small" color={colors.action} />
+              ) : (
+                <Feather name="camera" size={13} color={colors.inkMuted} />
+              )}
+            </View>
+          </Pressable>
           <View className="flex-1">
-            <Text className="text-onSurface text-base font-bold">
-              {perfil?.nombre_completo ?? 'Sin nombre'}
-            </Text>
+            <Text className="text-ink text-base font-sansBold">{perfil?.nombre_completo ?? 'Sin nombre'}</Text>
             {empresa !== null && (
               <>
-                <Text className="text-onSurfaceVariant text-sm mt-0.5">{empresa.nombre}</Text>
+                <Text className="text-inkMuted text-sm mt-0.5">{empresa.nombre}</Text>
                 {empresa.especialidad !== null && (
                   <View className="flex-row items-center gap-1 mt-0.5">
-                    <Feather name="tool" size={11} color={colors.onSurfaceVariant} />
-                    <Text className="text-onSurfaceVariant text-xs">{empresa.especialidad}</Text>
+                    <Feather name="tool" size={13} color={colors.inkMuted} />
+                    <Text className="text-inkMuted text-xs">{empresa.especialidad}</Text>
                   </View>
                 )}
               </>
@@ -209,112 +389,243 @@ export default function PerfilScreen() {
 
         {empresa !== null && (
           <View className="flex-row mt-3 gap-2.5">
-            <View className="flex-1 bg-surfaceContainerLow rounded-xl p-3 items-center">
-              <Feather name="star" size={15} color={colors.accentGold} />
-              <Text className="text-onSurface text-lg font-extrabold mt-1">
+            <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
+              <Feather name="star" size={16} color={colors.gold} />
+              <Text className="text-ink text-lg font-sansBold mt-1">
                 {empresa.rating_medio !== null ? empresa.rating_medio.toFixed(1) : '—'}
               </Text>
-              <Text className="text-onSurfaceVariant text-[10px] uppercase font-bold mt-0.5">
-                Valoración
-              </Text>
+              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Valoración</Text>
             </View>
-            <View className="flex-1 bg-surfaceContainerLow rounded-xl p-3 items-center">
-              <Feather name="home" size={15} color={colors.tertiary} />
-              <Text className="text-onSurface text-lg font-extrabold mt-1">
-                {empresa.obras_completadas}
-              </Text>
-              <Text className="text-onSurfaceVariant text-[10px] uppercase font-bold mt-0.5">
-                Obras OH Casas
-              </Text>
+            <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
+              <Feather name="home" size={16} color={colors.action} />
+              <Text className="text-ink text-lg font-sansBold mt-1">{empresa.obras_completadas}</Text>
+              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Obras OH Contratas</Text>
             </View>
-            <View className="flex-1 bg-surfaceContainerLow rounded-xl p-3 items-center">
+            <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
               <Feather
                 name={empresa.homologado ? 'check-circle' : 'x-circle'}
-                size={15}
-                color={empresa.homologado ? colors.success : colors.onSurfaceVariant}
+                size={16}
+                color={empresa.homologado ? colors.success : colors.inkMuted}
               />
-              <Text
-                className={`text-lg font-extrabold mt-1 ${empresa.homologado ? 'text-success' : 'text-onSurfaceVariant'}`}
-              >
+              <Text className={`text-lg font-sansBold mt-1 ${empresa.homologado ? 'text-success' : 'text-inkMuted'}`}>
                 {empresa.homologado ? 'Sí' : 'No'}
               </Text>
-              <Text className="text-onSurfaceVariant text-[10px] uppercase font-bold mt-0.5">
-                Homologado
-              </Text>
+              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Homologado</Text>
             </View>
           </View>
         )}
 
+        {/* Biografía / descripción */}
+        <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
+              Sobre mí
+            </Text>
+            {!editandoBio && (
+              <Pressable onPress={handleEmpezarEdicionBio} className="flex-row items-center gap-1">
+                <Feather name="edit-2" size={14} color={colors.action} />
+                <Text className="text-action text-xs font-sansSemiBold">{perfil?.bio ? 'Editar' : 'Añadir'}</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {editandoBio ? (
+            <>
+              <TextInput
+                value={bioEnEdicion}
+                onChangeText={setBioEnEdicion}
+                multiline
+                numberOfLines={3}
+                placeholder="Cuéntanos sobre tu equipo, experiencia o especialidad..."
+                placeholderTextColor={colors.inkSubtle}
+                editable={!guardandoBio}
+                className="bg-surface border border-border rounded-xl px-3 py-2.5 text-ink text-sm"
+                style={{ minHeight: 80, textAlignVertical: 'top' }}
+              />
+              <View className="flex-row gap-2 mt-2">
+                <Pressable
+                  onPress={() => setEditandoBio(false)}
+                  disabled={guardandoBio}
+                  className="flex-1 border border-border rounded-lg py-2 items-center"
+                >
+                  <Text className="text-inkMuted text-xs font-sansSemiBold">Cancelar</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleGuardarBio}
+                  disabled={guardandoBio}
+                  className="flex-1 bg-action rounded-lg py-2 items-center flex-row justify-center gap-1.5"
+                >
+                  {guardandoBio ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Feather name="check" size={15} color={colors.white} />
+                  )}
+                  <Text className="text-white text-xs font-sansBold">Guardar</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <Text className="text-inkMuted text-sm leading-relaxed">
+              {perfil?.bio ? perfil.bio : 'Todavía no has añadido una descripción.'}
+            </Text>
+          )}
+        </View>
+
         {/* Documentación */}
-        <Text className="text-onSurface text-xs font-extrabold uppercase tracking-wider mt-6 mb-2">
-          Homologación legal y PRL
-        </Text>
+        <View className="flex-row justify-between items-center mt-6 mb-2">
+          <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
+            Homologación legal y PRL
+          </Text>
+          {!mostrandoFormDocumento && (
+            <Pressable onPress={() => setMostrandoFormDocumento(true)} className="flex-row items-center gap-1">
+              <Feather name="plus" size={14} color={colors.action} />
+              <Text className="text-action text-xs font-sansSemiBold">Añadir</Text>
+            </Pressable>
+          )}
+        </View>
         {documentos.length === 0 ? (
-          <Text className="text-onSurfaceVariant text-sm">Todavía no hay documentos registrados.</Text>
+          <Text className="text-inkMuted text-sm">Todavía no hay documentos registrados.</Text>
         ) : (
           <View className="gap-2">
             {documentos.map((doc) => {
               const estilo = ESTILO_ESTADO_DOCUMENTO[doc.estado];
               return (
-                <View
+                <Pressable
                   key={doc.id}
-                  className="bg-surfaceContainerLowest rounded-xl border border-outlineVariant p-3 flex-row items-start"
+                  onPress={() => handleAbrirDocumento(doc)}
+                  disabled={doc.storage_path === null || abriendoDocumentoId === doc.id}
+                  className="bg-surface rounded-xl border border-border p-3 flex-row items-start"
                 >
-                  <View className="w-8 h-8 rounded-lg bg-surfaceContainerLow items-center justify-center mr-2.5 mt-0.5">
-                    <Feather name={ICONO_TIPO_DOCUMENTO[doc.tipo]} size={14} color={colors.onSurfaceVariant} />
+                  <View className="w-8 h-8 rounded-lg bg-canvas items-center justify-center mr-2.5 mt-0.5">
+                    {abriendoDocumentoId === doc.id ? (
+                      <ActivityIndicator size="small" color={colors.inkMuted} />
+                    ) : (
+                      <Feather name={ICONO_TIPO_DOCUMENTO[doc.tipo]} size={15} color={colors.inkMuted} />
+                    )}
                   </View>
                   <View className="flex-1">
                     <View className="flex-row justify-between items-start">
-                      <Text className="text-onSurface text-sm font-bold flex-1 pr-2">
+                      <Text className="text-ink text-sm font-sansBold flex-1 pr-2">
                         {ETIQUETA_TIPO_DOCUMENTO[doc.tipo]}
                       </Text>
                       <View className={`flex-row items-center gap-1 rounded-md px-2 py-0.5 ${estilo.badge}`}>
-                        <Feather name={estilo.icono} size={9} color={colors.onSurfaceVariant} />
-                        <Text className={`text-[10px] font-bold ${estilo.texto}`}>{estilo.etiqueta}</Text>
+                        <Feather name={estilo.icono} size={11} color={estilo.icocolor} />
+                        <Text className={`text-[12px] font-sansBold ${estilo.texto}`}>{estilo.etiqueta}</Text>
                       </View>
                     </View>
                     {doc.cobertura_eur !== null && (
-                      <Text className="text-onSurfaceVariant text-xs mt-1">
+                      <Text className="text-inkMuted text-xs mt-1">
                         Cobertura: {formatearMoneda(doc.cobertura_eur, 'EUR')}
                       </Text>
                     )}
                     {doc.fecha_vencimiento !== null && (
-                      <Text className="text-onSurfaceVariant text-xs mt-0.5">
+                      <Text className="text-inkMuted text-xs mt-0.5">
                         Vence: {formatearFecha(doc.fecha_vencimiento)}
                       </Text>
                     )}
+                    {doc.storage_path !== null && (
+                      <View className="flex-row items-center gap-1 mt-1">
+                        <Feather name="paperclip" size={12} color={colors.action} />
+                        <Text className="text-action text-[13px] font-sansSemiBold">Ver archivo</Text>
+                      </View>
+                    )}
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </View>
         )}
-        <View className="bg-surfaceContainerLow rounded-lg px-3 py-2 mt-2 flex-row items-start gap-2">
-          <Feather name="info" size={13} color={colors.onSurfaceVariant} style={{ marginTop: 1 }} />
-          <Text className="text-onSurfaceVariant text-[11px] flex-1">
-            La opción de subir o actualizar documentación llegará en una próxima fase.
-          </Text>
-        </View>
+
+        {mostrandoFormDocumento && (
+          <View className="bg-surface rounded-xl border border-border p-3.5 mt-2">
+            <Text className="text-ink text-xs font-sansSemiBold mb-2">Tipo de documento</Text>
+            <View className="flex-row flex-wrap gap-1.5 mb-3">
+              {(Object.keys(ETIQUETA_TIPO_DOCUMENTO) as TipoDocumento[]).map((tipo) => (
+                <Pressable
+                  key={tipo}
+                  onPress={() => setTipoDocumentoNuevo(tipo)}
+                  className={`rounded-md px-2.5 py-1.5 ${
+                    tipoDocumentoNuevo === tipo ? 'bg-action' : 'bg-canvas'
+                  }`}
+                >
+                  <Text
+                    className={`text-[13px] font-sansSemiBold ${
+                      tipoDocumentoNuevo === tipo ? 'text-white' : 'text-inkMuted'
+                    }`}
+                  >
+                    {ETIQUETA_TIPO_DOCUMENTO[tipo]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            {archivoDocumentoNuevo !== null ? (
+              <View className="flex-row items-center gap-2 bg-canvas rounded-xl px-3 py-2.5 mb-3">
+                <Feather name="paperclip" size={15} color={colors.action} />
+                <Text className="text-ink text-xs font-sansSemiBold flex-1" numberOfLines={1}>
+                  {archivoDocumentoNuevo.nombre}
+                </Text>
+                <Pressable onPress={() => setArchivoDocumentoNuevo(null)} disabled={subiendoDocumento}>
+                  <Feather name="x" size={15} color={colors.inkMuted} />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={handleElegirArchivoDocumento}
+                disabled={subiendoDocumento}
+                className="flex-row items-center justify-center gap-2 border border-dashed border-border rounded-xl py-3 mb-3"
+              >
+                <Feather name="paperclip" size={15} color={colors.inkMuted} />
+                <Text className="text-inkMuted text-xs font-sansSemiBold">Elegir archivo (PDF o imagen)</Text>
+              </Pressable>
+            )}
+
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => {
+                  setMostrandoFormDocumento(false);
+                  setArchivoDocumentoNuevo(null);
+                }}
+                disabled={subiendoDocumento}
+                className="flex-1 border border-border rounded-lg py-2 items-center"
+              >
+                <Text className="text-inkMuted text-xs font-sansSemiBold">Cancelar</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSubirDocumento}
+                disabled={subiendoDocumento || archivoDocumentoNuevo === null}
+                className="flex-1 bg-action rounded-lg py-2 items-center flex-row justify-center gap-1.5"
+              >
+                {subiendoDocumento ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <Feather name="upload" size={15} color={colors.white} />
+                )}
+                <Text className="text-white text-xs font-sansBold">Subir</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {/* Obras completadas */}
         {obrasCompletadas.length > 0 && (
           <>
-            <Text className="text-onSurface text-xs font-extrabold uppercase tracking-wider mt-6 mb-2">
+            <Text className="text-ink text-xs font-sansBold uppercase mt-6 mb-2" style={{ letterSpacing: 1 }}>
               Obras adjudicadas
             </Text>
             <View className="gap-2">
               {obrasCompletadas.map((item) => (
                 <View
                   key={item.id}
-                  className="bg-surfaceContainerLowest rounded-xl border border-outlineVariant p-3 flex-row justify-between items-center"
+                  className="bg-surface rounded-xl border border-border p-3 flex-row justify-between items-center"
                 >
                   <View className="flex-row items-center flex-1 pr-2">
-                    <Feather name="check-circle" size={14} color={colors.success} />
-                    <Text className="text-onSurface text-sm font-semibold ml-2 flex-1">
+                    <Feather name="check-circle" size={15} color={colors.success} />
+                    <Text className="text-ink text-sm font-sansSemiBold ml-2 flex-1">
                       {item.obras?.titulo ?? 'Obra'}
                     </Text>
                   </View>
-                  <Text className="text-onSurface text-sm font-bold">
+                  <Text className="text-ink text-sm font-sansBold">
                     {formatearMoneda(item.oferta_economica, item.obras?.moneda ?? 'EUR')}
                   </Text>
                 </View>
@@ -333,9 +644,9 @@ export default function PerfilScreen() {
             {cerrandoSesion ? (
               <ActivityIndicator color={colors.error} />
             ) : (
-              <Feather name="log-out" size={15} color={colors.error} />
+              <Feather name="log-out" size={16} color={colors.error} />
             )}
-            <Text className="text-error font-bold text-sm">Cerrar sesión</Text>
+            <Text className="text-error font-sansBold text-sm">Cerrar sesión</Text>
           </View>
         </Pressable>
       </ScrollView>

@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   Pressable,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -81,38 +82,35 @@ export default function LoginScreen() {
   };
 
   return (
-    <View
-      className="flex-1 bg-surface"
-      style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
-    >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
+    <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View className="flex-1 justify-center px-6">
           {/* Marca */}
           <View className="items-center mb-8">
-            <View className="w-14 h-14 rounded-xl bg-primary items-center justify-center mb-3">
-              <Text className="text-onPrimary text-2xl font-bold">OH</Text>
-            </View>
-            <Text className="text-onSurface text-xl font-bold">Portal de Subcontratas</Text>
-            <Text className="text-onSurfaceVariant text-sm mt-1">OH Casas Modulares</Text>
+            <Image
+              source={require('../../../assets/branding/oh-casas-logo.jpg')}
+              style={{ width: 64, height: 64, borderRadius: 16 }}
+              className="mb-3"
+            />
+            <Text className="text-ink text-[13px] font-sansSemiBold uppercase" style={{ letterSpacing: 2.2 }}>
+              OH CONTRATAS
+            </Text>
+            <Text className="text-ink text-2xl font-sansBold mt-3">Bienvenido de nuevo</Text>
+            <Text className="text-inkMuted text-sm mt-1">Accede a tu portal de subcontratas.</Text>
           </View>
 
           {/* Tarjeta del formulario */}
-          <View className="bg-surfaceContainerLowest rounded-2xl p-5 border border-outlineVariant">
-            <Text className="text-onSurface text-base font-semibold mb-4">Iniciar sesión</Text>
-
+          <View className="bg-surface rounded-2xl p-5 border border-border">
             {errorGeneral !== null && (
-              <View className="bg-errorContainer rounded-lg px-3 py-2 mb-4 flex-row items-center gap-2">
-                <Feather name="alert-circle" size={16} color={colors.onErrorContainer} />
-                <Text className="text-onErrorContainer text-sm flex-1">{errorGeneral}</Text>
+              <View className="bg-errorTint rounded-lg px-3 py-2 mb-4 flex-row items-center gap-2">
+                <Feather name="alert-circle" size={17} color={colors.error} />
+                <Text className="text-error text-sm flex-1">{errorGeneral}</Text>
               </View>
             )}
 
-            <Text className="text-onSurface text-xs font-semibold mb-1">Email</Text>
-            <View className="flex-row items-center bg-surface border border-outlineVariant rounded-xl mb-1 px-3">
-              <Feather name="mail" size={16} color={colors.outline} />
+            <Text className="text-ink text-xs font-sansSemiBold mb-1">Email</Text>
+            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+              <Feather name="mail" size={17} color={colors.inkSubtle} />
               <TextInput
                 value={email}
                 onChangeText={setEmail}
@@ -120,71 +118,61 @@ export default function LoginScreen() {
                 autoCorrect={false}
                 keyboardType="email-address"
                 placeholder="tu@empresa.com"
-                placeholderTextColor={colors.outline}
+                placeholderTextColor={colors.inkSubtle}
                 editable={!cargando}
-                className="flex-1 py-3 pl-2.5 text-onSurface"
+                className="flex-1 py-3 pl-2.5 text-ink"
               />
             </View>
             {errorEmail !== null && <Text className="text-error text-xs mb-2">{errorEmail}</Text>}
 
-            <Text className="text-onSurface text-xs font-semibold mb-1 mt-3">Contraseña</Text>
-            <View className="flex-row items-center bg-surface border border-outlineVariant rounded-xl mb-1 px-3">
-              <Feather name="lock" size={16} color={colors.outline} />
+            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-3">Contraseña</Text>
+            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+              <Feather name="lock" size={17} color={colors.inkSubtle} />
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!mostrarPassword}
                 autoCapitalize="none"
                 placeholder="••••••••"
-                placeholderTextColor={colors.outline}
+                placeholderTextColor={colors.inkSubtle}
                 editable={!cargando}
-                className="flex-1 py-3 pl-2.5 text-onSurface"
+                className="flex-1 py-3 pl-2.5 text-ink"
               />
               <Pressable onPress={() => setMostrarPassword((v) => !v)} className="pl-2">
-                <Feather name={mostrarPassword ? 'eye-off' : 'eye'} size={16} color={colors.outline} />
+                <Feather name={mostrarPassword ? 'eye-off' : 'eye'} size={17} color={colors.inkSubtle} />
               </Pressable>
             </View>
-            {errorPassword !== null && (
-              <Text className="text-error text-xs mb-2">{errorPassword}</Text>
-            )}
-
-            <Pressable
-              onPress={() => navigation.navigate('RecuperarPassword')}
-              className="self-end mb-4 mt-1"
-              disabled={cargando}
-            >
-              <Text className="text-tertiary text-xs font-semibold">
-                ¿Olvidaste tu contraseña?
-              </Text>
-            </Pressable>
+            {errorPassword !== null && <Text className="text-error text-xs mb-2">{errorPassword}</Text>}
 
             <Pressable
               onPress={handleIniciarSesion}
               disabled={cargando}
-              className="bg-primary rounded-xl py-3 items-center"
+              className="bg-action rounded-xl py-3 items-center mt-2"
             >
               <View className="flex-row items-center justify-center gap-2">
                 {cargando ? (
-                  <ActivityIndicator color={colors.onPrimary} />
+                  <ActivityIndicator color={colors.white} />
                 ) : (
-                  <Feather name="log-in" size={16} color={colors.onPrimary} />
+                  <Feather name="log-in" size={17} color={colors.white} />
                 )}
-                <Text className="text-onPrimary font-bold text-sm">
+                <Text className="text-white font-sansBold text-sm">
                   {cargando ? 'Entrando…' : 'Iniciar sesión'}
                 </Text>
               </View>
             </Pressable>
+
+            <Pressable
+              onPress={() => navigation.navigate('Registro')}
+              disabled={cargando}
+              className="border border-border rounded-xl py-3 items-center mt-2.5"
+            >
+              <Text className="text-ink font-sansBold text-sm">Crear cuenta</Text>
+            </Pressable>
           </View>
 
-          <Pressable
-            onPress={() => navigation.navigate('Registro')}
-            className="self-center mt-6"
-            disabled={cargando}
-          >
-            <Text className="text-onSurfaceVariant text-sm">
-              ¿No tienes cuenta? <Text className="text-tertiary font-semibold">Crear cuenta</Text>
-            </Text>
-          </Pressable>
+          <Text className="text-inkMuted text-xs text-center mt-6">
+            Al continuar aceptas la <Text className="text-action font-sansMedium">política de privacidad</Text>.
+          </Text>
         </View>
       </KeyboardAvoidingView>
     </View>
