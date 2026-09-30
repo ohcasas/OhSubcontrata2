@@ -20,7 +20,7 @@ import { subirImagenPublica, subirArchivoPrivado, obtenerUrlFirmada } from '../.
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
-import { URL_POLITICA_PRIVACIDAD } from '../../constants/enlaces';
+import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 
@@ -693,6 +693,12 @@ export default function PerfilScreen() {
 
         <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)} className="items-center py-2">
           <Text className="text-inkMuted text-xs underline">Política de privacidad</Text>
+        </Pressable>
+        <Pressable onPress={() => Linking.openURL(URL_TERMINOS)} className="items-center py-2">
+          <Text className="text-inkMuted text-xs underline">Términos y condiciones</Text>
+        </Pressable>
+        <Pressable onPress={() => Linking.openURL(URL_AVISO_LEGAL)} className="items-center py-2">
+          <Text className="text-inkMuted text-xs underline">Aviso legal</Text>
         </Pressable>
       </ScrollView>
     </View>

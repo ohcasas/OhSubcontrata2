@@ -10,8 +10,10 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -334,6 +336,22 @@ export default function RegistroScreen() {
                 </Text>
               </View>
             </Pressable>
+
+            <Text className="text-inkMuted text-xs text-center mt-3">
+              Al crear la cuenta aceptas el{' '}
+              <Text className="text-action font-sansMedium" onPress={() => Linking.openURL(URL_AVISO_LEGAL)}>
+                aviso legal
+              </Text>
+              , los{' '}
+              <Text className="text-action font-sansMedium" onPress={() => Linking.openURL(URL_TERMINOS)}>
+                términos y condiciones
+              </Text>{' '}
+              y la{' '}
+              <Text className="text-action font-sansMedium" onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)}>
+                política de privacidad
+              </Text>
+              .
+            </Text>
           </View>
 
           <Pressable
