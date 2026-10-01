@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cuenta confirmada — OH Contratas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --canvas:#F8FAFD; --surface:#FFFFFF; --ink:#0B1F35; --ink-muted:#52657A; --action:#0057FF; --success:#197A55; --success-tint:#E4F5ED; --border:#D7E0EB; }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--canvas); color: var(--ink); font-family: 'DM Sans', system-ui, sans-serif;
+    padding: 24px; padding-top: max(24px, env(safe-area-inset-top, 0px)); padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+  .tarjeta { max-width: 400px; width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 36px 28px; text-align: center; }
+  .check { width: 56px; height: 56px; border-radius: 50%; background: var(--success-tint); color: var(--success); font-size: 28px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  .wordmark { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--ink-muted); text-transform: uppercase; margin-bottom: 14px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 10px; }
+  p { font-size: 15px; color: var(--ink-muted); line-height: 1.5; margin: 0; }
+</style>
+</head>
+<body>
+  <div class="tarjeta">
+    <div class="wordmark">OH Contratas</div>
+    <div class="check">✓</div>
+    <h1>Cuenta confirmada</h1>
+    <p>Ya puedes cerrar esta ventana y volver a la app para iniciar sesión con tu email y contraseña.</p>
+  </div>
+</body>
+</html>
