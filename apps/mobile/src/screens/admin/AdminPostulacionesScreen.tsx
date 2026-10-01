@@ -17,6 +17,7 @@ import { obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import ScreenHeader from '../../components/ScreenHeader';
+import { formatearMoneda } from '../../utils/moneda';
 
 type Estado = 'enviada' | 'en_revision' | 'aceptada' | 'rechazada';
 
@@ -57,9 +58,6 @@ const ESTILO_ESTADO: Record<Estado, { badge: string; texto: string }> = {
   rechazada: { badge: 'bg-errorTint', texto: 'text-error' },
 };
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 export default function AdminPostulacionesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

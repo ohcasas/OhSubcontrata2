@@ -12,6 +12,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { OBRAS_PARA_DESBLOQUEAR_CLUB } from '../../constants/niveles';
 import { formatearFechaHora, msHastaCierre, textoCuentaAtrasLarga } from '../../utils/plazos';
+import { formatearMoneda } from '../../utils/moneda';
 
 type EstadoObra = 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada';
 
@@ -53,9 +54,6 @@ const OPCIONES_ESTADO: { estado: EstadoObra; etiqueta: string; requiereAdjudicat
   { estado: 'cancelada', etiqueta: 'Cancelada', requiereAdjudicataria: false },
 ];
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 /**
  * Detalle de una obra concreta para el admin, con las mismas acciones de

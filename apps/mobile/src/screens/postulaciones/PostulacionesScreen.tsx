@@ -10,6 +10,7 @@ import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import ScreenHeader from '../../components/ScreenHeader';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
+import { formatearMoneda } from '../../utils/moneda';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 type Estado = 'enviada' | 'en_revision' | 'aceptada' | 'rechazada';
@@ -65,9 +66,6 @@ const MENSAJE_PROGRESO: Partial<Record<EstadoObra, string>> = {
   cerrada: 'Obra finalizada.',
 };
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 function formatearFechaHora(fechaIso: string): string {
   return new Date(fechaIso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });

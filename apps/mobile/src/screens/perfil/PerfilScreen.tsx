@@ -21,6 +21,7 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
+import { formatearMoneda } from '../../utils/moneda';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 
@@ -94,9 +95,6 @@ function formatearFecha(fechaIso: string | null): string | null {
   return new Date(fechaIso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 export default function PerfilScreen() {
   const [usuarioId, setUsuarioId] = useState<string | null>(null);

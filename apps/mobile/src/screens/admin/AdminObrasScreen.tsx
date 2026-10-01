@@ -21,6 +21,7 @@ import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import ScreenHeader from '../../components/ScreenHeader';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
+import { formatearMoneda } from '../../utils/moneda';
 
 type EstadoObra = 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada';
 
@@ -43,9 +44,6 @@ const ESTILO_ESTADO: Record<EstadoObra, { badge: string; texto: string; etiqueta
   cancelada: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Cancelada' },
 };
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 export default function AdminObrasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();

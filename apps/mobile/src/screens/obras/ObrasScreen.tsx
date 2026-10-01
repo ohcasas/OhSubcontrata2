@@ -13,6 +13,7 @@ import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { ETIQUETA_NIVEL } from '../../constants/niveles';
 import type { NivelPartner } from '../../constants/niveles';
 import { esPrioritaria, msHastaCierre, textoCuentaAtras, textoDuracion } from '../../utils/plazos';
+import { formatearMoneda } from '../../utils/moneda';
 
 const COLOR_NIVEL: Record<NivelPartner, { texto: string; fondo: string }> = {
   bronce: { texto: colors.bronze, fondo: colors.bronzeTint },
@@ -46,9 +47,6 @@ type ResumenEmpresa = {
   puntos_disponibles: number;
 };
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 function formatearFecha(fechaIso: string | null): string | null {
   if (fechaIso === null) return null;
@@ -286,6 +284,7 @@ export default function ObrasScreen() {
         const ms = msHastaCierre(obra.plazo_cierre, ahora) ?? 0;
         return (
           <View key={obra.id} className="bg-surface rounded-2xl border border-border overflow-hidden mt-3">
+            <ObraImagePlaceholder imageUrl={obra.imagen_url} icon="home" height={160} rounded="top" />
             <View className="p-4">
               <View className="flex-row justify-between items-center">
                 <Text className="text-inkMuted text-[13px] font-sansSemiBold uppercase" style={{ letterSpacing: 1 }}>

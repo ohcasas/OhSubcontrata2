@@ -125,6 +125,13 @@ export default function RegistroScreen() {
           cif: valores.cif.trim().toUpperCase(),
           especialidad: valores.especialidad.trim() || null,
         },
+        // Sin esto, Supabase usa su "Site URL" por defecto — que en este
+        // proyecto está puesta a una página antigua pensada solo para
+        // recuperar contraseña (de antes de este rediseño), y se queda
+        // colgada en "Comprobando enlace…" para un enlace de registro.
+        // Con esto, el enlace de confirmación lleva a nuestra propia
+        // página de "cuenta confirmada".
+        emailRedirectTo: 'https://ohcasas.github.io/OhSubcontrata2/confirmado.html',
       },
     });
     setCargando(false);

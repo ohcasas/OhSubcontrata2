@@ -21,6 +21,7 @@ import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { esPrioritaria, textoDuracion } from '../../utils/plazos';
+import { formatearMoneda } from '../../utils/moneda';
 
 type Obra = {
   id: string;
@@ -77,9 +78,6 @@ type ArchivoAdjunto = {
   storage_path: string;
 };
 
-function formatearMoneda(valor: number, moneda: string): string {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: moneda }).format(valor);
-}
 
 function formatearFecha(fechaIso: string | null): string | null {
   if (fechaIso === null) return null;
