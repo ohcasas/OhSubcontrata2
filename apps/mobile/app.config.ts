@@ -15,11 +15,11 @@ const config: ExpoConfig = {
     },
   },
   ios: {
-    bundleIdentifier: 'com.ohcasas.contratas',
+    bundleIdentifier: 'es.ohcasas.subcontratas',
     supportsTablet: false,
   },
   android: {
-    package: 'com.ohcasas.contratas',
+    package: 'es.ohcasas.subcontratas',
     googleServicesFile: './google-services.json',
     adaptiveIcon: {
       foregroundImage: './assets/branding/adaptive-icon-foreground.png',
