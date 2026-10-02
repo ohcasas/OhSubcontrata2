@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: 'OH Contratas',
+  name: 'OH Conecta',
   slug: 'oh-casas-subcontratas',
   owner: 'softwareoh',
   scheme: 'ohcasas',
@@ -15,11 +15,11 @@ const config: ExpoConfig = {
     },
   },
   ios: {
-    bundleIdentifier: 'es.ohcasas.subcontratas',
+    bundleIdentifier: 'com.ohcasas.contratas',
     supportsTablet: false,
   },
   android: {
-    package: 'es.ohcasas.subcontratas',
+    package: 'com.ohcasas.contratas',
     googleServicesFile: './google-services.json',
     adaptiveIcon: {
       foregroundImage: './assets/branding/adaptive-icon-foreground.png',

@@ -4,6 +4,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import ElegirTipoCuentaScreen from '../screens/auth/ElegirTipoCuentaScreen';
 import RegistroScreen from '../screens/auth/RegistroScreen';
 import RegistroReferidorScreen from '../screens/auth/RegistroReferidorScreen';
+import RegistroEmpresaScreen from '../screens/auth/RegistroEmpresaScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -14,6 +15,7 @@ export default function AuthStack() {
       <Stack.Screen name="ElegirTipoCuenta" component={ElegirTipoCuentaScreen} />
       <Stack.Screen name="Registro" component={RegistroScreen} />
       <Stack.Screen name="RegistroReferidor" component={RegistroReferidorScreen} />
+      <Stack.Screen name="RegistroEmpresa" component={RegistroEmpresaScreen} />
     </Stack.Navigator>
   );
 }

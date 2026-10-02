@@ -1,22 +1,97 @@
-import { View, Text, Pressable, Image } from 'react-native';
+import { View, Text, Pressable, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
-import type { AuthStackParamList } from '../../navigation/types';
+import type { AuthStackParamList, RolEmpresaColaboradora } from '../../navigation/types';
 import { colors } from '../../design-system/tokens';
+
+type OpcionTrabajo = {
+  tipo: 'subcontratista' | 'referidor';
+  icono: keyof typeof Feather.glyphMap;
+  titulo: string;
+  subtitulo: string;
+};
+
+type OpcionEmpresa = {
+  tipo: RolEmpresaColaboradora;
+  icono: keyof typeof Feather.glyphMap;
+  titulo: string;
+  subtitulo: string;
+};
+
+const OPCIONES_TRABAJO: OpcionTrabajo[] = [
+  {
+    tipo: 'subcontratista',
+    icono: 'briefcase',
+    titulo: 'Oficios',
+    subtitulo: 'Postula a licitaciones, ejecuta obras y gana puntos del Club OH Partner.',
+  },
+  {
+    tipo: 'referidor',
+    icono: 'users',
+    titulo: 'Recomienda clientes',
+    subtitulo: 'Eres una inmobiliaria, agente o particular y quieres recomendar clientes.',
+  },
+];
+
+const OPCIONES_EMPRESA: OpcionEmpresa[] = [
+  { tipo: 'promotor', icono: 'home', titulo: 'Promotor', subtitulo: 'Publica proyectos, obras y necesidades.' },
+  {
+    tipo: 'constructora',
+    icono: 'tool',
+    titulo: 'Constructora',
+    subtitulo: 'Busca subcontratas, proveedores y técnicos.',
+  },
+  {
+    tipo: 'arquitecto',
+    icono: 'edit-3',
+    titulo: 'Arquitecto',
+    subtitulo: 'Proyectos, dirección de obra, colaboraciones.',
+  },
+  {
+    tipo: 'proveedor',
+    icono: 'package',
+    titulo: 'Proveedor',
+    subtitulo: 'Materiales, maquinaria, transporte, alquileres.',
+  },
+  {
+    tipo: 'profesional',
+    icono: 'award',
+    titulo: 'Profesional',
+    subtitulo: 'Aparejadores, ingenieros, coordinadores, topografía.',
+  },
+  {
+    tipo: 'administrador',
+    icono: 'file-text',
+    titulo: 'Administrador',
+    subtitulo: 'Información institucional, planeamiento, oportunidades.',
+  },
+];
 
 export default function ElegirTipoCuentaScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
 
+  const irATrabajo = (tipo: OpcionTrabajo['tipo']) => {
+    if (tipo === 'subcontratista') {
+      navigation.navigate('Registro');
+    } else {
+      navigation.navigate('RegistroReferidor');
+    }
+  };
+
+  const irAEmpresa = (tipo: RolEmpresaColaboradora) => {
+    navigation.navigate('RegistroEmpresa', { rol: tipo });
+  };
+
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
-      <View className="flex-1 px-6 justify-center">
-        <View className="items-center mb-8">
+      <ScrollView contentContainerStyle={{ padding: 24 }}>
+        <View className="items-center mb-6">
           <Image
             source={require('../../../assets/branding/oh-casas-logo.jpg')}
-            style={{ width: 56, height: 56, borderRadius: 14 }}
+            style={{ width: 52, height: 52, borderRadius: 13 }}
             className="mb-3"
           />
           <Text className="text-ink text-2xl font-sansBold text-center">¿Qué quieres hacer?</Text>
@@ -25,40 +100,56 @@ export default function ElegirTipoCuentaScreen() {
           </Text>
         </View>
 
-        <Pressable
-          onPress={() => navigation.navigate('Registro')}
-          className="bg-surface border border-border rounded-2xl p-5 mb-3"
-        >
-          <View className="w-11 h-11 rounded-xl bg-actionTint items-center justify-center mb-3">
-            <Feather name="briefcase" size={20} color={colors.action} />
-          </View>
-          <Text className="text-ink text-base font-sansBold">Quiero trabajar en obras</Text>
-          <Text className="text-inkMuted text-sm mt-1 leading-relaxed">
-            Eres subcontratista, autónomo o empresa de un oficio: postula a licitaciones, ejecuta obras y gana
-            puntos del Club OH Partner.
-          </Text>
-        </Pressable>
+        <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
+          Trabajo en obras
+        </Text>
+        <View className="gap-2 mb-5">
+          {OPCIONES_TRABAJO.map((op) => (
+            <Pressable
+              key={op.tipo}
+              onPress={() => irATrabajo(op.tipo)}
+              className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3"
+            >
+              <View className="w-10 h-10 rounded-lg bg-actionTint items-center justify-center">
+                <Feather name={op.icono} size={18} color={colors.action} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-ink text-sm font-sansBold">{op.titulo}</Text>
+                <Text className="text-inkMuted text-xs mt-0.5">{op.subtitulo}</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.inkSubtle} />
+            </Pressable>
+          ))}
+        </View>
 
-        <Pressable
-          onPress={() => navigation.navigate('RegistroReferidor')}
-          className="bg-surface border border-border rounded-2xl p-5"
-        >
-          <View className="w-11 h-11 rounded-xl bg-actionTint items-center justify-center mb-3">
-            <Feather name="users" size={20} color={colors.action} />
-          </View>
-          <Text className="text-ink text-base font-sansBold">Quiero recomendar clientes</Text>
-          <Text className="text-inkMuted text-sm mt-1 leading-relaxed">
-            Eres una inmobiliaria, agente o particular: recomienda personas que quieran construir una vivienda y
-            gana una comisión si la operación se completa.
-          </Text>
-        </Pressable>
+        <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
+          Soy una empresa o profesional del sector
+        </Text>
+        <View className="gap-2">
+          {OPCIONES_EMPRESA.map((op) => (
+            <Pressable
+              key={op.tipo}
+              onPress={() => irAEmpresa(op.tipo)}
+              className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3"
+            >
+              <View className="w-10 h-10 rounded-lg bg-actionTint items-center justify-center">
+                <Feather name={op.icono} size={18} color={colors.action} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-ink text-sm font-sansBold">{op.titulo}</Text>
+                <Text className="text-inkMuted text-xs mt-0.5">{op.subtitulo}</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.inkSubtle} />
+            </Pressable>
+          ))}
+        </View>
 
         <Pressable onPress={() => navigation.navigate('Login')} className="self-center mt-8">
           <Text className="text-inkMuted text-sm">
             ¿Ya tienes cuenta? <Text className="text-action font-sansSemiBold">Iniciar sesión</Text>
           </Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </View>
   );
 }

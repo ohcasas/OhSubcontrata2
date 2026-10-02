@@ -5,11 +5,20 @@
 
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+export type RolEmpresaColaboradora =
+  | 'promotor'
+  | 'constructora'
+  | 'arquitecto'
+  | 'proveedor'
+  | 'profesional'
+  | 'administrador';
+
 export type AuthStackParamList = {
   Login: undefined;
   ElegirTipoCuenta: undefined;
   Registro: undefined;
   RegistroReferidor: undefined;
+  RegistroEmpresa: { rol: RolEmpresaColaboradora };
 };
 
 export type SubcontratistaTabParamList = {
@@ -38,6 +47,7 @@ export type RootStackParamList = {
   Auth: undefined;
   AppSubcontratista: NavigatorScreenParams<SubcontratistaTabParamList> | undefined;
   AppReferidor: NavigatorScreenParams<ReferidorTabParamList> | undefined;
+  AppProximamente: undefined;
   Notificaciones: undefined;
   AppAdmin: undefined;
   DetalleObra: { obraId: string };
