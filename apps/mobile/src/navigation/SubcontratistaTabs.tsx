@@ -9,6 +9,7 @@ import { colors } from '../design-system/tokens';
 import AnimatedTabBar from '../components/AnimatedTabBar';
 import ObrasScreen from '../screens/obras/ObrasScreen';
 import PostulacionesScreen from '../screens/postulaciones/PostulacionesScreen';
+import RecomiendaScreen from '../screens/recomienda/RecomiendaScreen';
 import ClubPartnerScreen from '../screens/partner/ClubPartnerScreen';
 import PerfilScreen from '../screens/perfil/PerfilScreen';
 
@@ -17,6 +18,7 @@ const Tab = createBottomTabNavigator<SubcontratistaTabParamList>();
 const ICONOS = {
   Obras: 'briefcase',
   Postulaciones: 'file-text',
+  Recomienda: 'users',
   Partner: 'award',
   Perfil: 'user',
 } as const;
@@ -31,6 +33,7 @@ export default function SubcontratistaTabs() {
     >
       <Tab.Screen name="Obras" component={ObrasScreen} />
       <Tab.Screen name="Postulaciones" component={PostulacionesScreen} />
+      <Tab.Screen name="Recomienda" component={RecomiendaScreen} />
       <Tab.Screen name="Partner" component={ClubPartnerScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>

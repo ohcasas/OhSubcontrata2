@@ -95,7 +95,7 @@ export default function LoginScreen() {
               className="mb-3"
             />
             <Text className="text-ink text-[13px] font-sansSemiBold uppercase" style={{ letterSpacing: 2.2 }}>
-              OH CONTRATAS
+              OH NETWORK
             </Text>
             <Text className="text-ink text-2xl font-sansBold mt-3">Bienvenido de nuevo</Text>
             <Text className="text-inkMuted text-sm mt-1">Accede a tu portal de subcontratas.</Text>
@@ -164,7 +164,7 @@ export default function LoginScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => navigation.navigate('Registro')}
+              onPress={() => navigation.navigate('ElegirTipoCuenta')}
               disabled={cargando}
               className="border border-border rounded-xl py-3 items-center mt-2.5"
             >

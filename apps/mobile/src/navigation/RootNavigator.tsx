@@ -18,14 +18,16 @@ import { registrarPush } from '../services/pushNotifications';
 import { colors } from '../design-system/tokens';
 import AuthStack from './AuthStack';
 import SubcontratistaTabs from './SubcontratistaTabs';
+import ReferidorTabs from './ReferidorTabs';
 import AdminTabs from './AdminTabs';
 import DetalleObraScreen from '../screens/obras/DetalleObraScreen';
 import NotificacionesScreen from '../screens/notificaciones/NotificacionesScreen';
 import GremioDetalleScreen from '../screens/admin/GremioDetalleScreen';
 import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
+import TarjetaComisionFlotante from '../components/TarjetaComisionFlotante';
 import type { RootStackParamList } from './types';
 
-type Rol = 'subcontratista' | 'admin' | 'superadmin';
+type Rol = 'subcontratista' | 'referidor' | 'admin' | 'superadmin';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -125,6 +127,8 @@ export default function RootNavigator() {
               }}
             />
           </>
+        ) : rol === 'referidor' ? (
+          <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
         ) : (
           <>
             <Stack.Screen name="AppSubcontratista" component={SubcontratistaTabs} />
@@ -153,6 +157,13 @@ export default function RootNavigator() {
           </>
         )}
       </Stack.Navigator>
+
+      {/* Tarjeta flotante de comisión pendiente: por encima de toda la
+          navegación, para subcontratistas y referidores (quien haga la
+          recomendación), nunca para el admin. */}
+      {session !== null && (rol === 'subcontratista' || rol === 'referidor') && (
+        <TarjetaComisionFlotante userId={session.user.id} />
+      )}
     </NavigationContainer>
   );
 }
