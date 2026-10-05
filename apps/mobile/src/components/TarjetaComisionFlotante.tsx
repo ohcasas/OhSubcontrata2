@@ -30,6 +30,7 @@ export default function TarjetaComisionFlotante({ userId }: { userId: string }) 
   const [pendiente, setPendiente] = useState<RecompensaPendiente | null>(null);
   const [oculta, setOculta] = useState(false);
   const [aceptando, setAceptando] = useState(false);
+  const [errorAceptar, setErrorAceptar] = useState<string | null>(null);
 
   useEffect(() => {
     let activo = true;
@@ -53,9 +54,14 @@ export default function TarjetaComisionFlotante({ userId }: { userId: string }) 
 
   const handleAceptar = async () => {
     setAceptando(true);
+    setErrorAceptar(null);
     const { error } = await supabase.rpc('aceptar_comision_referido', { p_comision_id: pendiente.id });
     setAceptando(false);
-    if (!error) setOculta(true);
+    if (error) {
+      setErrorAceptar(error.message);
+      return;
+    }
+    setOculta(true);
   };
 
   return (
@@ -93,6 +99,10 @@ export default function TarjetaComisionFlotante({ userId }: { userId: string }) 
           <Text className="text-ink font-sansBold">{formatearMoneda(pendiente.importe)}</Text> ({pendiente.porcentaje}
           % sobre {formatearMoneda(pendiente.base_imponible)}).
         </Text>
+
+        {errorAceptar !== null && (
+          <Text className="text-error text-xs mt-2">{errorAceptar}</Text>
+        )}
 
         <View className="flex-row gap-2 mt-3">
           <Pressable

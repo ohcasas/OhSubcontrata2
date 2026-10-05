@@ -25,8 +25,7 @@ import NotificacionesScreen from '../screens/notificaciones/NotificacionesScreen
 import GremioDetalleScreen from '../screens/admin/GremioDetalleScreen';
 import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
 import TarjetaComisionFlotante from '../components/TarjetaComisionFlotante';
-import TablonTabs from './TablonTabs';
-import DirectorioTabs from './DirectorioTabs';
+import ConectaTabs from './ConectaTabs';
 import type { RootStackParamList } from './types';
 
 type Rol =
@@ -41,8 +40,14 @@ type Rol =
   | 'profesional'
   | 'administrador';
 
-const ROLES_TABLON: Rol[] = ['promotor', 'constructora', 'administrador'];
-const ROLES_DIRECTORIO: Rol[] = ['proveedor', 'arquitecto', 'profesional'];
+const ROLES_CONECTA: Rol[] = [
+  'promotor',
+  'constructora',
+  'arquitecto',
+  'proveedor',
+  'profesional',
+  'administrador',
+];
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -144,13 +149,9 @@ export default function RootNavigator() {
           </>
         ) : rol === 'referidor' ? (
           <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
-        ) : rol !== null && ROLES_TABLON.includes(rol) ? (
-          <Stack.Screen name="AppProximamente">
-            {() => <TablonTabs rol={rol} userId={session!.user.id} />}
-          </Stack.Screen>
-        ) : rol !== null && ROLES_DIRECTORIO.includes(rol) ? (
-          <Stack.Screen name="AppProximamente">
-            {() => <DirectorioTabs rol={rol} userId={session!.user.id} />}
+        ) : rol !== null && ROLES_CONECTA.includes(rol) ? (
+          <Stack.Screen name="AppConecta">
+            {() => <ConectaTabs rol={rol} userId={session!.user.id} />}
           </Stack.Screen>
         ) : (
           <>

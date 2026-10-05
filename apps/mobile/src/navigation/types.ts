@@ -47,7 +47,7 @@ export type RootStackParamList = {
   Auth: undefined;
   AppSubcontratista: NavigatorScreenParams<SubcontratistaTabParamList> | undefined;
   AppReferidor: NavigatorScreenParams<ReferidorTabParamList> | undefined;
-  AppProximamente: undefined;
+  AppConecta: undefined;
   Notificaciones: undefined;
   AppAdmin: undefined;
   DetalleObra: { obraId: string };

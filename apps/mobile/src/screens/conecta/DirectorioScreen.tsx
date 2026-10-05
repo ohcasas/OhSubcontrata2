@@ -24,6 +24,9 @@ const ETIQUETA_ROL: Record<string, string> = {
 };
 
 export default function DirectorioScreen({ rol, userId }: { rol: string; userId: string }) {
+  // Solo estos tres perfiles tienen ficha propia; el resto (promotor,
+  // constructora, administrador) solo consulta el directorio.
+  const puedeTenerFicha = rol === 'proveedor' || rol === 'arquitecto' || rol === 'profesional';
   const [fichas, setFichas] = useState<Ficha[]>([]);
   const [miFicha, setMiFicha] = useState<Ficha | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -136,6 +139,7 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
         )}
 
         {/* Mi ficha */}
+        {puedeTenerFicha && (
         <View className="bg-surface rounded-2xl border border-border p-4 mb-5">
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
@@ -272,6 +276,7 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
             </View>
           )}
         </View>
+        )}
 
         {/* Directorio completo */}
         <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
