@@ -19,6 +19,7 @@ import { supabase } from '../../services/supabase';
 import { subirImagenPublica, subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import PerfilPorRol from './PerfilPorRol';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
 import { formatearMoneda } from '../../utils/moneda';
@@ -96,6 +97,16 @@ function formatearFecha(fechaIso: string | null): string | null {
 }
 
 
+const ETIQUETA_PERFIL: Record<string, string> = {
+  referidor: 'Recomendador',
+  promotor: 'Promotor',
+  constructora: 'Constructora',
+  arquitecto: 'Arquitecto',
+  proveedor: 'Proveedor',
+  profesional: 'Profesional',
+  administrador: 'Administrador',
+};
+
 export default function PerfilScreen() {
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -106,6 +117,11 @@ export default function PerfilScreen() {
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rol, setRol] = useState<string | null>(null);
+  // Las cifras de obras/homologación, la documentación y el historial de
+  // obras son de los Oficios (subcontratistas). El resto de perfiles de
+  // OH Conecta no los usan, así que no se les enseñan.
+  const esSubcontratista = rol === 'subcontratista';
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [eliminandoCuenta, setEliminandoCuenta] = useState(false);
   const [bioEnEdicion, setBioEnEdicion] = useState('');
@@ -133,7 +149,7 @@ export default function PerfilScreen() {
 
     const { data: perfilData, error: errorPerfil } = await supabase
       .from('profiles')
-      .select('nombre_completo, telefono, bio, avatar_url, empresa_id')
+      .select('nombre_completo, telefono, bio, avatar_url, empresa_id, role')
       .eq('id', usuarioIdActual)
       .single();
 
@@ -147,6 +163,7 @@ export default function PerfilScreen() {
       bio: perfilData.bio,
       avatar_url: perfilData.avatar_url,
     });
+    setRol(perfilData.role as string);
 
     const idEmpresa = perfilData.empresa_id as string | null;
     setEmpresaId(idEmpresa);
@@ -400,6 +417,11 @@ export default function PerfilScreen() {
           </Pressable>
           <View className="flex-1">
             <Text className="text-ink text-base font-sansBold">{perfil?.nombre_completo ?? 'Sin nombre'}</Text>
+            {rol !== null && !esSubcontratista && ETIQUETA_PERFIL[rol] !== undefined && (
+              <View className="self-start bg-actionTint rounded-md px-2 py-0.5 mt-1">
+                <Text className="text-action text-[12px] font-sansBold">{ETIQUETA_PERFIL[rol]}</Text>
+              </View>
+            )}
             {empresa !== null && (
               <>
                 <Text className="text-inkMuted text-sm mt-0.5">{empresa.nombre}</Text>
@@ -414,7 +436,7 @@ export default function PerfilScreen() {
           </View>
         </View>
 
-        {empresa !== null && (
+        {esSubcontratista && empresa !== null && (
           <View className="flex-row mt-3 gap-2.5">
             <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
               <Feather name="star" size={16} color={colors.gold} />
@@ -426,7 +448,7 @@ export default function PerfilScreen() {
             <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
               <Feather name="home" size={16} color={colors.action} />
               <Text className="text-ink text-lg font-sansBold mt-1">{empresa.obras_completadas}</Text>
-              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Obras OH Contratas</Text>
+              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Obras OH</Text>
             </View>
             <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
               <Feather
@@ -498,6 +520,13 @@ export default function PerfilScreen() {
           )}
         </View>
 
+        {/* Contenido propio de cada tipo de cuenta (todos menos Oficios) */}
+        {rol !== null && !esSubcontratista && usuarioId !== null && (
+          <PerfilPorRol rol={rol} userId={usuarioId} />
+        )}
+
+        {esSubcontratista && (
+          <>
         {/* Documentación */}
         <View className="flex-row justify-between items-center mt-6 mb-2">
           <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
@@ -658,6 +687,9 @@ export default function PerfilScreen() {
                 </View>
               ))}
             </View>
+          </>
+        )}
+
           </>
         )}
 

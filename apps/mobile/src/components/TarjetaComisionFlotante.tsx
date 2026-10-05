@@ -55,7 +55,7 @@ export default function TarjetaComisionFlotante({ userId }: { userId: string }) 
   const handleAceptar = async () => {
     setAceptando(true);
     setErrorAceptar(null);
-    const { error } = await supabase.rpc('aceptar_comision_referido', { p_comision_id: pendiente.id });
+    const { error } = await supabase.rpc('aceptar_recompensa_referido', { p_recompensa_id: pendiente.id });
     setAceptando(false);
     if (error) {
       setErrorAceptar(error.message);
