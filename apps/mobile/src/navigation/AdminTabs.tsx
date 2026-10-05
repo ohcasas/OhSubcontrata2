@@ -12,7 +12,7 @@ import AdminObrasScreen from '../screens/admin/AdminObrasScreen';
 import AdminPostulacionesScreen from '../screens/admin/AdminPostulacionesScreen';
 import GremiosScreen from '../screens/admin/GremiosScreen';
 import RecompensasAdminScreen from '../screens/admin/RecompensasAdminScreen';
-import AdminReferidosScreen from '../screens/admin/AdminReferidosScreen';
+import AdminConectaScreen from '../screens/admin/AdminConectaScreen';
 import PerfilAdminScreen from '../screens/admin/PerfilAdminScreen';
 
 const Tab = createBottomTabNavigator<AdminTabParamList>();
@@ -22,7 +22,7 @@ const ICONOS = {
   PostulacionesAdmin: 'inbox',
   Gremios: 'users',
   RecompensasAdmin: 'gift',
-  Referidos: 'user-plus',
+  Conecta: 'globe',
   PerfilAdmin: 'shield',
 } as const;
 
@@ -38,7 +38,7 @@ export default function AdminTabs() {
       <Tab.Screen name="PostulacionesAdmin" component={AdminPostulacionesScreen} />
       <Tab.Screen name="Gremios" component={GremiosScreen} />
       <Tab.Screen name="RecompensasAdmin" component={RecompensasAdminScreen} />
-      <Tab.Screen name="Referidos" component={AdminReferidosScreen} />
+      <Tab.Screen name="Conecta" component={AdminConectaScreen} />
       <Tab.Screen name="PerfilAdmin" component={PerfilAdminScreen} />
     </Tab.Navigator>
   );

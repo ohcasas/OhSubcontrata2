@@ -104,7 +104,7 @@ const ETIQUETA_PERFIL: Record<string, string> = {
   arquitecto: 'Arquitecto',
   proveedor: 'Proveedor',
   profesional: 'Profesional',
-  administrador: 'Administrador',
+  administrador: 'Inmobiliaria / Administrador',
 };
 
 export default function PerfilScreen() {

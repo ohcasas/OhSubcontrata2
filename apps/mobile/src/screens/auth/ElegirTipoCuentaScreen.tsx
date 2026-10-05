@@ -31,7 +31,7 @@ const OPCIONES_TRABAJO: OpcionTrabajo[] = [
     tipo: 'referidor',
     icono: 'users',
     titulo: 'Recomienda clientes',
-    subtitulo: 'Eres una inmobiliaria, agente o particular y quieres recomendar clientes.',
+    subtitulo: 'Eres agente o particular y quieres recomendar clientes.',
   },
 ];
 
@@ -64,8 +64,8 @@ const OPCIONES_EMPRESA: OpcionEmpresa[] = [
   {
     tipo: 'administrador',
     icono: 'file-text',
-    titulo: 'Administrador',
-    subtitulo: 'Información institucional, planeamiento, oportunidades.',
+    titulo: 'Inmobiliaria / Administrador',
+    subtitulo: 'Avisos, oportunidades y recomendación de clientes.',
   },
 ];
 

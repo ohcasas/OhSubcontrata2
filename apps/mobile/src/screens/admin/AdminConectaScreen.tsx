@@ -1,0 +1,53 @@
+import { useState } from 'react';
+import { View, Text, Pressable, ScrollView } from 'react-native';
+import ScreenHeader from '../../components/ScreenHeader';
+import AdminReferidosScreen from './AdminReferidosScreen';
+import { ComisionesConecta, CuentasConecta, TablonModeracion, DirectorioModeracion } from './AdminConectaSecciones';
+
+type Seccion = 'recomendaciones' | 'comisiones' | 'cuentas' | 'tablon' | 'directorio';
+
+const SECCIONES: { clave: Seccion; etiqueta: string }[] = [
+  { clave: 'recomendaciones', etiqueta: 'Recomendaciones' },
+  { clave: 'comisiones', etiqueta: 'Comisiones' },
+  { clave: 'cuentas', etiqueta: 'Cuentas' },
+  { clave: 'tablon', etiqueta: 'Tablón' },
+  { clave: 'directorio', etiqueta: 'Directorio' },
+];
+
+/** Pestaña "Conecta" del admin: todo lo de OH Conecta en un solo sitio. */
+export default function AdminConectaScreen() {
+  const [seccion, setSeccion] = useState<Seccion>('recomendaciones');
+
+  return (
+    <View className="flex-1 bg-canvas">
+      <ScreenHeader title="OH Conecta" subtitle="Red de profesionales" />
+
+      <View className="pt-3">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+          <View className="flex-row" style={{ gap: 6 }}>
+            {SECCIONES.map((s) => {
+              const activa = seccion === s.clave;
+              return (
+                <Pressable
+                  key={s.clave}
+                  onPress={() => setSeccion(s.clave)}
+                  className={`rounded-full px-4 py-2 border ${activa ? 'bg-action border-action' : 'bg-surface border-border'}`}
+                >
+                  <Text className={`text-xs font-sansSemiBold ${activa ? 'text-white' : 'text-ink'}`}>{s.etiqueta}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </View>
+
+      <View className="flex-1">
+        {seccion === 'recomendaciones' && <AdminReferidosScreen embebida />}
+        {seccion === 'comisiones' && <ComisionesConecta />}
+        {seccion === 'cuentas' && <CuentasConecta />}
+        {seccion === 'tablon' && <TablonModeracion />}
+        {seccion === 'directorio' && <DirectorioModeracion />}
+      </View>
+    </View>
+  );
+}

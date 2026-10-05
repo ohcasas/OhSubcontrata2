@@ -286,7 +286,7 @@ function AvisoGratuito() {
 export default function PerfilPorRol({ rol, userId }: { rol: string; userId: string }) {
   return (
     <View>
-      {rol === 'referidor' && <ResumenRecomendador userId={userId} />}
+      {(rol === 'referidor' || rol === 'administrador') && <ResumenRecomendador userId={userId} />}
       {ROLES_TABLON.includes(rol) && <MisPublicaciones userId={userId} rol={rol} />}
       {ROLES_DIRECTORIO.includes(rol) && <MiFichaResumen userId={userId} />}
       {ROLES_CONECTA.includes(rol) && <AvisoGratuito />}

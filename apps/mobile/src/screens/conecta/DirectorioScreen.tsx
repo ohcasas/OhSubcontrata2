@@ -5,6 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import BuscadorFiltros from '../../components/BuscadorFiltros';
+import { coincide } from '../../utils/texto';
 
 type Ficha = {
   profile_id: string;
@@ -42,6 +44,8 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
   const [email, setEmail] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroRol, setFiltroRol] = useState('todos');
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -104,6 +108,12 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
     setEditando(false);
     cargar();
   };
+
+  const visibles = fichas.filter(
+    (f) =>
+      (filtroRol === 'todos' || f.rol === filtroRol) &&
+      coincide(busqueda, f.nombre_mostrar, f.categoria, f.descripcion, f.zona_cobertura),
+  );
 
   if (cargando) {
     return (
@@ -282,11 +292,29 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
         <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
           Directorio
         </Text>
+        {fichas.length > 0 && (
+          <BuscadorFiltros
+            busqueda={busqueda}
+            onBusqueda={setBusqueda}
+            placeholder="Buscar por nombre, categoría o zona"
+            opciones={[
+              { clave: 'todos', etiqueta: 'Todos' },
+              { clave: 'proveedor', etiqueta: 'Proveedores' },
+              { clave: 'arquitecto', etiqueta: 'Arquitectos' },
+              { clave: 'profesional', etiqueta: 'Profesionales' },
+            ]}
+            seleccion={filtroRol}
+            onSeleccion={setFiltroRol}
+          />
+        )}
+
         {fichas.length === 0 ? (
           <Text className="text-inkMuted text-sm">Todavía no hay ninguna ficha publicada.</Text>
+        ) : visibles.length === 0 ? (
+          <Text className="text-inkMuted text-sm">Ninguna ficha coincide con tu búsqueda.</Text>
         ) : (
           <View className="gap-2.5">
-            {fichas.map((ficha) => (
+            {visibles.map((ficha) => (
               <View key={ficha.profile_id} className="bg-surface rounded-xl border border-border p-3.5">
                 <View className="flex-row justify-between items-start">
                   <Text className="text-ink text-sm font-sansBold flex-1 pr-2">{ficha.nombre_mostrar}</Text>

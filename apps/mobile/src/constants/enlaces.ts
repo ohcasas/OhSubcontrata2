@@ -9,3 +9,5 @@ export const URL_POLITICA_PRIVACIDAD = 'https://ohcasas.github.io/OhSubcontrata2
 export const URL_ELIMINAR_CUENTA = 'https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html';
 export const URL_AVISO_LEGAL = 'https://ohcasas.github.io/OhSubcontrata2/aviso-legal.html';
 export const URL_TERMINOS = 'https://ohcasas.github.io/OhSubcontrata2/terminos.html';
+/** Destino del enlace del correo de recuperar contraseña. Tiene que estar en la lista blanca de Supabase (Redirect URLs). */
+export const URL_NUEVA_CONTRASENA = 'https://ohcasas.github.io/OhSubcontrata2/nueva-contrasena.html';

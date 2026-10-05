@@ -15,6 +15,7 @@ export type RolEmpresaColaboradora =
 
 export type AuthStackParamList = {
   Login: undefined;
+  RecuperarPassword: undefined;
   ElegirTipoCuenta: undefined;
   Registro: undefined;
   RegistroReferidor: undefined;
@@ -39,7 +40,7 @@ export type AdminTabParamList = {
   PostulacionesAdmin: undefined;
   Gremios: undefined;
   RecompensasAdmin: undefined;
-  Referidos: undefined;
+  Conecta: undefined;
   PerfilAdmin: undefined;
 };
 

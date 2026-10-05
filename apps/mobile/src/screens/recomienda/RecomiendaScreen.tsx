@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -72,6 +72,25 @@ export default function RecomiendaScreen() {
   const [consentimiento, setConsentimiento] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
+  const [porcentaje, setPorcentaje] = useState<number | null>(null);
+
+  // El porcentaje de comisión depende del tipo de cuenta: se enseña ANTES de
+  // recomendar, para que quien lo hace sepa qué gana (los términos dicen que
+  // puede consultarse en la app).
+  useEffect(() => {
+    (async () => {
+      const { data: usuario } = await supabase.auth.getUser();
+      if (!usuario.user) return;
+      const { data: perfil } = await supabase.from('profiles').select('role').eq('id', usuario.user.id).single();
+      if (!perfil) return;
+      const { data: regla } = await supabase
+        .from('reglas_recompensa_referido')
+        .select('porcentaje')
+        .eq('role', perfil.role)
+        .maybeSingle();
+      if (regla) setPorcentaje(Number(regla.porcentaje));
+    })();
+  }, []);
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -170,7 +189,9 @@ export default function RecomiendaScreen() {
         <View className="bg-action rounded-2xl p-5">
           <Text className="text-white text-lg font-sansBold">¿Conoces a alguien que quiere construir?</Text>
           <Text className="text-white/80 text-sm mt-1.5 leading-relaxed">
-            Recomiéndalo a OH y, si la operación llega a buen puerto, gana una comisión.
+            {porcentaje !== null
+              ? `Recomiéndalo a OH y, si la operación llega a buen puerto, ganas el ${String(porcentaje).replace('.', ',')} % del precio de venta (sin IVA).`
+              : 'Recomiéndalo a OH y, si la operación llega a buen puerto, gana una comisión.'}
           </Text>
           <Pressable
             onPress={() => setMostrandoForm((v) => !v)}

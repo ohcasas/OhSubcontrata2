@@ -30,7 +30,7 @@ const ESTADOS: { clave: string; etiqueta: string }[] = [
   { clave: 'descartado', etiqueta: 'Descartado' },
 ];
 
-export default function AdminReferidosScreen() {
+export default function AdminReferidosScreen({ embebida = false }: { embebida?: boolean }) {
   const [referencias, setReferencias] = useState<Referencia[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
@@ -101,7 +101,7 @@ export default function AdminReferidosScreen() {
 
   return (
     <View className="flex-1 bg-canvas">
-      <ScreenHeader title="OH Recomienda" subtitle={`${referencias.length} referencias`} />
+      {!embebida && <ScreenHeader title="OH Recomienda" subtitle={`${referencias.length} referencias`} />}
 
       {error !== null && (
         <View className="bg-errorTint mx-4 mt-3 rounded-lg px-3 py-2 flex-row items-center gap-2">

@@ -116,6 +116,23 @@ export default function RootNavigator() {
     );
   }
 
+  // La campana de notificaciones (en el Perfil, Recomienda, etc.) navega a
+  // esta pantalla. Tiene que estar registrada en TODOS los perfiles que
+  // enseñan la campana, no solo en Oficios.
+  const pantallaNotificaciones = (
+    <Stack.Screen
+      name="Notificaciones"
+      component={NotificacionesScreen}
+      options={{
+        headerShown: true,
+        title: 'Notificaciones',
+        headerStyle: { backgroundColor: colors.canvas },
+        headerTintColor: colors.ink,
+        headerTitleStyle: { color: colors.ink },
+      }}
+    />
+  );
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -148,11 +165,17 @@ export default function RootNavigator() {
             />
           </>
         ) : rol === 'referidor' ? (
-          <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
+          <>
+            <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
+            {pantallaNotificaciones}
+          </>
         ) : rol !== null && ROLES_CONECTA.includes(rol) ? (
-          <Stack.Screen name="AppConecta">
-            {() => <ConectaTabs rol={rol} userId={session!.user.id} />}
-          </Stack.Screen>
+          <>
+            <Stack.Screen name="AppConecta">
+              {() => <ConectaTabs rol={rol} userId={session!.user.id} />}
+            </Stack.Screen>
+            {pantallaNotificaciones}
+          </>
         ) : (
           <>
             <Stack.Screen name="AppSubcontratista" component={SubcontratistaTabs} />
@@ -167,17 +190,7 @@ export default function RootNavigator() {
                 headerTitleStyle: { color: colors.ink },
               }}
             />
-            <Stack.Screen
-              name="Notificaciones"
-              component={NotificacionesScreen}
-              options={{
-                headerShown: true,
-                title: 'Notificaciones',
-                headerStyle: { backgroundColor: colors.canvas },
-                headerTintColor: colors.ink,
-                headerTitleStyle: { color: colors.ink },
-              }}
-            />
+            {pantallaNotificaciones}
           </>
         )}
       </Stack.Navigator>
@@ -185,7 +198,7 @@ export default function RootNavigator() {
       {/* Tarjeta flotante de comisión pendiente: por encima de toda la
           navegación, para subcontratistas y referidores (quien haga la
           recomendación), nunca para el admin. */}
-      {session !== null && (rol === 'subcontratista' || rol === 'referidor') && (
+      {session !== null && (rol === 'subcontratista' || rol === 'referidor' || rol === 'administrador') && (
         <TarjetaComisionFlotante userId={session.user.id} />
       )}
     </NavigationContainer>

@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
+import { ROLES_RED } from '../../constants/perfiles';
 import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -32,18 +33,25 @@ export default function GremiosScreen() {
 
   const cargarEmpresas = useCallback(async () => {
     setError(null);
-    const { data, error: errorConsulta } = await supabase
-      .from('empresas_subcontratistas')
-      .select(
-        'id, nombre, especialidad, homologado, nivel_partner, puntos_disponibles, puntos_totales, rating_medio, obras_completadas',
-      )
-      .order('nombre', { ascending: true });
+    // Cada cuenta de OH Conecta (arquitecto, promotor, recomendador...) crea
+    // también una fila en empresas_subcontratistas. Aquí solo interesan los
+    // Oficios, así que se descartan las empresas que pertenecen a esos perfiles.
+    const [{ data, error: errorConsulta }, { data: ajenas }] = await Promise.all([
+      supabase
+        .from('empresas_subcontratistas')
+        .select(
+          'id, nombre, especialidad, homologado, nivel_partner, puntos_disponibles, puntos_totales, rating_medio, obras_completadas',
+        )
+        .order('nombre', { ascending: true }),
+      supabase.from('profiles').select('empresa_id').in('role', ROLES_RED).not('empresa_id', 'is', null),
+    ]);
 
     if (errorConsulta) {
       setError('No se han podido cargar las empresas.');
       return;
     }
-    setEmpresas((data as Empresa[] | null) ?? []);
+    const idsAjenos = new Set(((ajenas as { empresa_id: string }[] | null) ?? []).map((p) => p.empresa_id));
+    setEmpresas(((data as Empresa[] | null) ?? []).filter((e) => !idsAjenos.has(e.id)));
   }, []);
 
   useEffect(() => {

@@ -146,6 +146,10 @@ export default function LoginScreen() {
             </View>
             {errorPassword !== null && <Text className="text-error text-xs mb-2">{errorPassword}</Text>}
 
+            <Pressable onPress={() => navigation.navigate('RecuperarPassword')} className="self-end py-1" disabled={cargando}>
+              <Text className="text-action text-xs font-sansSemiBold">¿Has olvidado tu contraseña?</Text>
+            </Pressable>
+
             <Pressable
               onPress={handleIniciarSesion}
               disabled={cargando}

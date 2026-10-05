@@ -5,6 +5,8 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import BuscadorFiltros from '../../components/BuscadorFiltros';
+import { coincide } from '../../utils/texto';
 
 type Publicacion = {
   id: string;
@@ -40,6 +42,8 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId: str
   const [email, setEmail] = useState('');
   const [publicando, setPublicando] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState('todos');
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -98,6 +102,12 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId: str
     setMostrandoForm(false);
     cargar();
   };
+
+  const visibles = publicaciones.filter(
+    (p) =>
+      (filtroTipo === 'todos' || p.tipo === filtroTipo) &&
+      coincide(busqueda, p.titulo, p.descripcion, p.categoria, p.ubicacion, p.profiles?.nombre_completo),
+  );
 
   if (cargando) {
     return (
@@ -254,11 +264,28 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId: str
           </View>
         )}
 
+        {publicaciones.length > 0 && (
+          <BuscadorFiltros
+            busqueda={busqueda}
+            onBusqueda={setBusqueda}
+            placeholder="Buscar por título, categoría o zona"
+            opciones={[
+              { clave: 'todos', etiqueta: 'Todo' },
+              { clave: 'necesidad', etiqueta: 'Necesidades' },
+              { clave: 'aviso', etiqueta: 'Avisos' },
+            ]}
+            seleccion={filtroTipo}
+            onSeleccion={setFiltroTipo}
+          />
+        )}
+
         {publicaciones.length === 0 ? (
           <Text className="text-inkMuted text-sm">Todavía no hay nada publicado en el tablón.</Text>
+        ) : visibles.length === 0 ? (
+          <Text className="text-inkMuted text-sm">Ninguna publicación coincide con tu búsqueda.</Text>
         ) : (
           <View className="gap-2.5">
-            {publicaciones.map((pub) => (
+            {visibles.map((pub) => (
               <View key={pub.id} className="bg-surface rounded-xl border border-border p-3.5">
                 <View className="flex-row justify-between items-start">
                   <Text className="text-ink text-sm font-sansBold flex-1 pr-2">{pub.titulo}</Text>

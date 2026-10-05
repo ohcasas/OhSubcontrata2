@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Nueva contraseña — OH Conecta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --canvas:#F8FAFD; --surface:#FFFFFF; --ink:#0B1F35; --ink-muted:#52657A; --action:#0057FF; --success:#197A55; --success-tint:#E4F5ED; --error:#B33A3A; --error-tint:#FCE8E8; --border:#D7E0EB; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--canvas); color:var(--ink);
+    font-family:'DM Sans', system-ui, sans-serif; padding:24px; }
+  .tarjeta { max-width:400px; width:100%; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px 26px; }
+  .wordmark { font-size:11px; font-weight:700; letter-spacing:2px; color:var(--ink-muted); text-transform:uppercase; text-align:center; margin-bottom:14px; }
+  h1 { font-size:22px; font-weight:700; margin:0 0 8px; text-align:center; }
+  p { font-size:15px; color:var(--ink-muted); line-height:1.5; margin:0 0 16px; text-align:center; }
+  label { display:block; font-size:13px; font-weight:600; margin:14px 0 6px; }
+  input { width:100%; font:inherit; font-size:16px; color:var(--ink); padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+  input:focus { outline:2px solid var(--action); outline-offset:1px; }
+  button { width:100%; margin-top:20px; font:inherit; font-size:15px; font-weight:700; color:#fff; background:var(--action); border:0; border-radius:12px; padding:14px; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .mensaje { border-radius:12px; padding:12px 14px; font-size:14px; margin-top:14px; display:none; }
+  .mensaje.error { display:block; background:var(--error-tint); color:var(--error); }
+  .icono { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 18px; }
+  .icono.ok { background:var(--success-tint); color:var(--success); }
+  .icono.ko { background:var(--error-tint); color:var(--error); }
+  .oculto { display:none; }
+</style>
+</head>
+<body>
+  <div class="tarjeta">
+    <div class="wordmark">OH Conecta</div>
+
+    <!-- Enlace no válido o caducado -->
+    <div id="invalido" class="oculto">
+      <div class="icono ko">!</div>
+      <h1>Enlace no válido</h1>
+      <p>Este enlace ha caducado o ya se ha usado. Vuelve a la app y pulsa «¿Has olvidado tu contraseña?» para recibir uno nuevo.</p>
+    </div>
+
+    <!-- Formulario -->
+    <div id="formulario" class="oculto">
+      <h1>Crea tu nueva contraseña</h1>
+      <p>Elige una contraseña nueva para tu cuenta de OH Conecta.</p>
+      <form id="form" novalidate>
+        <label for="pass1">Nueva contraseña</label>
+        <input id="pass1" type="password" autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres" />
+        <label for="pass2">Repetir contraseña</label>
+        <input id="pass2" type="password" autocomplete="new-password" minlength="6" />
+        <div id="error" class="mensaje error" role="alert"></div>
+        <button id="boton" type="submit">Guardar contraseña</button>
+      </form>
+    </div>
+
+    <!-- Hecho -->
+    <div id="hecho" class="oculto">
+      <div class="icono ok">✓</div>
+      <h1>Contraseña actualizada</h1>
+      <p>Ya puedes volver a la app e iniciar sesión con tu nueva contraseña.</p>
+    </div>
+  </div>
+
+<script>
+  // La clave anon es pública por diseño (va dentro de la propia app); lo que
+  // protege los datos son las políticas RLS de Supabase, no esconderla.
+  var SUPABASE_URL = 'https://vvghqtwwrwdtekropavo.supabase.co';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z2hxdHd3cndkdGVrcm9wYXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNTQ5MDMsImV4cCI6MjEwNTYzMDkwM30.LD89u9ahLTudw_h_P_d8qwUC7F8ullxocunORCXePLU';
+
+  // El enlace del correo trae el token en el fragmento (#access_token=...&type=recovery)
+  var params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  var token = params.get('access_token');
+  var valido = token && params.get('type') === 'recovery' && !params.get('error');
+
+  // El token no debe quedarse a la vista en la barra de direcciones
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
+  function ver(id) { document.getElementById(id).classList.remove('oculto'); }
+  function mostrarError(texto) {
+    var e = document.getElementById('error');
+    e.textContent = texto;
+    e.className = 'mensaje error';
+  }
+
+  if (!valido) {
+    ver('invalido');
+  } else {
+    ver('formulario');
+    document.getElementById('form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var p1 = document.getElementById('pass1').value;
+      var p2 = document.getElementById('pass2').value;
+      if (p1.length < 6) return mostrarError('La contraseña debe tener al menos 6 caracteres.');
+      if (p1 !== p2) return mostrarError('Las contraseñas no coinciden.');
+
+      var boton = document.getElementById('boton');
+      boton.disabled = true;
+      boton.textContent = 'Guardando…';
+
+      fetch(SUPABASE_URL + '/auth/v1/user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ password: p1 })
+      })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (cuerpo) { return { ok: r.ok, status: r.status, cuerpo: cuerpo }; }); })
+        .then(function (res) {
+          if (res.ok) {
+            document.getElementById('formulario').classList.add('oculto');
+            ver('hecho');
+            return;
+          }
+          var msg = String((res.cuerpo && (res.cuerpo.msg || res.cuerpo.message || res.cuerpo.error_description)) || '');
+          boton.disabled = false;
+          boton.textContent = 'Guardar contraseña';
+          if (res.status === 401 || res.status === 403) {
+            document.getElementById('formulario').classList.add('oculto');
+            ver('invalido');
+          } else if (/different|same/i.test(msg)) {
+            mostrarError('La nueva contraseña tiene que ser distinta de la anterior.');
+          } else if (/at least|weak/i.test(msg)) {
+            mostrarError('La contraseña es demasiado corta o demasiado débil.');
+          } else {
+            mostrarError('No se ha podido cambiar la contraseña. Inténtalo de nuevo.');
+          }
+        })
+        .catch(function () {
+          boton.disabled = false;
+          boton.textContent = 'Guardar contraseña';
+          mostrarError('No hay conexión. Comprueba tu internet e inténtalo de nuevo.');
+        });
+    });
+  }
+</script>
+</body>
+</html>
