@@ -23,7 +23,9 @@ const config: ExpoConfig = {
     googleServicesFile: './google-services.json',
     adaptiveIcon: {
       foregroundImage: './assets/branding/adaptive-icon-foreground.png',
-      backgroundColor: '#0057FF',
+      // El logo de OH Conecta es blanco sobre negro: el primer plano es blanco
+      // y transparente, así que el fondo tiene que ser oscuro.
+      backgroundColor: '#000000',
     },
   },
   plugins: [
@@ -47,7 +49,7 @@ const config: ExpoConfig = {
         image: './assets/branding/adaptive-icon-foreground.png',
         resizeMode: 'contain',
         imageWidth: 200,
-        backgroundColor: '#0057FF',
+        backgroundColor: '#000000',
       },
     ],
   ],
