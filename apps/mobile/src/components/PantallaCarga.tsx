@@ -62,10 +62,14 @@ export default function PantallaCarga({ listo, onTerminada }: Props) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, estilos.contenedor, { opacity: pantalla }]} onLayout={alMaquetar}>
+      {/* width y height EXPLÍCITOS, a propósito: una imagen local (require) trae por
+          defecto su tamaño en píxeles como width/height, y eso gana a los cuatro 0 de
+          absoluteFill. Sin esto la imagen se pinta a tamaño real (casi 3 veces más
+          grande en un móvil de densidad 2,75), anclada arriba a la izquierda y sin
+          ajustarse a la pantalla: se veía solo una esquina de los dibujos. */}
       <Animated.Image
         source={require('../../assets/branding/splash-conecta.png')}
-        resizeMode="cover"
-        style={[StyleSheet.absoluteFill, { opacity: arte }]}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', resizeMode: 'cover', opacity: arte }}
       />
     </Animated.View>
   );
