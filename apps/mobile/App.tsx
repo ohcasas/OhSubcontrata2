@@ -1,7 +1,9 @@
 import './global.css';
 import 'react-native-gesture-handler';
-import { View, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -10,7 +12,11 @@ import {
   DMSans_700Bold,
 } from '@expo-google-fonts/dm-sans';
 import RootNavigator from './src/navigation/RootNavigator';
-import { colors } from './src/design-system/tokens';
+import PantallaCarga from './src/components/PantallaCarga';
+
+// La pantalla de carga nativa (negra) se queda puesta hasta que PantallaCarga
+// la quite, para que no haya un parpadeo entre una y otra.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const [fuentesListas] = useFonts({
@@ -19,21 +25,16 @@ export default function App() {
     DMSans_600SemiBold,
     DMSans_700Bold,
   });
+  const [cargaVisible, setCargaVisible] = useState(true);
 
-  // Pantalla de carga mínima mientras se cargan los pesos de DM Sans — sin
-  // esto, la primera pantalla parpadearía con la fuente del sistema y luego
-  // cambiaría a DM Sans en cuanto termine de cargar.
-  if (!fuentesListas) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.canvas }}>
-        <ActivityIndicator color={colors.action} />
-      </View>
-    );
-  }
-
+  // La app no se pinta hasta que DM Sans está cargada (si no, la primera pantalla
+  // parpadearía con la fuente del sistema). Mientras tanto, PantallaCarga cubre todo.
   return (
     <SafeAreaProvider>
-      <RootNavigator />
+      <View style={{ flex: 1, backgroundColor: '#000000' }}>
+        {fuentesListas && <RootNavigator />}
+        {cargaVisible && <PantallaCarga listo={fuentesListas} onTerminada={() => setCargaVisible(false)} />}
+      </View>
     </SafeAreaProvider>
   );
 }

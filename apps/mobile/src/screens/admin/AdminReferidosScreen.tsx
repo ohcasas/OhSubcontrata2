@@ -164,7 +164,9 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
                   <Pressable
                     key={e.clave}
                     onPress={() => handleCambiarEstado(item, e.clave)}
-                    disabled={actualizandoId === item.id}
+                    // La píldora del estado actual no se puede volver a pulsar: antes cada
+                    // pulsación mandaba un aviso al usuario aunque no cambiara nada.
+                    disabled={actualizandoId === item.id || activo}
                     className={`rounded-full px-3 py-1.5 border ${
                       activo ? 'bg-action border-action' : 'bg-surface border-border'
                     }`}
