@@ -198,6 +198,7 @@ Publicadas con GitHub Pages desde este mismo repo (es público), carpeta `docs/`
 
 | Página | URL |
 |---|---|
+| **Portada de la app** (informativa) | `https://ohcasas.github.io/OhSubcontrata2/` (es `docs/index.html`) |
 | Política de privacidad | `https://ohcasas.github.io/OhSubcontrata2/privacidad.html` |
 | Eliminar cuenta (sin la app instalada) | `https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html` |
 | Aviso legal | `https://ohcasas.github.io/OhSubcontrata2/aviso-legal.html` |
@@ -208,6 +209,23 @@ Publicadas con GitHub Pages desde este mismo repo (es público), carpeta `docs/`
 Las dos primeras están puestas en Play Console. Privacidad, aviso legal y términos se enlazan desde dentro de la app (Login, las tres pantallas de registro y Perfil); "Eliminar cuenta" es un botón del Perfil. Tras editar un HTML de `docs/` hay que hacer `git push`; GitHub Pages tarda 1-2 minutos.
 
 Los cuatro textos legales se actualizaron en octubre de 2026 para OH Conecta (perfiles nuevos, Tablón y Directorio públicos, clientes recomendados, comisiones, precio del servicio). Son un **borrador redactado sin asesoría legal**: ver "Pendiente". `nueva-contrasena.html` no es un texto legal: es la página donde se escribe la contraseña nueva (habla directamente con Supabase, sin librerías).
+
+### La portada (`docs/index.html`)
+
+Una sola página informativa, **un único archivo** sin nada externo: la fuente (DM Sans, la de la app) y el logo van incrustados, no hay cookies ni analítica ni peticiones a terceros, así que no necesita aviso de cookies. Enlaza a las páginas legales de esta misma carpeta con rutas relativas (`privacidad.html`...), así que **no cambies sus nombres**.
+
+- **Enlace de Google Play**: al final del archivo, en `ENLACE_GOOGLE_PLAY`, entre las comillas. Mientras esté vacío los botones dicen "Próximamente en Google Play"; al pegarlo, pasan solos a "Descargar en Google Play".
+- **Textos**: están en el cuerpo, en lenguaje normal. Tres afirmaciones hay que mantenerlas al día a mano: "de momento, solo para Android" (la nota de la portada y una pregunta frecuente), "durante el lanzamiento es gratis" (tiene que coincidir con el apartado 7 de los términos) y la lista de lo que hace cada perfil (tiene que coincidir con la app).
+- **No lleva precios ni porcentajes de comisión**, a propósito, hasta que estén decididos.
+- **Estilo "liquid glass"** (cristal translúcido, como iOS): la barra flotante, las etiquetas del plano, los paneles de perfiles y preguntas, los botones y los avisos. El cristal solo luce sobre un fondo con color, por eso la portada y las secciones llevan resplandores azules detrás. Se controla con las variables del principio del CSS (`--filtro`, `--c-claro`, `--c-oscuro`, `--c-nav`...). Si el navegador no lo soporta, o la persona pide menos transparencia en su móvil, **todo pasa solo a fondos sólidos** igual de legibles.
+- **No subas el desenfoque de la barra flotante por encima de unos 20 px** (`--filtro-nav`): en Chrome, un radio grande en una caja fina refleja los bordes y deja ver *más* lo que hay detrás, no menos. El tinte de la barra (`--c-nav`) tampoco conviene aclararlo: sobre las secciones claras, por debajo de ~0,8 el texto blanco pierde contraste.
+- **Contenido de la portada** (en este orden): qué es OH Conecta y las seis herramientas de la app; ocho fichas de perfil (qué puede hacer, qué ve al entrar y qué se le pide para registrarse); cómo empezar; una licitación paso a paso; una recomendación paso a paso; los avisos de ejemplo; privacidad de los documentos; once preguntas frecuentes. **Cada nodo del dibujo de la portada lleva a la ficha de su perfil** (`#promotor`, `#constructora`, `#arquitecto`, `#profesional`, `#proveedor`, `#oficios`, `#inmobiliaria`, `#recomendador`), y también funcionan enlaces directos como `…/#inmobiliaria`.
+- **Qué hay que mantener al día a mano**: las fichas ("Qué te pedimos para entrar") copian lo que pide la app al registrarse, que vive en las tablas `campos_registro` y `documentos_requeridos` de Supabase (migración `0036`): si cambias allí lo que se pide, cámbialo aquí. Igual con los pasos de licitación (migración `0033`), los estados de una recomendación (`0024`, `0032`) y los avisos de ejemplo (`0032`, `0033`, `0034`).
+- **Animaciones**: señales que viajan por las líneas del dibujo, ondas en los puntos, resplandores que se desplazan, bloques que aparecen al bajar, avisos que llegan uno a uno, línea de la licitación que se dibuja, estados de la recomendación que se encienden y el menú que marca en qué sección estás. Todo se desactiva solo si la persona tiene activado "reducir movimiento" (la clase `anim` de `<html>` la pone el script del principio). Las clases son: `rev` (un bloque aparece al entrar en pantalla), `esc` (cada hijo aparece cuando entra él), `seq` (los hijos aparecen en orden al entrar el bloque) y `av` (los avisos).
+- **Dos trampas que ya nos hemos encontrado** (no las repitas): (1) las animaciones de entrada se aplican **por elemento** y no por lista: si una ficha esperaba a que le tocara su turno, quien llegaba a ella con un enlace aterrizaba en un hueco vacío; ahora llegar a un destino lo muestra al instante. (2) **No pongas `filter` (ni `opacity` fija) en un bloque que tenga cristal dentro**: el desenfoque de lo de dentro deja de ver lo que hay detrás.
+- **Sección "Te avisamos en cada paso"**: los cuatro avisos son los textos reales de la app (verificación, nueva postulación, postulación aceptada, recomendación) con nombres inventados. Si cambias uno en la app (migraciones `0033`, `0034`, `0032`), cámbialo también aquí.
+- **El dibujo de la portada** (los perfiles como nodos unidos al logo) es SVG a mano dentro del mismo archivo; si cambian los perfiles hay que tocarlo.
+- Si algún día se añade analítica o un formulario de contacto, hay que actualizar la política de privacidad y añadir aviso de cookies.
 
 ## Para un/a desarrollador/a nuevo/a
 
