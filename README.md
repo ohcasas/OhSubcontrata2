@@ -120,7 +120,9 @@ oh-casas-subcontratas/
 - El admin **verifica, rechaza, suspende y reactiva** desde Conecta → Cuentas (los pendientes salen primero, con un contador en la pestaña). Suspender cierra las sesiones, impide volver a entrar (`auth.users.banned_until`) y **oculta lo que esa cuenta había publicado** (Tablón, ficha, licitaciones abiertas); las licitaciones en marcha siguen visibles para las empresas implicadas
 - Todo cambio queda en `cuenta_historial` (quién, cuándo, motivo) y la persona recibe un aviso (notificación y push)
 - Nadie puede aprobarse a sí mismo: los usuarios solo editan 4 columnas de su perfil (`0016`). Un admin no puede cambiar su propia cuenta ni la de otro admin
-- Cada cuenta pendiente dispara el webhook `cuenta.pendiente` (hacia n8n/Odoo, si hay URL configurada); si el webhook falla, el registro no se bloquea
+- **Aviso a los admin**: al registrarse una cuenta pendiente, cada admin recibe una notificación y un push ("Nueva cuenta por verificar" / "N cuentas por verificar"), como mucho uno cada 15 minutos por admin para que nadie pueda llenar el móvil registrando cuentas falsas. Salta al registrarse, aunque la persona aún no haya confirmado el correo (esas cuentas no pueden ni iniciar sesión). Además se dispara el webhook `cuenta.pendiente` (hacia n8n/Odoo, si hay URL configurada). Si falla el aviso o el webhook, el registro no se bloquea
+- **Indicador de CIF/NIF/NIE** en cada tarjeta del panel (`utils/documentoFiscal.ts`): dice si el número tiene un formato válido (letra o dígito de control correctos). No comprueba que la empresa exista
+- **Bloqueo por tabla**: `avances_obra` y `canjes` rechazan escrituras de cuentas pendientes o suspendidas con un disparador, así que cubre cualquier función que escriba ahí, la de hoy y las futuras. Sin sesión de usuario (backend, n8n, SQL Editor) no se aplica
 
 **Admin de OH** — pestaña **Conecta**, con cinco secciones: Recomendaciones (mover el pipeline), **Comisiones** (lo que se debe y marcar como pagado, con aviso a la persona), Cuentas (verificar, rechazar, suspender y reactivar, por estado y por perfil), Tablón y Directorio (ver y quitar lo que no deba estar). Gremios solo lista Oficios.
 
@@ -241,6 +243,7 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 32 | `0032_fix_avisos_repetidos_recomendaciones.sql` | `actualizar_estado_referencia()` solo avisa si el estado cambia de verdad; textos legibles |
 | 33 | `0033_licitaciones_de_terceros.sql` | Licitaciones de promotoras y constructoras: `crear_licitacion()`, `mis_licitaciones()`, `postulaciones_de_mi_licitacion()`, `aceptar_/rechazar_postulacion_propietario()`, `cambiar_estado_licitacion()`; no se postula a la propia; el dueño ve adjuntos y progreso de lo suyo |
 | 34 | `0034_verificacion_de_cuentas.sql` | **Verificación de cuentas**: `profiles.estado_cuenta` (pendiente / verificada / suspendida), `cambiar_estado_cuenta()`, `cuenta_historial`, y el bloqueo de lectura/escritura para cuentas sin verificar |
+| 35 | `0035_avisos_de_cuentas_y_cierre_de_limites.sql` | Aviso (notificación y push) a los admin cuando llega una cuenta pendiente, y bloqueo por tabla (`avances_obra`, `canjes`) para cuentas pendientes o suspendidas |
 
 Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
 
@@ -271,8 +274,7 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 6. Añadir `https://ohcasas.github.io/OhSubcontrata2/nueva-contrasena.html` a Redirect URLs de Supabase, si no está.
 7. Cambiar el nombre de la ficha en Play Console ("OH Contratas" → "OH Conecta") y el *Sender name* del email en Supabase.
 8. **Play Console → Contenido de la app → Acceso a la app**: dar las credenciales de una cuenta de prueba **ya verificada** (si el equipo de revisión de Google se registra por su cuenta, se queda en "pendiente" y no puede probar nada).
-9. Opcional: configurar en n8n el webhook `cuenta.pendiente` para que avise por correo a software@ohcasas.es cuando llegue una cuenta nueva (si no, el admin la ve por el contador de la pestaña Conecta).
-10. Revisar a mano los textos de "cuenta creada" de `RegistroScreen` y `RegistroReferidorScreen`: dicen que la cuenta está lista, y ahora queda pendiente de verificar (`RegistroEmpresaScreen` ya está actualizado; la pantalla de "en revisión" lo explica igualmente al iniciar sesión).
+9. Opcional: el aviso al móvil del admin ya funciona solo; si además se quiere correo, se puede configurar en n8n el webhook `cuenta.pendiente`.
 
 **Mantenimiento**
 
@@ -283,7 +285,7 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 - Cada persona tiene **un solo rol** (`profile_roles` está preparado pero sin usar).
 - **Licitaciones de terceros**: máximo 10 abiertas por cuenta; sin moderación previa (el admin las ve en *Obras* y puede cancelarlas); los oficios no saben aún, en la lista, quién las publica; no hay valoración de la empresa por el dueño ni aviso a los oficios cuando se publica una nueva; el borrado de cuenta se bloquea mientras haya una abierta o en marcha.
 - Los oficios todavía no tienen ficha en el Directorio ni lo ven.
-- **Verificación**: es manual (nadie comprueba el CIF automáticamente) y vale también para los Oficios nuevos, que antes entraban sin revisión. Una cuenta suspendida conserva su sesión hasta que caduca su token (como mucho 1 hora) solo para `solicitar_canje` y `registrar_avance_obra`; todo lo demás se bloquea al instante. Una cuenta suspendida con una licitación abierta no puede borrarse hasta que alguien la cancele (el admin puede desde Obras).
+- **Verificación**: es manual (nadie comprueba el CIF automáticamente) y vale también para los Oficios nuevos, que antes entraban sin revisión. El token de una cuenta suspendida sigue siendo válido hasta 1 hora, pero todas las lecturas y escrituras están bloqueadas en la base de datos desde el primer segundo. Una cuenta suspendida con una licitación abierta no puede borrarse hasta que alguien la cancele (el admin puede desde Obras).
 - Sin límite de recomendaciones por usuario y día, y los datos de contacto del Tablón y el Directorio son visibles para cualquier cuenta registrada.
 - El buscador del Tablón y el Directorio filtra en el móvil sobre lo ya cargado; con cientos de entradas habría que pasarlo al servidor.
 - **Eliminar cuenta** está bloqueado para admin/superadmin (se dan de baja a mano) y para quien tenga una comisión pendiente o aceptada sin cobrar (el mensaje le dirige a `software@ohcasas.es`).

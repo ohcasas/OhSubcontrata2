@@ -165,8 +165,8 @@ export default function RegistroScreen() {
         </Text>
         <Text className="text-inkMuted text-sm text-center mb-6">
           {requiereConfirmacionEmail
-            ? 'Revisa tu correo y confirma tu cuenta antes de iniciar sesión.'
-            : 'Tu cuenta está lista. Ya puedes usar el portal.'}
+            ? 'Revisa tu correo y confirma tu cuenta. Después la revisaremos antes de activarla: te avisaremos cuando esté verificada.'
+            : 'Tu cuenta está creada. La revisaremos antes de activarla: te avisaremos cuando esté verificada.'}
         </Text>
         {requiereConfirmacionEmail && (
           <Pressable
@@ -200,7 +200,7 @@ export default function RegistroScreen() {
               className="mb-3"
             />
             <Text className="text-ink text-2xl font-sansBold">Crear cuenta</Text>
-            <Text className="text-inkMuted text-sm mt-1">Portal de Subcontratas</Text>
+            <Text className="text-inkMuted text-sm mt-1">Cuenta de Oficios</Text>
           </View>
 
           <View className="bg-surface rounded-2xl p-5 border border-border">
