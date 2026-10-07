@@ -20,6 +20,9 @@ import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import type { AuthStackParamList } from '../../navigation/types';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
+import { useCatalogoRegistro, validarCampos, separarValores } from '../../services/catalogoRegistro';
+import CamposDinamicos from '../../components/CamposDinamicos';
+import AvisoDocumentos from '../../components/AvisoDocumentos';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -33,16 +36,22 @@ const ETIQUETA_ROL: Record<string, string> = {
 };
 
 function traducirErrorRegistro(mensaje: string): string {
+  if (mensaje.includes('CIF_DUPLICADO')) {
+    return 'Ya hay una cuenta registrada con ese CIF/NIF. Si es tuyo, escríbenos a software@ohcasas.es.';
+  }
   if (mensaje.includes('already registered') || mensaje.includes('already exists')) {
     return 'Ya existe una cuenta con ese email.';
   }
   if (mensaje.includes('Password should be at least')) {
     return 'La contraseña debe tener al menos 6 caracteres.';
   }
+  if (mensaje.includes('Database error')) {
+    return 'No se ha podido crear la cuenta. Si el CIF/NIF ya estuviera registrado, escríbenos a software@ohcasas.es.';
+  }
   return 'No se ha podido crear la cuenta. Inténtalo de nuevo.';
 }
 
-type Campo = 'nombreCompleto' | 'telefono' | 'nombreEmpresa' | 'cif' | 'email' | 'password' | 'confirmarPassword';
+type Campo = 'nombreCompleto' | 'telefono' | 'email' | 'password' | 'confirmarPassword';
 
 export default function RegistroEmpresaScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
@@ -51,15 +60,18 @@ export default function RegistroEmpresaScreen() {
   const etiquetaRol = ETIQUETA_ROL[rol] ?? rol;
   const insets = useSafeAreaInsets();
 
+  // Lo que se pide a este perfil (campos propios y documentos): viene de la base de datos
+  const catalogo = useCatalogoRegistro(rol);
+
   const [valores, setValores] = useState<Record<Campo, string>>({
     nombreCompleto: '',
     telefono: '',
-    nombreEmpresa: '',
-    cif: '',
     email: '',
     password: '',
     confirmarPassword: '',
   });
+  const [dinamicos, setDinamicos] = useState<Record<string, string>>({});
+  const [erroresDinamicos, setErroresDinamicos] = useState<Record<string, string>>({});
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [prefijoPais, setPrefijoPais] = useState('+34');
   const [cargando, setCargando] = useState(false);
@@ -93,20 +105,22 @@ export default function RegistroEmpresaScreen() {
 
   const handleCrearCuenta = async () => {
     setErrorGeneral(null);
-    if (!validar()) return;
+    // Se validan las dos partes siempre, para enseñar todos los errores a la vez
+    const baseValida = validar();
+    const erroresPerfil = validarCampos(catalogo.campos, dinamicos);
+    setErroresDinamicos(erroresPerfil);
+    if (!baseValida || Object.keys(erroresPerfil).length > 0) return;
 
     setCargando(true);
-    const datosMetadata: Record<string, string> = {
+    const { nombre_empresa, cif, datos_perfil } = separarValores(dinamicos);
+    const datosMetadata: Record<string, unknown> = {
       rol_solicitado: rol,
       nombre_completo: valores.nombreCompleto.trim(),
       telefono: `${prefijoPais} ${valores.telefono.trim()}`,
+      datos_perfil,
     };
-    if (valores.nombreEmpresa.trim() !== '') {
-      datosMetadata.nombre_empresa = valores.nombreEmpresa.trim();
-    }
-    if (valores.cif.trim() !== '') {
-      datosMetadata.cif = valores.cif.trim().toUpperCase();
-    }
+    if (nombre_empresa !== undefined) datosMetadata.nombre_empresa = nombre_empresa;
+    if (cif !== undefined) datosMetadata.cif = cif;
 
     const { data, error } = await supabase.auth.signUp({
       email: valores.email.trim(),
@@ -139,13 +153,39 @@ export default function RegistroEmpresaScreen() {
         <Text className="text-ink text-xl font-sansBold text-center mb-2">Cuenta creada</Text>
         <Text className="text-inkMuted text-sm text-center mb-6">
           {requiereConfirmacionEmail
-            ? 'Revisa tu correo y confirma tu cuenta. Después la revisaremos antes de activarla: te avisaremos cuando esté verificada.'
-            : 'Tu cuenta está creada. La revisaremos antes de activarla: te avisaremos cuando esté verificada.'}
+            ? 'Revisa tu correo y confirma tu cuenta. Al iniciar sesión te pediremos la documentación para verificarla; te avisaremos cuando esté lista.'
+            : 'Tu cuenta está creada. Te pediremos la documentación para verificarla; te avisaremos cuando esté lista.'}
         </Text>
         {requiereConfirmacionEmail && (
           <Pressable onPress={() => navigation.navigate('Login')} className="bg-action rounded-xl py-3 px-6">
             <Text className="text-white font-sansBold text-sm">Volver a iniciar sesión</Text>
           </Pressable>
+        )}
+      </View>
+    );
+  }
+
+  // Sin el catálogo no se sabe qué campos pide este perfil: se espera, o se deja reintentar
+  if (catalogo.cargando || catalogo.error !== null) {
+    return (
+      <View
+        className="flex-1 items-center justify-center bg-canvas px-6"
+        style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
+      >
+        {catalogo.cargando ? (
+          <ActivityIndicator color={colors.action} />
+        ) : (
+          <>
+            <Feather name="wifi-off" size={26} color={colors.inkMuted} />
+            <Text className="text-ink text-base font-sansBold text-center mt-3 mb-1">No hemos podido cargar el formulario</Text>
+            <Text className="text-inkMuted text-sm text-center mb-5">Comprueba tu conexión e inténtalo de nuevo.</Text>
+            <Pressable onPress={catalogo.recargar} className="bg-action rounded-xl py-3 px-6 mb-2">
+              <Text className="text-white font-sansBold text-sm">Reintentar</Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.goBack()} className="py-2">
+              <Text className="text-inkMuted text-sm">Volver</Text>
+            </Pressable>
+          </>
         )}
       </View>
     );
@@ -165,9 +205,9 @@ export default function RegistroEmpresaScreen() {
               style={{ width: 48, height: 48, borderRadius: 12 }}
               className="mb-3"
             />
-            <Text className="text-ink text-2xl font-sansBold">Cuenta de {etiquetaRol}</Text>
+            <Text className="text-ink text-2xl font-sansBold text-center">Cuenta de {etiquetaRol}</Text>
             <Text className="text-inkMuted text-sm mt-1 text-center px-4">
-              Esta cuenta lleva una suscripción mensual. El cobro se activará más adelante.
+              Revisamos los datos y la documentación de cada cuenta antes de activarla.
             </Text>
           </View>
 
@@ -179,7 +219,11 @@ export default function RegistroEmpresaScreen() {
               </View>
             )}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1">Nombre completo</Text>
+            <Text className="text-ink text-xs font-sansBold uppercase mb-3" style={{ letterSpacing: 1 }}>
+              Tú
+            </Text>
+
+            <Text className="text-ink text-xs font-sansSemiBold mb-1">Nombre completo *</Text>
             <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
               <Feather name="user" size={16} color={colors.inkSubtle} />
               <TextInput
@@ -195,7 +239,7 @@ export default function RegistroEmpresaScreen() {
               <Text className="text-error text-xs mb-2">{errores.nombreCompleto}</Text>
             )}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Teléfono</Text>
+            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Teléfono *</Text>
             <View className="flex-row gap-2 mb-1">
               <View className="w-20">
                 <View className="flex-row items-center bg-surface border border-border rounded-xl px-2">
@@ -227,34 +271,26 @@ export default function RegistroEmpresaScreen() {
             </View>
             {errores.telefono !== undefined && <Text className="text-error text-xs mb-2">{errores.telefono}</Text>}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Empresa (opcional)</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-3 px-3">
-              <Feather name="briefcase" size={16} color={colors.inkSubtle} />
-              <TextInput
-                value={valores.nombreEmpresa}
-                onChangeText={actualizar('nombreEmpresa')}
-                placeholder="Déjalo en blanco si te registras a título personal"
-                placeholderTextColor={colors.inkSubtle}
-                editable={!cargando}
-                className="flex-1 py-3 pl-2.5 text-ink"
-              />
-            </View>
+            {catalogo.campos.length > 0 && (
+              <>
+                <Text className="text-ink text-xs font-sansBold uppercase mb-3 mt-5" style={{ letterSpacing: 1 }}>
+                  Datos de {etiquetaRol.toLowerCase()}
+                </Text>
+                <CamposDinamicos
+                  campos={catalogo.campos}
+                  valores={dinamicos}
+                  errores={erroresDinamicos}
+                  onCambio={(clave, valor) => setDinamicos((prev) => ({ ...prev, [clave]: valor }))}
+                  deshabilitado={cargando}
+                />
+              </>
+            )}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1">CIF/NIF (opcional)</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-3 px-3">
-              <Feather name="hash" size={16} color={colors.inkSubtle} />
-              <TextInput
-                value={valores.cif}
-                onChangeText={actualizar('cif')}
-                autoCapitalize="characters"
-                placeholder="Solo si te registras como empresa"
-                placeholderTextColor={colors.inkSubtle}
-                editable={!cargando}
-                className="flex-1 py-3 pl-2.5 text-ink"
-              />
-            </View>
+            <Text className="text-ink text-xs font-sansBold uppercase mb-3 mt-3" style={{ letterSpacing: 1 }}>
+              Acceso
+            </Text>
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Email</Text>
+            <Text className="text-ink text-xs font-sansSemiBold mb-1">Email *</Text>
             <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
               <Feather name="mail" size={16} color={colors.inkSubtle} />
               <TextInput
@@ -271,7 +307,7 @@ export default function RegistroEmpresaScreen() {
             </View>
             {errores.email !== undefined && <Text className="text-error text-xs mb-2">{errores.email}</Text>}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Contraseña</Text>
+            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Contraseña *</Text>
             <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
               <Feather name="lock" size={16} color={colors.inkSubtle} />
               <TextInput
@@ -290,7 +326,7 @@ export default function RegistroEmpresaScreen() {
             </View>
             {errores.password !== undefined && <Text className="text-error text-xs mb-2">{errores.password}</Text>}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Repetir contraseña</Text>
+            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Repetir contraseña *</Text>
             <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
               <Feather name="lock" size={16} color={colors.inkSubtle} />
               <TextInput
@@ -308,10 +344,12 @@ export default function RegistroEmpresaScreen() {
               <Text className="text-error text-xs mb-3">{errores.confirmarPassword}</Text>
             )}
 
+            <AvisoDocumentos documentos={catalogo.documentos} />
+
             <Pressable
               onPress={handleCrearCuenta}
               disabled={cargando}
-              className="bg-action rounded-xl py-3 items-center mt-3"
+              className="bg-action rounded-xl py-3 items-center mt-4"
             >
               <View className="flex-row items-center justify-center gap-2">
                 {cargando ? (

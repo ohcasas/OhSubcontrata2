@@ -64,10 +64,11 @@ oh-casas-subcontratas/
 │   │   ├── design-system/tokens.js
 │   │   ├── constants/          # niveles.ts, enlaces.ts (páginas legales), perfiles.ts, stripe.ts
 │   │   ├── utils/              # plazos.ts, moneda.ts (euros sin Intl), texto.ts (búsqueda sin tildes)
-│   │   ├── services/           # supabase.ts, storage.ts, pushNotifications.ts
+│   │   ├── services/           # supabase.ts, storage.ts, pushNotifications.ts, catalogoRegistro.ts
 │   │   ├── navigation/         # RootNavigator (decide qué ve cada rol), AuthStack,
 │   │   │                       #   SubcontratistaTabs, ReferidorTabs, ConectaTabs, AdminTabs
 │   │   ├── components/         # ScreenHeader, AnimatedTabBar, BuscadorFiltros,
+│   │   │                       #   CamposDinamicos, AvisoDocumentos (formularios por perfil),
 │   │   │                       #   TarjetaComisionFlotante, CampanaNotificaciones...
 │   │   └── screens/
 │   │       ├── auth/           # Login, RecuperarPassword, ElegirTipoCuenta, Registro, RegistroReferidor, RegistroEmpresa
@@ -123,10 +124,63 @@ oh-casas-subcontratas/
 - **Aviso a los admin**: al registrarse una cuenta pendiente, cada admin recibe una notificación y un push ("Nueva cuenta por verificar" / "N cuentas por verificar"), como mucho uno cada 15 minutos por admin para que nadie pueda llenar el móvil registrando cuentas falsas. Salta al registrarse, aunque la persona aún no haya confirmado el correo (esas cuentas no pueden ni iniciar sesión). Además se dispara el webhook `cuenta.pendiente` (hacia n8n/Odoo, si hay URL configurada). Si falla el aviso o el webhook, el registro no se bloquea
 - **Indicador de CIF/NIF/NIE** en cada tarjeta del panel (`utils/documentoFiscal.ts`): dice si el número tiene un formato válido (letra o dígito de control correctos). No comprueba que la empresa exista
 - **Bloqueo por tabla**: `avances_obra` y `canjes` rechazan escrituras de cuentas pendientes o suspendidas con un disparador, así que cubre cualquier función que escriba ahí, la de hoy y las futuras. Sin sesión de usuario (backend, n8n, SQL Editor) no se aplica
+- **Alta por perfil**: cada tipo de cuenta tiene su propio formulario (un arquitecto pide nº de colegiado y colegio; una constructora, su inscripción en el REA...). Los campos de cada perfil vienen de la tabla `campos_registro` y la app los pinta sola (`CamposDinamicos`); el CIF/NIF/NIE se valida al registrarse. Los datos se guardan en `datos_registro` y el admin los ve en su tarjeta
+- **Documentación obligatoria**: tras confirmar el correo, la pantalla de "en revisión" pide los documentos de su perfil (`documentos_requeridos`) y deja subir cada uno (PDF o foto, hasta 10 MB) a un almacén **privado**. El admin los abre, y aprueba o rechaza cada uno con motivo (le llega a la persona). **Verificar una cuenta nueva exige tener aprobados los documentos obligatorios**; el admin puede saltárselo escribiendo el motivo, que queda en el historial. Reactivar una cuenta que ya estuvo verificada no los vuelve a pedir
+- **Por qué en dos tiempos**: al registrarse la persona aún no ha confirmado el correo, no tiene sesión y el almacén no admite subidas; por eso los datos se piden en el alta y los documentos al iniciar sesión por primera vez
+- **Borrar la cuenta no deja documentos**: la base de datos no puede borrar archivos del almacén (Supabase lo bloquea desde SQL), así que la app lo hace en orden: `comprobar_eliminacion_cuenta()` (que ejecuta las reglas de borrado y lo deshace todo), borrar los archivos de la persona, y `eliminar_mi_cuenta()`
 
 **Admin de OH** — pestaña **Conecta**, con cinco secciones: Recomendaciones (mover el pipeline), **Comisiones** (lo que se debe y marcar como pagado, con aviso a la persona), Cuentas (verificar, rechazar, suspender y reactivar, por estado y por perfil), Tablón y Directorio (ver y quitar lo que no deba estar). Gremios solo lista Oficios.
 
 **Común a todos**: registro con confirmación de email (Resend), recuperar contraseña por email, notificaciones dentro de la app y push reales, eliminar cuenta (desde la app o desde la web), importes siempre en euros, webhooks hacia n8n/Odoo (vacíos hasta configurar una URL).
+
+### Cambios de estado de una recomendación: confirmación, historial y diagnóstico
+
+Cada cambio de estado **avisa a quien envió la recomendación**, y el único camino que lo hace es `actualizar_estado_referencia()` (solo admin), que solo lanza la pantalla de Recomendaciones del panel al tocar una píldora. No hay tareas programadas ni automatismos que cambien estados.
+
+- **Confirmación**: tocar una píldora pregunta antes ("¿Pasar la recomendación de «X» a «Y»? Se avisará a ..."), para que un roce al desplazar la lista no cambie nada ni mande avisos por error
+- **Historial**: cada cambio queda en `referencias_historial` (de cuál a cuál, quién, cuándo) y cada tarjeta del panel muestra "Último cambio: ... · fecha · quién"
+- **Con comisión generada, no se retrocede**: una recomendación que ya tiene comisión solo puede estar en `venta` o `comision_disponible` (no se puede volver a "Visita" ni descartarla)
+
+Si llegan avisos que parecen ocurrir solos, en el SQL Editor (las horas salen en **UTC**: en octubre, las 13:02 de Madrid son las 11:02):
+
+```sql
+-- ¿Cuándo se crearon de verdad los avisos? (si es mucho antes de cuando sonaron, el móvil los recibió tarde)
+select created_at, titulo, cuerpo from notificaciones
+where tipo = 'referencia_actualizada' order by created_at desc limit 20;
+
+-- ¿Quién cambió cada estado y cuándo? (solo hay datos desde la migración 0037)
+select h.created_at, r.nombre_cliente, h.estado_anterior, h.estado_nuevo, p.nombre_completo, p.email
+from referencias_historial h
+join referencias_comerciales r on r.id = h.referencia_id
+left join profiles p on p.id = h.cambiado_por
+order by h.created_at desc limit 30;
+```
+
+Si los avisos llegan **todos juntos y tarde** en móviles Xiaomi/Redmi/POCO, suele ser el ahorro de batería del fabricante: Ajustes → Aplicaciones → OH Conecta → Ahorro de batería → «Sin restricciones», y activar el inicio automático.
+
+## Qué se pide a cada perfil, y cómo cambiarlo
+
+Los campos del formulario y los documentos de cada perfil son **datos, no código**: se cambian desde el SQL Editor de Supabase y la app los recoge al momento, sin recompilar. Los valores de partida (migración `0036`) son una propuesta y conviene validarlos con una gestoría. Volver a ejecutar la migración **no pisa** lo que hayas editado.
+
+```sql
+-- Ver qué se pide hoy a un perfil
+select clave, etiqueta, obligatorio from campos_registro where role = 'arquitecto' order by orden;
+select tipo, etiqueta, obligatorio from documentos_requeridos where role = 'arquitecto' order by orden;
+
+-- Hacer obligatorio (o no) un campo o un documento
+update campos_registro set obligatorio = true where role = 'arquitecto' and clave = 'zona';
+update documentos_requeridos set obligatorio = false where role = 'constructora' and tipo = 'seguro_rc';
+
+-- Pedir un documento nuevo a un perfil (tipo = nombre corto sin espacios)
+insert into documentos_requeridos (role, tipo, etiqueta, descripcion, obligatorio, orden)
+values ('proveedor', 'seguro_rc', 'Seguro de responsabilidad civil', 'Póliza vigente o justificante de pago.', true, 30);
+
+-- Pedir un campo nuevo (tipo 'texto' o 'seleccion'; en 'seleccion', opciones es una lista JSON)
+insert into campos_registro (role, clave, etiqueta, tipo, opciones, obligatorio, orden)
+values ('promotor', 'sector', 'Sector', 'seleccion', '["Residencial","Industrial"]', false, 60);
+```
+
+Perfiles: `arquitecto`, `profesional`, `promotor`, `constructora`, `proveedor`, `administrador` (inmobiliarias), `subcontratista` (Oficios). `referidor` no pide nada. Las claves `nombre_empresa` y `cif` son especiales: viajan aparte, porque las leen los disparadores de registro de siempre. Cambiar lo que se pide **no afecta a las cuentas ya verificadas**.
 
 ## Suscripciones y Stripe
 
@@ -202,6 +256,20 @@ Qué obliga a compilar de nuevo: cambios en `app.config.ts`, librerías nativas 
 - Clave de servicio de Firebase (FCM V1) subida a EAS (`eas credentials` → Android → Push Notifications).
 - `registrarPush()` guarda el token del dispositivo al iniciar sesión; `crear_notificacion()` en Supabase manda el push a través del servicio de Expo.
 - La pantalla de Notificaciones está registrada para todos los perfiles que muestran la campana.
+- **Un móvil, un usuario** (migración `0038`): un token de push pertenece siempre a **un solo** usuario; al guardarse, la base de datos lo borra de cualquier otro. Antes se quedaba para siempre en todas las cuentas con las que se hubiera entrado en ese móvil, así que los avisos de cualquiera de ellas llegaban aunque hubiera otra sesión abierta (o ninguna), y un evento para una empresa con varias cuentas sonaba varias veces en el mismo móvil. Además, **cerrar sesión borra el token de esa cuenta** (`services/sesion.ts`, `cerrarSesion()`): usa siempre esa función, no `supabase.auth.signOut()` a secas, salvo tras borrar la cuenta.
+- Si algo suena repetido o en el móvil equivocado, en el SQL Editor:
+
+```sql
+-- ¿Hay móviles repartidos entre varias cuentas? (tras la 0038 no debería salir nada)
+select right(t.token, 8) as token_termina_en, count(*) as cuentas, string_agg(p.email, ', ') as cuentas_con_este_movil
+from push_tokens t join profiles p on p.id = t.user_id
+group by t.token having count(*) > 1;
+
+-- ¿Cuántos móviles tiene registrados cada cuenta? (más de uno es normal: móvil y tablet, o una reinstalación que dejó uno viejo)
+select p.email, count(*) as moviles, max(t.updated_at) as ultimo_uso
+from push_tokens t join profiles p on p.id = t.user_id
+group by p.email order by moviles desc;
+```
 
 ## Migraciones de base de datos
 
@@ -244,6 +312,9 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 33 | `0033_licitaciones_de_terceros.sql` | Licitaciones de promotoras y constructoras: `crear_licitacion()`, `mis_licitaciones()`, `postulaciones_de_mi_licitacion()`, `aceptar_/rechazar_postulacion_propietario()`, `cambiar_estado_licitacion()`; no se postula a la propia; el dueño ve adjuntos y progreso de lo suyo |
 | 34 | `0034_verificacion_de_cuentas.sql` | **Verificación de cuentas**: `profiles.estado_cuenta` (pendiente / verificada / suspendida), `cambiar_estado_cuenta()`, `cuenta_historial`, y el bloqueo de lectura/escritura para cuentas sin verificar |
 | 35 | `0035_avisos_de_cuentas_y_cierre_de_limites.sql` | Aviso (notificación y push) a los admin cuando llega una cuenta pendiente, y bloqueo por tabla (`avances_obra`, `canjes`) para cuentas pendientes o suspendidas |
+| 36 | `0036_alta_por_perfil_y_documentacion.sql` | Alta por perfil: `campos_registro` y `documentos_requeridos` (editables), `datos_registro`, `documentos_cuenta` y su almacén privado; verificar una cuenta nueva exige los documentos aprobados (`cambiar_estado_cuenta` gana `p_forzar`); `comprobar_eliminacion_cuenta()` |
+| 37 | `0037_historial_y_bloqueo_de_recomendaciones.sql` | `referencias_historial` (quién cambió cada estado, de cuál a cuál y cuándo; solo lo leen los admin) y bloqueo para no retroceder ni descartar una recomendación que ya tiene comisión |
+| 38 | `0038_un_movil_un_usuario.sql` | Un token de push pertenece a un único usuario (disparador en `push_tokens`) y limpia los duplicados que había: los avisos de una cuenta ya no suenan en móviles donde se usó otra |
 
 Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
 
@@ -275,6 +346,8 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 7. Cambiar el nombre de la ficha en Play Console ("OH Contratas" → "OH Conecta") y el *Sender name* del email en Supabase.
 8. **Play Console → Contenido de la app → Acceso a la app**: dar las credenciales de una cuenta de prueba **ya verificada** (si el equipo de revisión de Google se registra por su cuenta, se queda en "pendiente" y no puede probar nada).
 9. Opcional: el aviso al móvil del admin ya funciona solo; si además se quiere correo, se puede configurar en n8n el webhook `cuenta.pendiente`.
+10. **Validar con una gestoría la lista de documentos de cada perfil** (`documentos_requeridos`) y los campos (`campos_registro`): son una propuesta de partida. Y ajustar las consultas del apartado anterior si cambia algo.
+11. Si OH **rechaza o elimina una cuenta desde el panel de Supabase** (no desde la app), sus archivos quedan en el almacén `documentos-verificacion`: hay que borrarlos a mano desde Storage (Supabase no deja hacerlo desde SQL).
 
 **Mantenimiento**
 
@@ -286,6 +359,8 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 - **Licitaciones de terceros**: máximo 10 abiertas por cuenta; sin moderación previa (el admin las ve en *Obras* y puede cancelarlas); los oficios no saben aún, en la lista, quién las publica; no hay valoración de la empresa por el dueño ni aviso a los oficios cuando se publica una nueva; el borrado de cuenta se bloquea mientras haya una abierta o en marcha.
 - Los oficios todavía no tienen ficha en el Directorio ni lo ven.
 - **Verificación**: es manual (nadie comprueba el CIF automáticamente) y vale también para los Oficios nuevos, que antes entraban sin revisión. El token de una cuenta suspendida sigue siendo válido hasta 1 hora, pero todas las lecturas y escrituras están bloqueadas en la base de datos desde el primer segundo. Una cuenta suspendida con una licitación abierta no puede borrarse hasta que alguien la cancele (el admin puede desde Obras).
+- **Tokens de push viejos**: al reinstalar la app queda un token antiguo en `push_tokens` (Expo lo rechaza como `DeviceNotRegistered`, pero nada lo borra todavía): no molesta, solo hace envíos inútiles
+- **Documentos**: un archivo por tipo de documento (si hay que subir varias páginas, una sola foto o PDF); solo PDF, JPG, PNG y WebP, hasta 10 MB. Al sustituir un documento, el archivo anterior queda en el almacén (el borrado de cuenta lo elimina junto a los demás). Los documentos de una cuenta rechazada se conservan hasta que alguien pida borrarlos
 - Sin límite de recomendaciones por usuario y día, y los datos de contacto del Tablón y el Directorio son visibles para cualquier cuenta registrada.
 - El buscador del Tablón y el Directorio filtra en el móvil sobre lo ya cargado; con cientos de entradas habría que pasarlo al servidor.
 - **Eliminar cuenta** está bloqueado para admin/superadmin (se dan de baja a mano) y para quien tenga una comisión pendiente o aceptada sin cobrar (el mensaje le dirige a `software@ohcasas.es`).

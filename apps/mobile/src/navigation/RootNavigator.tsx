@@ -162,6 +162,7 @@ export default function RootNavigator() {
               <CuentaNoActivaScreen
                 estado={estadoCuenta === 'suspendida' ? 'suspendida' : estadoCuenta === 'error' ? 'error' : 'pendiente'}
                 motivo={motivoCuenta}
+                userId={session!.user.id}
                 comprobando={comprobando}
                 onComprobar={() => {
                   setComprobando(true);

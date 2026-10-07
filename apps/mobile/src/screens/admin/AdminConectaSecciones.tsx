@@ -15,6 +15,7 @@ import { colors } from '../../design-system/tokens';
 import BuscadorFiltros from '../../components/BuscadorFiltros';
 import { coincide } from '../../utils/texto';
 import { validarDocumentoFiscal } from '../../utils/documentoFiscal';
+import { obtenerUrlFirmada } from '../../services/storage';
 import { ETIQUETA_PERFIL, ROLES_CUENTAS } from '../../constants/perfiles';
 import { formatearMoneda } from '../../utils/moneda';
 
@@ -66,14 +67,43 @@ type Cuenta = {
   empresas_subcontratistas: { nombre: string; cif: string | null } | null;
 };
 
+type ResumenDocs = { requeridos: number; subidos: number; aprobados: number };
+
+type DocumentoCuenta = {
+  tipo: string;
+  etiqueta: string;
+  descripcion: string | null;
+  obligatorio: boolean;
+  documento_id: string | null;
+  nombre_archivo: string | null;
+  storage_path: string | null;
+  tipo_mime: string | null;
+  estado: 'pendiente' | 'aprobado' | 'rechazado' | null;
+  motivo_rechazo: string | null;
+  subido_en: string | null;
+};
+
+// Lo que se está escribiendo en una tarjeta: el motivo de un rechazo, o de verificar sin la documentación completa
+type Panel = { id: string; modo: 'rechazar' | 'forzar' };
+
 const ESTILO_CUENTA: Record<EstadoCuenta, { fondo: string; texto: string; etiqueta: string }> = {
   pendiente: { fondo: 'bg-warningTint', texto: 'text-warning', etiqueta: 'Pendiente' },
   verificada: { fondo: 'bg-successTint', texto: 'text-success', etiqueta: 'Verificada' },
   suspendida: { fondo: 'bg-errorTint', texto: 'text-error', etiqueta: 'Suspendida' },
 };
 
+const ESTILO_DOCUMENTO = {
+  falta: { fondo: 'bg-warningTint', texto: 'text-warning', etiqueta: 'No subido' },
+  pendiente: { fondo: 'bg-actionTint', texto: 'text-action', etiqueta: 'Por revisar' },
+  aprobado: { fondo: 'bg-successTint', texto: 'text-success', etiqueta: 'Aprobado' },
+  rechazado: { fondo: 'bg-errorTint', texto: 'text-error', etiqueta: 'Rechazado' },
+};
+
 export function CuentasConecta() {
   const [cuentas, setCuentas] = useState<Cuenta[]>([]);
+  const [resumen, setResumen] = useState<Record<string, ResumenDocs>>({});
+  const [datosPorId, setDatosPorId] = useState<Record<string, Record<string, string>>>({});
+  const [etiquetasCampos, setEtiquetasCampos] = useState<Record<string, string>>({});
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,22 +112,33 @@ export function CuentasConecta() {
   const [filtroRol, setFiltroRol] = useState('todos');
   const [primeraCarga, setPrimeraCarga] = useState(true);
   const [trabajandoId, setTrabajandoId] = useState<string | null>(null);
-  const [rechazandoId, setRechazandoId] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel | null>(null);
   const [motivo, setMotivo] = useState('');
+  const [abiertaId, setAbiertaId] = useState<string | null>(null);
+  const [detalle, setDetalle] = useState<DocumentoCuenta[]>([]);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [rechazandoDocId, setRechazandoDocId] = useState<string | null>(null);
+  const [motivoDoc, setMotivoDoc] = useState('');
 
   const cargar = useCallback(async () => {
     setError(null);
-    const { data, error: errorSelect } = await supabase
-      .from('profiles')
-      .select(
-        'id, nombre_completo, role, email, telefono, created_at, estado_cuenta, estado_cuenta_motivo, empresas_subcontratistas(nombre, cif)',
-      )
-      .in('role', ROLES_CUENTAS)
-      .order('created_at', { ascending: false });
-    if (errorSelect) {
-      setError(errorSelect.message);
+    const [perfiles, docs, datos, campos] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select(
+          'id, nombre_completo, role, email, telefono, created_at, estado_cuenta, estado_cuenta_motivo, empresas_subcontratistas(nombre, cif)',
+        )
+        .in('role', ROLES_CUENTAS)
+        .order('created_at', { ascending: false }),
+      supabase.rpc('estado_documentacion_cuentas'),
+      supabase.from('datos_registro').select('profile_id, datos'),
+      supabase.from('campos_registro').select('role, clave, etiqueta'),
+    ]);
+
+    if (perfiles.error) {
+      setError(perfiles.error.message);
     } else {
-      const lista = (data as unknown as Cuenta[] | null) ?? [];
+      const lista = (perfiles.data as unknown as Cuenta[] | null) ?? [];
       setCuentas(lista);
       // La primera vez, si no hay nada pendiente, se enseña todo en vez de una lista vacía.
       if (primeraCarga) {
@@ -105,6 +146,22 @@ export function CuentasConecta() {
         setPrimeraCarga(false);
       }
     }
+    // Lo demás es información de apoyo: si falla, la lista de cuentas sigue funcionando
+    const porDocs: Record<string, ResumenDocs> = {};
+    for (const f of (docs.data as (ResumenDocs & { profile_id: string })[] | null) ?? []) {
+      porDocs[f.profile_id] = { requeridos: f.requeridos, subidos: f.subidos, aprobados: f.aprobados };
+    }
+    setResumen(porDocs);
+    const porDatos: Record<string, Record<string, string>> = {};
+    for (const f of (datos.data as { profile_id: string; datos: Record<string, string> }[] | null) ?? []) {
+      porDatos[f.profile_id] = f.datos;
+    }
+    setDatosPorId(porDatos);
+    const porEtiqueta: Record<string, string> = {};
+    for (const f of (campos.data as { role: string; clave: string; etiqueta: string }[] | null) ?? []) {
+      porEtiqueta[`${f.role}:${f.clave}`] = f.etiqueta;
+    }
+    setEtiquetasCampos(porEtiqueta);
     setCargando(false);
   }, [primeraCarga]);
 
@@ -114,12 +171,52 @@ export function CuentasConecta() {
     }, [cargar]),
   );
 
-  const cambiarEstado = async (c: Cuenta, nuevo: EstadoCuenta, motivoTexto?: string) => {
+  const cargarDetalle = async (id: string) => {
+    setCargandoDetalle(true);
+    const { data, error: errorRpc } = await supabase.rpc('documentos_de_cuenta', { p_profile_id: id });
+    if (errorRpc) setError(errorRpc.message);
+    else setDetalle((data as DocumentoCuenta[] | null) ?? []);
+    setCargandoDetalle(false);
+  };
+
+  const alternarDetalle = async (c: Cuenta) => {
+    if (abiertaId === c.id) {
+      setAbiertaId(null);
+      return;
+    }
+    setAbiertaId(c.id);
+    setDetalle([]);
+    setRechazandoDocId(null);
+    setMotivoDoc('');
+    await cargarDetalle(c.id);
+  };
+
+  const cambiarEstado = async (c: Cuenta, nuevo: EstadoCuenta, motivoTexto?: string, forzar?: boolean) => {
     setError(null);
     setTrabajandoId(c.id);
     const { error: errorRpc } = await supabase.rpc('cambiar_estado_cuenta', {
       p_profile_id: c.id,
       p_nuevo_estado: nuevo,
+      p_motivo: motivoTexto ?? null,
+      p_forzar: forzar === true,
+    });
+    setTrabajandoId(null);
+    if (errorRpc) {
+      setError(errorRpc.message);
+      return;
+    }
+    setPanel(null);
+    setMotivo('');
+    await cargar();
+  };
+
+  const revisarDocumento = async (d: DocumentoCuenta, aprobar: boolean, motivoTexto?: string) => {
+    if (d.documento_id === null) return;
+    setError(null);
+    setTrabajandoId(d.documento_id);
+    const { error: errorRpc } = await supabase.rpc('revisar_documento_cuenta', {
+      p_documento_id: d.documento_id,
+      p_aprobar: aprobar,
       p_motivo: motivoTexto ?? null,
     });
     setTrabajandoId(null);
@@ -127,9 +224,19 @@ export function CuentasConecta() {
       setError(errorRpc.message);
       return;
     }
-    setRechazandoId(null);
-    setMotivo('');
+    setRechazandoDocId(null);
+    setMotivoDoc('');
+    if (abiertaId !== null) await cargarDetalle(abiertaId);
     await cargar();
+  };
+
+  const abrirArchivo = async (d: DocumentoCuenta) => {
+    if (d.storage_path === null) return;
+    try {
+      Linking.openURL(await obtenerUrlFirmada('documentos-verificacion', d.storage_path));
+    } catch {
+      setError('No se ha podido abrir el archivo.');
+    }
   };
 
   const confirmarVerificar = (c: Cuenta) => {
@@ -141,6 +248,17 @@ export function CuentasConecta() {
         { text: 'Verificar', onPress: () => cambiarEstado(c, 'verificada') },
       ],
     );
+  };
+
+  // Si a la cuenta le falta documentación aprobada, verificarla exige escribir el motivo (queda en el historial)
+  const pulsarVerificar = (c: Cuenta) => {
+    const r = resumen[c.id];
+    if (r !== undefined && r.requeridos > r.aprobados) {
+      setPanel({ id: c.id, modo: 'forzar' });
+      setMotivo('');
+      return;
+    }
+    confirmarVerificar(c);
   };
 
   if (cargando) return <Cargando />;
@@ -175,7 +293,7 @@ export function CuentasConecta() {
     >
       {error !== null && <ErrorCaja texto={error} />}
       <Text className="text-inkMuted text-xs mb-3">
-        Las cuentas nuevas no pueden usar la app hasta que las verifiques. Comprueba el nombre, la empresa y el CIF antes de aprobar. El indicador del CIF solo dice si el número tiene un formato correcto; no comprueba que la empresa exista.
+        Las cuentas nuevas no pueden usar la app hasta que las verifiques. Comprueba los datos y los documentos de cada una antes de aprobar. El indicador del CIF solo dice si el número tiene un formato correcto; no comprueba que la empresa exista.
       </Text>
       <BuscadorFiltros
         busqueda={busqueda}
@@ -210,6 +328,9 @@ export function CuentasConecta() {
             const empresa = c.empresas_subcontratistas;
             const cif = empresa?.cif?.trim() ?? '';
             const tipoDocumento = validarDocumentoFiscal(cif);
+            const docs = resumen[c.id];
+            const datos = datosPorId[c.id];
+            const abierta = abiertaId === c.id;
             return (
               <View key={c.id} className="bg-surface rounded-xl border border-border p-3.5">
                 <View className="flex-row justify-between items-start">
@@ -234,6 +355,15 @@ export function CuentasConecta() {
                 ) : (
                   <Text className="text-warning text-[11px] font-sansSemiBold mt-1.5">⚠ El CIF/NIF no tiene un formato válido: míralo con más atención</Text>
                 )}
+                {docs !== undefined && docs.requeridos > 0 && (
+                  <Text
+                    className={`text-[11px] font-sansSemiBold mt-1 ${docs.aprobados >= docs.requeridos ? 'text-success' : 'text-warning'}`}
+                  >
+                    {docs.aprobados >= docs.requeridos
+                      ? `✓ Documentación aprobada (${docs.aprobados}/${docs.requeridos})`
+                      : `Documentación: ${docs.subidos}/${docs.requeridos} subida · ${docs.aprobados} aprobada`}
+                  </Text>
+                )}
                 <View className="flex-row items-center flex-wrap gap-x-3 gap-y-1 mt-2 pt-2 border-t border-border">
                   {c.email !== null && (
                     <Pressable onPress={() => Linking.openURL(`mailto:${c.email}`)}>
@@ -252,29 +382,159 @@ export function CuentasConecta() {
                   <Text className="text-inkMuted text-xs mt-2">Motivo: {c.estado_cuenta_motivo}</Text>
                 )}
 
-                {rechazandoId === c.id ? (
+                {/* Datos del formulario y documentos */}
+                <Pressable onPress={() => alternarDetalle(c)} className="flex-row items-center gap-1 mt-2.5" hitSlop={6}>
+                  <Feather name={abierta ? 'chevron-up' : 'chevron-down'} size={14} color={colors.action} />
+                  <Text className="text-action text-xs font-sansSemiBold">
+                    {abierta ? 'Ocultar datos y documentos' : 'Ver datos y documentos'}
+                  </Text>
+                </Pressable>
+
+                {abierta && (
+                  <View className="mt-2.5 pt-2.5 border-t border-border">
+                    {datos !== undefined && Object.keys(datos).length > 0 && (
+                      <View className="mb-3">
+                        <Text className="text-ink text-[11px] font-sansBold uppercase mb-1" style={{ letterSpacing: 1 }}>
+                          Datos del formulario
+                        </Text>
+                        {Object.entries(datos).map(([clave, valor]) => (
+                          <Text key={clave} className="text-inkMuted text-xs leading-relaxed">
+                            <Text className="text-ink font-sansSemiBold">{etiquetasCampos[`${c.role}:${clave}`] ?? clave}: </Text>
+                            {valor}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+
+                    <Text className="text-ink text-[11px] font-sansBold uppercase mb-1.5" style={{ letterSpacing: 1 }}>
+                      Documentos
+                    </Text>
+                    {cargandoDetalle ? (
+                      <ActivityIndicator size="small" color={colors.action} />
+                    ) : detalle.length === 0 ? (
+                      <Text className="text-inkMuted text-xs">A este perfil no se le pide ningún documento.</Text>
+                    ) : (
+                      <View className="gap-2">
+                        {detalle.map((d) => {
+                          const estiloDoc = ESTILO_DOCUMENTO[d.estado ?? 'falta'];
+                          return (
+                            <View key={d.tipo} className="bg-canvas rounded-lg border border-border p-2.5">
+                              <View className="flex-row justify-between items-start">
+                                <Text className="text-ink text-xs font-sansSemiBold flex-1 pr-2">
+                                  {d.etiqueta}
+                                  {d.obligatorio ? ' *' : ' (opcional)'}
+                                </Text>
+                                <View className={`rounded-md px-1.5 py-0.5 ${estiloDoc.fondo}`}>
+                                  <Text className={`text-[10px] font-sansBold ${estiloDoc.texto}`}>{estiloDoc.etiqueta}</Text>
+                                </View>
+                              </View>
+                              {d.estado === 'rechazado' && d.motivo_rechazo !== null && (
+                                <Text className="text-error text-[11px] mt-1">Rechazado: {d.motivo_rechazo}</Text>
+                              )}
+                              {d.documento_id !== null && (
+                                <View className="flex-row items-center flex-wrap gap-2 mt-2">
+                                  <Pressable onPress={() => abrirArchivo(d)} className="flex-row items-center gap-1 border border-border rounded-lg px-2.5 py-1.5">
+                                    <Feather name="external-link" size={12} color={colors.action} />
+                                    <Text className="text-action text-[11px] font-sansSemiBold" numberOfLines={1}>
+                                      Abrir {d.nombre_archivo ?? 'archivo'}
+                                    </Text>
+                                  </Pressable>
+                                  {d.estado !== 'aprobado' && rechazandoDocId !== d.documento_id && (
+                                    <Pressable
+                                      onPress={() => revisarDocumento(d, true)}
+                                      disabled={trabajandoId === d.documento_id}
+                                      className="bg-action rounded-lg px-2.5 py-1.5"
+                                    >
+                                      <Text className="text-white text-[11px] font-sansBold">Aprobar</Text>
+                                    </Pressable>
+                                  )}
+                                  {d.estado !== 'rechazado' && rechazandoDocId !== d.documento_id && (
+                                    <Pressable
+                                      onPress={() => {
+                                        setRechazandoDocId(d.documento_id);
+                                        setMotivoDoc('');
+                                      }}
+                                      disabled={trabajandoId === d.documento_id}
+                                      className="border border-border rounded-lg px-2.5 py-1.5"
+                                    >
+                                      <Text className="text-error text-[11px] font-sansSemiBold">Rechazar</Text>
+                                    </Pressable>
+                                  )}
+                                  {trabajandoId === d.documento_id && <ActivityIndicator size="small" color={colors.action} />}
+                                </View>
+                              )}
+                              {rechazandoDocId === d.documento_id && d.documento_id !== null && (
+                                <View className="mt-2">
+                                  <View className="bg-surface border border-border rounded-lg px-2.5 mb-2">
+                                    <TextInput
+                                      value={motivoDoc}
+                                      onChangeText={setMotivoDoc}
+                                      placeholder="Motivo (se le enviará): ej. el documento está caducado"
+                                      placeholderTextColor={colors.inkSubtle}
+                                      className="py-2 text-ink text-xs"
+                                    />
+                                  </View>
+                                  <View className="flex-row gap-2">
+                                    <Pressable onPress={() => setRechazandoDocId(null)} className="flex-1 border border-border rounded-lg py-1.5 items-center">
+                                      <Text className="text-inkMuted text-[11px] font-sansSemiBold">Cancelar</Text>
+                                    </Pressable>
+                                    <Pressable
+                                      onPress={() => revisarDocumento(d, false, motivoDoc)}
+                                      className="flex-1 bg-error rounded-lg py-1.5 items-center"
+                                    >
+                                      <Text className="text-white text-[11px] font-sansBold">Rechazar documento</Text>
+                                    </Pressable>
+                                  </View>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* Acciones sobre la cuenta */}
+                {panel !== null && panel.id === c.id ? (
                   <View className="mt-2.5">
-                    <Text className="text-ink text-xs font-sansSemiBold mb-1">Motivo (se le enviará a la persona)</Text>
+                    <Text className="text-ink text-xs font-sansSemiBold mb-1">
+                      {panel.modo === 'forzar'
+                        ? 'Faltan documentos por aprobar. Para verificarla igualmente, escribe el motivo (queda en el historial)'
+                        : 'Motivo (se le enviará a la persona)'}
+                    </Text>
                     <View className="bg-canvas border border-border rounded-xl px-3 mb-2">
                       <TextInput
                         value={motivo}
                         onChangeText={setMotivo}
-                        placeholder="Ej: no hemos podido comprobar los datos de la empresa"
+                        placeholder={
+                          panel.modo === 'forzar'
+                            ? 'Ej: la conozco, ha traído los papeles en mano'
+                            : 'Ej: no hemos podido comprobar los datos de la empresa'
+                        }
                         placeholderTextColor={colors.inkSubtle}
                         className="py-2.5 text-ink"
                       />
                     </View>
                     <View className="flex-row gap-2">
-                      <Pressable onPress={() => setRechazandoId(null)} className="flex-1 border border-border rounded-lg py-2 items-center">
+                      <Pressable onPress={() => setPanel(null)} className="flex-1 border border-border rounded-lg py-2 items-center">
                         <Text className="text-inkMuted text-xs font-sansSemiBold">Cancelar</Text>
                       </Pressable>
                       <Pressable
-                        onPress={() => cambiarEstado(c, 'suspendida', motivo)}
+                        onPress={() =>
+                          panel.modo === 'forzar'
+                            ? cambiarEstado(c, 'verificada', motivo, true)
+                            : cambiarEstado(c, 'suspendida', motivo)
+                        }
                         disabled={trabajandoId === c.id}
-                        className="flex-1 bg-error rounded-lg py-2 items-center"
+                        className={`flex-1 rounded-lg py-2 items-center ${panel.modo === 'forzar' ? 'bg-action' : 'bg-error'}`}
                       >
                         <Text className="text-white text-xs font-sansBold">
-                          {c.estado_cuenta === 'pendiente' ? 'Rechazar cuenta' : 'Suspender cuenta'}
+                          {panel.modo === 'forzar'
+                            ? 'Verificar igualmente'
+                            : c.estado_cuenta === 'pendiente'
+                              ? 'Rechazar cuenta'
+                              : 'Suspender cuenta'}
                         </Text>
                       </Pressable>
                     </View>
@@ -285,7 +545,7 @@ export function CuentasConecta() {
                     {c.estado_cuenta !== 'suspendida' && (
                       <Pressable
                         onPress={() => {
-                          setRechazandoId(c.id);
+                          setPanel({ id: c.id, modo: 'rechazar' });
                           setMotivo('');
                         }}
                         disabled={trabajandoId === c.id}
@@ -297,7 +557,7 @@ export function CuentasConecta() {
                       </Pressable>
                     )}
                     {c.estado_cuenta === 'pendiente' && (
-                      <Pressable onPress={() => confirmarVerificar(c)} disabled={trabajandoId === c.id} className="bg-action rounded-lg px-3 py-1.5">
+                      <Pressable onPress={() => pulsarVerificar(c)} disabled={trabajandoId === c.id} className="bg-action rounded-lg px-3 py-1.5">
                         <Text className="text-white text-xs font-sansBold">Verificar</Text>
                       </Pressable>
                     )}
@@ -316,6 +576,7 @@ export function CuentasConecta() {
     </Contenedor>
   );
 }
+
 
 
 // ---------------------------------------------------------------------------

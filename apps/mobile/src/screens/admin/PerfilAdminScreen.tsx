@@ -13,6 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { supabase } from '../../services/supabase';
+import { cerrarSesion } from '../../services/sesion';
 import { subirImagenPublica } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -195,7 +196,7 @@ export default function PerfilAdminScreen() {
 
   const handleCerrarSesion = async () => {
     setCerrandoSesion(true);
-    await supabase.auth.signOut();
+    await cerrarSesion();
     // RootNavigator detecta la sesión nula sola y vuelve al Login.
   };
 

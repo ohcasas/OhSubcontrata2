@@ -16,6 +16,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { supabase } from '../../services/supabase';
+import { cerrarSesion } from '../../services/sesion';
 import { subirImagenPublica, subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -328,7 +329,7 @@ export default function PerfilScreen() {
 
   const handleCerrarSesion = async () => {
     setCerrandoSesion(true);
-    await supabase.auth.signOut();
+    await cerrarSesion();
     // Sin manejo manual de navegación: RootNavigator detecta la sesión
     // nula vía onAuthStateChange y vuelve solo a la pantalla de Login.
   };
@@ -336,7 +337,7 @@ export default function PerfilScreen() {
   const handleEliminarCuenta = () => {
     Alert.alert(
       'Eliminar tu cuenta',
-      'Se borrarán tu nombre, teléfono, foto y biografía, y dejarás de poder acceder con este usuario. Las obras y puntos de tu empresa no se ven afectados. Esta acción no se puede deshacer. ¿Seguro que quieres continuar?',
+      'Se borrarán tu nombre, teléfono, foto, biografía y los documentos de verificación que hayas subido, y dejarás de poder acceder con este usuario. Las obras y puntos de tu empresa no se ven afectados. Esta acción no se puede deshacer. ¿Seguro que quieres continuar?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -344,10 +345,43 @@ export default function PerfilScreen() {
           style: 'destructive',
           onPress: async () => {
             setEliminandoCuenta(true);
+            const fallar = (mensaje: string) => {
+              setEliminandoCuenta(false);
+              setError(`No se ha podido eliminar la cuenta: ${mensaje}`);
+            };
+
+            // 1) Se comprueba que se puede borrar ANTES de tocar nada (comisiones sin cobrar,
+            //    licitaciones abiertas...): así no se pierden documentos si algo lo impide.
+            const { error: errorComprobacion } = await supabase.rpc('comprobar_eliminacion_cuenta');
+            if (errorComprobacion) {
+              fallar(errorComprobacion.message);
+              return;
+            }
+
+            // 2) Se borran del almacén los documentos de verificación de la persona. La base de
+            //    datos no puede hacerlo (Supabase no deja borrar archivos desde SQL).
+            const { data: usuario } = await supabase.auth.getUser();
+            const uid = usuario.user?.id;
+            if (uid !== undefined) {
+              const almacen = supabase.storage.from('documentos-verificacion');
+              const { data: archivos, error: errorListado } = await almacen.list(uid);
+              if (errorListado) {
+                fallar('no se han podido borrar tus documentos. Inténtalo de nuevo.');
+                return;
+              }
+              if (archivos !== null && archivos.length > 0) {
+                const { error: errorBorrado } = await almacen.remove(archivos.map((a) => `${uid}/${a.name}`));
+                if (errorBorrado) {
+                  fallar('no se han podido borrar tus documentos. Inténtalo de nuevo.');
+                  return;
+                }
+              }
+            }
+
+            // 3) Ahora sí, la cuenta
             const { error: errorRpc } = await supabase.rpc('eliminar_mi_cuenta');
             if (errorRpc) {
-              setEliminandoCuenta(false);
-              setError(`No se ha podido eliminar la cuenta: ${errorRpc.message}`);
+              fallar(errorRpc.message);
               return;
             }
             // La fila de auth.users ya no existe: cerrar sesión limpia el

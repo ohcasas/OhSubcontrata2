@@ -31,7 +31,7 @@ export default function AdminConectaScreen() {
 
   return (
     <View className="flex-1 bg-canvas">
-      <ScreenHeader title="OH Conecta" subtitle="Red de profesionales" />
+      <ScreenHeader title="Conecta" subtitle="Gestión de la red de profesionales" />
 
       <View className="pt-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>

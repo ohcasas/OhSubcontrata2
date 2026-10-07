@@ -20,6 +20,10 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import type { AuthStackParamList } from '../../navigation/types';
+import { validarDocumentoFiscal } from '../../utils/documentoFiscal';
+import { useCatalogoRegistro, validarCampos, separarValores, MENSAJE_DOCUMENTO_NO_VALIDO } from '../../services/catalogoRegistro';
+import CamposDinamicos from '../../components/CamposDinamicos';
+import AvisoDocumentos from '../../components/AvisoDocumentos';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -76,6 +80,10 @@ export default function RegistroScreen() {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [registroCompletado, setRegistroCompletado] = useState(false);
   const [requiereConfirmacionEmail, setRequiereConfirmacionEmail] = useState(false);
+  // Lo que se pide además a las empresas de Oficios (viene de la base de datos) y los documentos que se pedirán después
+  const catalogo = useCatalogoRegistro('subcontratista');
+  const [extras, setExtras] = useState<Record<string, string>>({});
+  const [erroresExtras, setErroresExtras] = useState<Record<string, string>>({});
 
   const actualizar = (campo: Campo) => (texto: string) =>
     setValores((prev) => ({ ...prev, [campo]: texto }));
@@ -92,8 +100,8 @@ export default function RegistroScreen() {
     if (valores.telefono.trim().replace(/\D/g, '').length < 6) {
       nuevosErrores.telefono = 'Introduce un número de teléfono válido.';
     }
-    if (valores.cif.trim().length < 5) {
-      nuevosErrores.cif = 'Introduce un CIF válido.';
+    if (validarDocumentoFiscal(valores.cif) === null) {
+      nuevosErrores.cif = MENSAJE_DOCUMENTO_NO_VALIDO;
     }
     if (!EMAIL_REGEX.test(valores.email.trim())) {
       nuevosErrores.email = 'Introduce un email válido.';
@@ -105,8 +113,10 @@ export default function RegistroScreen() {
       nuevosErrores.confirmarPassword = 'Las contraseñas no coinciden.';
     }
 
+    const erroresPerfil = validarCampos(catalogo.campos, extras);
+    setErroresExtras(erroresPerfil);
     setErrores(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
+    return Object.keys(nuevosErrores).length === 0 && Object.keys(erroresPerfil).length === 0;
   };
 
   const handleCrearCuenta = async () => {
@@ -124,6 +134,7 @@ export default function RegistroScreen() {
           nombre_empresa: valores.nombreEmpresa.trim(),
           cif: valores.cif.trim().toUpperCase(),
           especialidad: valores.especialidad.trim() || null,
+          datos_perfil: separarValores(extras).datos_perfil,
         },
         // Sin esto, Supabase usa su "Site URL" por defecto — que en este
         // proyecto está puesta a una página antigua pensada solo para
@@ -165,8 +176,8 @@ export default function RegistroScreen() {
         </Text>
         <Text className="text-inkMuted text-sm text-center mb-6">
           {requiereConfirmacionEmail
-            ? 'Revisa tu correo y confirma tu cuenta. Después la revisaremos antes de activarla: te avisaremos cuando esté verificada.'
-            : 'Tu cuenta está creada. La revisaremos antes de activarla: te avisaremos cuando esté verificada.'}
+            ? 'Revisa tu correo y confirma tu cuenta. Al iniciar sesión te pediremos la documentación para verificarla; te avisaremos cuando esté lista.'
+            : 'Tu cuenta está creada. Te pediremos la documentación para verificarla; te avisaremos cuando esté lista.'}
         </Text>
         {requiereConfirmacionEmail && (
           <Pressable
@@ -284,6 +295,19 @@ export default function RegistroScreen() {
               editable={!cargando}
             />
 
+            {catalogo.campos.length > 0 && (
+              <>
+                <Text className="text-ink text-xs font-sansBold uppercase mb-3 mt-5" style={{ letterSpacing: 1 }}>TU EMPRESA</Text>
+                <CamposDinamicos
+                  campos={catalogo.campos}
+                  valores={extras}
+                  errores={erroresExtras}
+                  onCambio={(clave, valor) => setExtras((prev) => ({ ...prev, [clave]: valor }))}
+                  deshabilitado={cargando}
+                />
+              </>
+            )}
+
             <Text className="text-ink text-xs font-sansBold uppercase mb-3 mt-5" style={{ letterSpacing: 1 }}>ACCESO</Text>
 
             <Campo
@@ -326,6 +350,8 @@ export default function RegistroScreen() {
               error={errores.confirmarPassword}
               editable={!cargando}
             />
+
+            <AvisoDocumentos documentos={catalogo.documentos} />
 
             <Pressable
               onPress={handleCrearCuenta}

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
@@ -30,6 +30,17 @@ const ESTADOS: { clave: string; etiqueta: string }[] = [
   { clave: 'descartado', etiqueta: 'Descartado' },
 ];
 
+type UltimoCambio = { estado: string; fecha: string; quien: string | null };
+
+const etiquetaEstado = (clave: string) => ESTADOS.find((e) => e.clave === clave)?.etiqueta ?? clave;
+
+// dd/mm hh:mm en la hora del móvil (sin Intl, que en Hermes no es fiable)
+const fechaHora = (iso: string) => {
+  const d = new Date(iso);
+  const dos = (n: number) => String(n).padStart(2, '0');
+  return `${dos(d.getDate())}/${dos(d.getMonth() + 1)} ${dos(d.getHours())}:${dos(d.getMinutes())}`;
+};
+
 export default function AdminReferidosScreen({ embebida = false }: { embebida?: boolean }) {
   const [referencias, setReferencias] = useState<Referencia[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -37,6 +48,7 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
   const [error, setError] = useState<string | null>(null);
   const [actualizandoId, setActualizandoId] = useState<string | null>(null);
   const [precioVentaPorId, setPrecioVentaPorId] = useState<Record<string, string>>({});
+  const [ultimoCambioPorId, setUltimoCambioPorId] = useState<Record<string, UltimoCambio>>({});
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -51,6 +63,24 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
       setError(errorSelect.message);
     } else {
       setReferencias((data as unknown as Referencia[] | null) ?? []);
+
+      // Quién cambió cada estado por última vez. Si aún no se ha ejecutado la migración 0037,
+      // la consulta no devuelve nada y la línea "Último cambio" simplemente no aparece.
+      const { data: historial } = await supabase
+        .from('referencias_historial')
+        .select('referencia_id, estado_nuevo, created_at, profiles(nombre_completo)')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      const ultimos: Record<string, UltimoCambio> = {};
+      const filas = (historial as unknown as
+        | { referencia_id: string; estado_nuevo: string; created_at: string; profiles: { nombre_completo: string | null } | null }[]
+        | null) ?? [];
+      for (const h of filas) {
+        if (ultimos[h.referencia_id] === undefined) {
+          ultimos[h.referencia_id] = { estado: h.estado_nuevo, fecha: h.created_at, quien: h.profiles?.nombre_completo ?? null };
+        }
+      }
+      setUltimoCambioPorId(ultimos);
     }
     setCargando(false);
   }, []);
@@ -89,6 +119,27 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
       return;
     }
     cargar();
+  };
+
+  // Cada cambio de estado AVISA a quien envió la recomendación: se confirma antes, para que un roce
+  // al desplazar la lista no cambie nada ni mande avisos por error.
+  const pedirCambioEstado = (referencia: Referencia, nuevoEstado: string) => {
+    if (nuevoEstado === 'venta') {
+      const texto = precioVentaPorId[referencia.id] ?? (referencia.precio_venta?.toString() ?? '');
+      const valor = Number(texto.replace(',', '.'));
+      if (!texto || Number.isNaN(valor) || valor <= 0) {
+        setError('Indica el precio de venta al cliente (sin IVA) antes de marcar esta referencia como venta.');
+        return;
+      }
+    }
+    Alert.alert(
+      'Cambiar estado',
+      `¿Pasar la recomendación de «${referencia.nombre_cliente}» a «${etiquetaEstado(nuevoEstado)}»? Se avisará a ${referencia.profiles?.nombre_completo ?? 'quien la envió'}.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cambiar', onPress: () => handleCambiarEstado(referencia, nuevoEstado) },
+      ],
+    );
   };
 
   if (cargando) {
@@ -163,7 +214,7 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
                 return (
                   <Pressable
                     key={e.clave}
-                    onPress={() => handleCambiarEstado(item, e.clave)}
+                    onPress={() => pedirCambioEstado(item, e.clave)}
                     // La píldora del estado actual no se puede volver a pulsar: antes cada
                     // pulsación mandaba un aviso al usuario aunque no cambiara nada.
                     disabled={actualizandoId === item.id || activo}
@@ -179,9 +230,16 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
               })}
             </View>
 
+            {ultimoCambioPorId[item.id] !== undefined && (
+              <Text className="text-inkMuted text-[10px] mt-2">
+                Último cambio: {etiquetaEstado(ultimoCambioPorId[item.id].estado)} · {fechaHora(ultimoCambioPorId[item.id].fecha)}
+                {ultimoCambioPorId[item.id].quien !== null ? ` · ${ultimoCambioPorId[item.id].quien}` : ''}
+              </Text>
+            )}
+
             {item.estado !== 'venta' && item.estado !== 'comision_disponible' && (
               <View className="flex-row items-center bg-canvas border border-border rounded-lg px-3 mt-3">
-                <Feather name="dollar-sign" size={13} color={colors.inkSubtle} />
+                <Text className="text-inkMuted text-sm font-sansSemiBold">€</Text>
                 <TextInput
                   value={precioVentaPorId[item.id] ?? (item.precio_venta?.toString() ?? '')}
                   onChangeText={(texto) => setPrecioVentaPorId((prev) => ({ ...prev, [item.id]: texto }))}
