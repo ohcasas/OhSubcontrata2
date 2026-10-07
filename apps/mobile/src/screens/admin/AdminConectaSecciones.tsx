@@ -7,14 +7,15 @@
  * (publicaciones_tablon_delete_own y fichas_directorio_admin_delete).
  */
 import { useCallback, useState } from 'react';
-import { View, Text, Pressable, ScrollView, RefreshControl, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, RefreshControl, ActivityIndicator, Alert, Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import BuscadorFiltros from '../../components/BuscadorFiltros';
 import { coincide } from '../../utils/texto';
-import { ETIQUETA_PERFIL, ROLES_RED } from '../../constants/perfiles';
+import { validarDocumentoFiscal } from '../../utils/documentoFiscal';
+import { ETIQUETA_PERFIL, ROLES_CUENTAS } from '../../constants/perfiles';
 import { formatearMoneda } from '../../utils/moneda';
 
 function fechaCorta(iso: string): string {
@@ -51,6 +52,8 @@ function Contenedor({
 // ---------------------------------------------------------------------------
 // Cuentas
 // ---------------------------------------------------------------------------
+type EstadoCuenta = 'pendiente' | 'verificada' | 'suspendida';
+
 type Cuenta = {
   id: string;
   nombre_completo: string | null;
@@ -58,7 +61,15 @@ type Cuenta = {
   email: string | null;
   telefono: string | null;
   created_at: string;
-  empresas_subcontratistas: { nombre: string } | null;
+  estado_cuenta: EstadoCuenta;
+  estado_cuenta_motivo: string | null;
+  empresas_subcontratistas: { nombre: string; cif: string | null } | null;
+};
+
+const ESTILO_CUENTA: Record<EstadoCuenta, { fondo: string; texto: string; etiqueta: string }> = {
+  pendiente: { fondo: 'bg-warningTint', texto: 'text-warning', etiqueta: 'Pendiente' },
+  verificada: { fondo: 'bg-successTint', texto: 'text-success', etiqueta: 'Verificada' },
+  suspendida: { fondo: 'bg-errorTint', texto: 'text-error', etiqueta: 'Suspendida' },
 };
 
 export function CuentasConecta() {
@@ -67,19 +78,35 @@ export function CuentasConecta() {
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
-  const [filtro, setFiltro] = useState('todos');
+  const [filtroEstado, setFiltroEstado] = useState('pendiente');
+  const [filtroRol, setFiltroRol] = useState('todos');
+  const [primeraCarga, setPrimeraCarga] = useState(true);
+  const [trabajandoId, setTrabajandoId] = useState<string | null>(null);
+  const [rechazandoId, setRechazandoId] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState('');
 
   const cargar = useCallback(async () => {
     setError(null);
     const { data, error: errorSelect } = await supabase
       .from('profiles')
-      .select('id, nombre_completo, role, email, telefono, created_at, empresas_subcontratistas(nombre)')
-      .in('role', ROLES_RED)
+      .select(
+        'id, nombre_completo, role, email, telefono, created_at, estado_cuenta, estado_cuenta_motivo, empresas_subcontratistas(nombre, cif)',
+      )
+      .in('role', ROLES_CUENTAS)
       .order('created_at', { ascending: false });
-    if (errorSelect) setError(errorSelect.message);
-    else setCuentas((data as unknown as Cuenta[] | null) ?? []);
+    if (errorSelect) {
+      setError(errorSelect.message);
+    } else {
+      const lista = (data as unknown as Cuenta[] | null) ?? [];
+      setCuentas(lista);
+      // La primera vez, si no hay nada pendiente, se enseña todo en vez de una lista vacía.
+      if (primeraCarga) {
+        setFiltroEstado(lista.some((c) => c.estado_cuenta === 'pendiente') ? 'pendiente' : 'todos');
+        setPrimeraCarga(false);
+      }
+    }
     setCargando(false);
-  }, []);
+  }, [primeraCarga]);
 
   useFocusEffect(
     useCallback(() => {
@@ -87,17 +114,54 @@ export function CuentasConecta() {
     }, [cargar]),
   );
 
+  const cambiarEstado = async (c: Cuenta, nuevo: EstadoCuenta, motivoTexto?: string) => {
+    setError(null);
+    setTrabajandoId(c.id);
+    const { error: errorRpc } = await supabase.rpc('cambiar_estado_cuenta', {
+      p_profile_id: c.id,
+      p_nuevo_estado: nuevo,
+      p_motivo: motivoTexto ?? null,
+    });
+    setTrabajandoId(null);
+    if (errorRpc) {
+      setError(errorRpc.message);
+      return;
+    }
+    setRechazandoId(null);
+    setMotivo('');
+    await cargar();
+  };
+
+  const confirmarVerificar = (c: Cuenta) => {
+    Alert.alert(
+      'Verificar cuenta',
+      `¿Confirmas que ${c.nombre_completo ?? 'esta cuenta'} (${ETIQUETA_PERFIL[c.role] ?? c.role}) es quien dice ser? Podrá usar toda la app.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Verificar', onPress: () => cambiarEstado(c, 'verificada') },
+      ],
+    );
+  };
+
   if (cargando) return <Cargando />;
 
-  const cuenta = (rol: string) => cuentas.filter((c) => c.role === rol).length;
-  const opciones = [
+  const pendientes = cuentas.filter((c) => c.estado_cuenta === 'pendiente').length;
+  const cuentaEstado = (e: EstadoCuenta) => cuentas.filter((c) => c.estado_cuenta === e).length;
+  const opcionesEstado = [
+    { clave: 'pendiente', etiqueta: `Pendientes (${pendientes})` },
     { clave: 'todos', etiqueta: `Todas (${cuentas.length})` },
-    ...ROLES_RED.map((r) => ({ clave: r, etiqueta: `${ETIQUETA_PERFIL[r]} (${cuenta(r)})` })),
+    { clave: 'verificada', etiqueta: `Verificadas (${cuentaEstado('verificada')})` },
+    { clave: 'suspendida', etiqueta: `Suspendidas (${cuentaEstado('suspendida')})` },
+  ];
+  const opcionesRol = [
+    { clave: 'todos', etiqueta: 'Todos los perfiles' },
+    ...ROLES_CUENTAS.map((r) => ({ clave: r, etiqueta: ETIQUETA_PERFIL[r] })),
   ];
   const visibles = cuentas.filter(
     (c) =>
-      (filtro === 'todos' || c.role === filtro) &&
-      coincide(busqueda, c.nombre_completo, c.email, c.telefono, c.empresas_subcontratistas?.nombre),
+      (filtroEstado === 'todos' || c.estado_cuenta === filtroEstado) &&
+      (filtroRol === 'todos' || c.role === filtroRol) &&
+      coincide(busqueda, c.nombre_completo, c.email, c.telefono, c.empresas_subcontratistas?.nombre, c.empresas_subcontratistas?.cif),
   );
 
   return (
@@ -111,52 +175,148 @@ export function CuentasConecta() {
     >
       {error !== null && <ErrorCaja texto={error} />}
       <Text className="text-inkMuted text-xs mb-3">
-        Cuentas registradas en OH Conecta. Los Oficios (subcontratistas) se gestionan en la pestaña Gremios.
+        Las cuentas nuevas no pueden usar la app hasta que las verifiques. Comprueba el nombre, la empresa y el CIF antes de aprobar. El indicador del CIF solo dice si el número tiene un formato correcto; no comprueba que la empresa exista.
       </Text>
       <BuscadorFiltros
         busqueda={busqueda}
         onBusqueda={setBusqueda}
-        placeholder="Buscar por nombre, email o empresa"
-        opciones={opciones}
-        seleccion={filtro}
-        onSeleccion={setFiltro}
+        placeholder="Buscar por nombre, email, empresa o CIF"
+        opciones={opcionesEstado}
+        seleccion={filtroEstado}
+        onSeleccion={setFiltroEstado}
+      />
+      <BuscadorFiltros
+        busqueda=""
+        onBusqueda={() => {}}
+        placeholder=""
+        opciones={opcionesRol}
+        seleccion={filtroRol}
+        onSeleccion={setFiltroRol}
+        sinBusqueda
       />
 
       {visibles.length === 0 ? (
         <Text className="text-inkMuted text-sm">
-          {cuentas.length === 0 ? 'Todavía no se ha registrado nadie.' : 'Ninguna cuenta coincide con tu búsqueda.'}
+          {cuentas.length === 0
+            ? 'Todavía no se ha registrado nadie.'
+            : filtroEstado === 'pendiente' && busqueda === '' && filtroRol === 'todos'
+              ? 'No hay cuentas pendientes de verificar. 🎉'
+              : 'Ninguna cuenta coincide con tu búsqueda.'}
         </Text>
       ) : (
-        <View className="gap-2.5">
-          {visibles.map((c) => (
-            <View key={c.id} className="bg-surface rounded-xl border border-border p-3.5">
-              <View className="flex-row justify-between items-start">
-                <Text className="text-ink text-sm font-sansBold flex-1 pr-2">{c.nombre_completo ?? 'Sin nombre'}</Text>
-                <Chip texto={ETIQUETA_PERFIL[c.role] ?? c.role} />
-              </View>
-              {c.empresas_subcontratistas !== null && c.empresas_subcontratistas.nombre !== c.nombre_completo && (
-                <Text className="text-inkMuted text-xs mt-0.5">{c.empresas_subcontratistas.nombre}</Text>
-              )}
-              <View className="flex-row items-center flex-wrap gap-x-3 gap-y-1 mt-2 pt-2 border-t border-border">
-                {c.email !== null && (
-                  <Pressable onPress={() => Linking.openURL(`mailto:${c.email}`)}>
-                    <Text className="text-action text-[11px] font-sansSemiBold">{c.email}</Text>
-                  </Pressable>
+        <View className="gap-2.5 mt-1">
+          {visibles.map((c) => {
+            const estilo = ESTILO_CUENTA[c.estado_cuenta] ?? ESTILO_CUENTA.pendiente;
+            const empresa = c.empresas_subcontratistas;
+            const cif = empresa?.cif?.trim() ?? '';
+            const tipoDocumento = validarDocumentoFiscal(cif);
+            return (
+              <View key={c.id} className="bg-surface rounded-xl border border-border p-3.5">
+                <View className="flex-row justify-between items-start">
+                  <Text className="text-ink text-sm font-sansBold flex-1 pr-2">{c.nombre_completo ?? 'Sin nombre'}</Text>
+                  <View className={`rounded-md px-2 py-0.5 ${estilo.fondo}`}>
+                    <Text className={`text-[11px] font-sansBold ${estilo.texto}`}>{estilo.etiqueta}</Text>
+                  </View>
+                </View>
+                <View className="flex-row items-center gap-2 mt-1">
+                  <Chip texto={ETIQUETA_PERFIL[c.role] ?? c.role} />
+                  {empresa !== null && empresa.nombre !== c.nombre_completo && (
+                    <Text className="text-inkMuted text-xs flex-1">
+                      {empresa.nombre}
+                      {empresa.cif !== null && empresa.cif !== '' ? ` · ${empresa.cif}` : ''}
+                    </Text>
+                  )}
+                </View>
+                {cif === '' ? (
+                  <Text className="text-inkMuted text-[11px] mt-1.5">Sin CIF/NIF</Text>
+                ) : tipoDocumento !== null ? (
+                  <Text className="text-success text-[11px] font-sansSemiBold mt-1.5">✓ {tipoDocumento} con formato válido</Text>
+                ) : (
+                  <Text className="text-warning text-[11px] font-sansSemiBold mt-1.5">⚠ El CIF/NIF no tiene un formato válido: míralo con más atención</Text>
                 )}
-                {c.telefono !== null && (
-                  <Pressable onPress={() => Linking.openURL(`tel:${c.telefono}`)}>
-                    <Text className="text-action text-[11px] font-sansSemiBold">{c.telefono}</Text>
-                  </Pressable>
+                <View className="flex-row items-center flex-wrap gap-x-3 gap-y-1 mt-2 pt-2 border-t border-border">
+                  {c.email !== null && (
+                    <Pressable onPress={() => Linking.openURL(`mailto:${c.email}`)}>
+                      <Text className="text-action text-[11px] font-sansSemiBold">{c.email}</Text>
+                    </Pressable>
+                  )}
+                  {c.telefono !== null && (
+                    <Pressable onPress={() => Linking.openURL(`tel:${c.telefono}`)}>
+                      <Text className="text-action text-[11px] font-sansSemiBold">{c.telefono}</Text>
+                    </Pressable>
+                  )}
+                  <Text className="text-inkMuted text-[11px]">Alta: {fechaCorta(c.created_at)}</Text>
+                </View>
+
+                {c.estado_cuenta === 'suspendida' && c.estado_cuenta_motivo !== null && (
+                  <Text className="text-inkMuted text-xs mt-2">Motivo: {c.estado_cuenta_motivo}</Text>
                 )}
-                <Text className="text-inkMuted text-[11px]">Alta: {fechaCorta(c.created_at)}</Text>
+
+                {rechazandoId === c.id ? (
+                  <View className="mt-2.5">
+                    <Text className="text-ink text-xs font-sansSemiBold mb-1">Motivo (se le enviará a la persona)</Text>
+                    <View className="bg-canvas border border-border rounded-xl px-3 mb-2">
+                      <TextInput
+                        value={motivo}
+                        onChangeText={setMotivo}
+                        placeholder="Ej: no hemos podido comprobar los datos de la empresa"
+                        placeholderTextColor={colors.inkSubtle}
+                        className="py-2.5 text-ink"
+                      />
+                    </View>
+                    <View className="flex-row gap-2">
+                      <Pressable onPress={() => setRechazandoId(null)} className="flex-1 border border-border rounded-lg py-2 items-center">
+                        <Text className="text-inkMuted text-xs font-sansSemiBold">Cancelar</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => cambiarEstado(c, 'suspendida', motivo)}
+                        disabled={trabajandoId === c.id}
+                        className="flex-1 bg-error rounded-lg py-2 items-center"
+                      >
+                        <Text className="text-white text-xs font-sansBold">
+                          {c.estado_cuenta === 'pendiente' ? 'Rechazar cuenta' : 'Suspender cuenta'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <View className="flex-row justify-end items-center gap-2 mt-2.5">
+                    {trabajandoId === c.id && <ActivityIndicator size="small" color={colors.action} />}
+                    {c.estado_cuenta !== 'suspendida' && (
+                      <Pressable
+                        onPress={() => {
+                          setRechazandoId(c.id);
+                          setMotivo('');
+                        }}
+                        disabled={trabajandoId === c.id}
+                        className="border border-border rounded-lg px-3 py-1.5"
+                      >
+                        <Text className="text-error text-xs font-sansSemiBold">
+                          {c.estado_cuenta === 'pendiente' ? 'Rechazar' : 'Suspender'}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {c.estado_cuenta === 'pendiente' && (
+                      <Pressable onPress={() => confirmarVerificar(c)} disabled={trabajandoId === c.id} className="bg-action rounded-lg px-3 py-1.5">
+                        <Text className="text-white text-xs font-sansBold">Verificar</Text>
+                      </Pressable>
+                    )}
+                    {c.estado_cuenta === 'suspendida' && (
+                      <Pressable onPress={() => cambiarEstado(c, 'verificada')} disabled={trabajandoId === c.id} className="bg-action rounded-lg px-3 py-1.5">
+                        <Text className="text-white text-xs font-sansBold">Reactivar</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                )}
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </Contenedor>
   );
 }
+
 
 // ---------------------------------------------------------------------------
 // Tablón (moderación)

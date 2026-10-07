@@ -37,14 +37,15 @@ El campo `profiles.role` decide qué ve cada persona. Hay 8 tipos que se registr
 
 | Perfil (`role`) | Pestañas | Qué hace |
 |---|---|---|
-| **Oficios** (`subcontratista`) | Obras, Postulaciones, Recomienda, Partner, Perfil | Licitaciones, postulaciones, obras con progreso semanal, Club OH Partner. También puede recomendar clientes |
+| **Oficios** (`subcontratista`) | Obras, Postulaciones, Tablón, Recomienda, Partner, Perfil | Licitaciones (de OH y de promotoras/constructoras), postulaciones, obras con progreso semanal, Club OH Partner. Leen el Tablón. También pueden recomendar clientes |
 | **Recomendador** (`referidor`) | Recomienda, Perfil | Recomienda clientes y sigue su estado; su Perfil resume actividad y comisiones |
-| **Promotor, Constructora** | Tablón, Directorio, Perfil | Publican necesidades en el Tablón |
+| **Promotor, Constructora** | Licitaciones, Tablón, Directorio, Perfil | **Publican licitaciones** a las que se postulan los oficios, adjudican y siguen la obra; además publican necesidades en el Tablón |
 | **Inmobiliaria / Administrador** (`administrador`) | Tablón, Directorio, Recomienda, Perfil | Publican avisos y oportunidades. **Las inmobiliarias se registran con este tipo**: pagan suscripción y además recomiendan clientes y cobran la comisión (2 %) |
 | **Arquitecto, Proveedor, Profesional** | Tablón, Directorio, Perfil | Crean su ficha en el Directorio para que los encuentren |
 | **Admin / superadmin** (personal de OH) | Obras, Postulaciones, Gremios, Recompensas, Conecta, Perfil | Gestión completa. **No es lo mismo que el perfil "Administrador"** de arriba (instituciones) |
 
 Notas para quien programe:
+
 - Los 6 perfiles de OH Conecta ven **Tablón y Directorio completos**; lo que cambia es qué pueden *publicar* (ver `TablonScreen` y `DirectorioScreen`). El Administrador (inmobiliarias) tiene además la pestaña Recomienda.
 - El Perfil se adapta al tipo de cuenta: `PerfilScreen` pinta lo común y `PerfilPorRol` lo específico (comisiones del recomendador, publicaciones del Tablón, resumen de la ficha). Las cifras de obras, la homologación y la documentación son solo de Oficios.
 - **Todas las cuentas crean una fila en `empresas_subcontratistas`**, aunque no sean subcontratistas (el nombre de la tabla es histórico). `GremiosScreen` descarta las que pertenecen a otros perfiles; cualquier pantalla nueva que liste "empresas" debería hacer lo mismo.
@@ -78,7 +79,7 @@ oh-casas-subcontratas/
 │   └── assets/branding/
 ├── docs/                       # páginas legales públicas (GitHub Pages)
 ├── supabase/
-│   ├── migrations/             # 0001 → 0028
+│   ├── migrations/             # 0001 → 0031
 │   └── seed_*.sql
 └── packages/shared-types/
 ```
@@ -86,12 +87,14 @@ oh-casas-subcontratas/
 ## Qué funciona hoy
 
 **Oficios**
+
 - Licitaciones (con prioridad si cierran en ≤48 h), guardar oferta con recordatorio, postulación con oferta, teléfono y adjuntos
 - Ciclo de la obra con un único camino de cambio de estado (`cambiar_estado_obra()`): abierta → adjudicada → en curso → finalizada, o cancelada
 - Progreso semanal de obra, visible para la empresa y para el admin
 - Club OH Partner: se desbloquea desde la 1ª obra completada; nivel por puntos totales; recompensas por nivel; canjes gestionados por el admin
 
 **OH Recomienda** (lo tienen Oficios, Recomendador e Inmobiliaria/Administrador; a nivel de base de datos cualquier cuenta con sesión podría recomendar)
+
 - Botón "Conozco a alguien que quiere construir", con consentimiento obligatorio de la persona referida
 - Pipeline de 7 estados + descartado: `enviado → contactado → visita → presupuesto → reserva → venta → comisión disponible`
 - Al pasar a `venta` (el admin indica el precio de venta sin IVA) se calcula sola la comisión y se avisa por notificación
@@ -99,17 +102,34 @@ oh-casas-subcontratas/
 - Los porcentajes viven en la tabla editable `reglas_recompensa_referido`, no en el código
 
 **OH Conecta**
+
 - **Tablón**: necesidades (promotor/constructora) y avisos (administrador); los autores pueden borrar lo suyo desde su Perfil
 - **Directorio**: una ficha por proveedor/arquitecto/profesional
 - Buscador (sin distinguir mayúsculas ni tildes) y filtros por tipo en ambos
 
-**Admin de OH** — pestaña **Conecta**, con cinco secciones: Recomendaciones (mover el pipeline), **Comisiones** (lo que se debe y marcar como pagado, con aviso a la persona), Cuentas (quién se ha registrado, por tipo), Tablón y Directorio (ver y quitar lo que no deba estar). Gremios solo lista Oficios.
+**Licitaciones de terceros** (promotoras y constructoras, pestaña *Licitaciones*)
+- Publican una licitación (título, presupuesto, especialidad, ubicación, requisitos, días abierta); los oficios la ven en su pestaña *Obras* y se postulan como a las de OH
+- Ven las postulaciones (oferta, teléfono, adjuntos, y de la empresa: especialidad, homologación, valoración, obras en OH), **adjudican o rechazan con motivo**, y llevan la obra: *en curso*, *finalizada* o *cancelada*
+- Les avisan de cada postulación nueva; a las empresas, de si las aceptan, rechazan o cancelan
+- **No dan puntos del Club ni cuentan como obra completada** (evita que alguien se invente obras para generar premios a cargo de OH). Lo de OH funciona exactamente como antes
+- Las funciones del dueño son aparte de las de admin (`aceptar_postulacion`, `cambiar_estado_obra`, sin tocar). El dueño no lee las tablas de postulaciones ni de empresas: ve lo necesario a través de funciones
+
+**Verificación de cuentas** (todos los perfiles, Oficios incluidos)
+- Una cuenta **nueva nace pendiente** y, al iniciar sesión, solo ve una pantalla de "Estamos revisando tu cuenta". Las cuentas que ya existían al aplicar la migración quedaron verificadas
+- **El bloqueo está en la base de datos**, no solo en la pantalla: una cuenta pendiente o suspendida no lee licitaciones (con los presupuestos de OH), Tablón ni Directorio, ni publica, ni se postula, ni recomienda, aunque llame a la API a mano
+- El admin **verifica, rechaza, suspende y reactiva** desde Conecta → Cuentas (los pendientes salen primero, con un contador en la pestaña). Suspender cierra las sesiones, impide volver a entrar (`auth.users.banned_until`) y **oculta lo que esa cuenta había publicado** (Tablón, ficha, licitaciones abiertas); las licitaciones en marcha siguen visibles para las empresas implicadas
+- Todo cambio queda en `cuenta_historial` (quién, cuándo, motivo) y la persona recibe un aviso (notificación y push)
+- Nadie puede aprobarse a sí mismo: los usuarios solo editan 4 columnas de su perfil (`0016`). Un admin no puede cambiar su propia cuenta ni la de otro admin
+- Cada cuenta pendiente dispara el webhook `cuenta.pendiente` (hacia n8n/Odoo, si hay URL configurada); si el webhook falla, el registro no se bloquea
+
+**Admin de OH** — pestaña **Conecta**, con cinco secciones: Recomendaciones (mover el pipeline), **Comisiones** (lo que se debe y marcar como pagado, con aviso a la persona), Cuentas (verificar, rechazar, suspender y reactivar, por estado y por perfil), Tablón y Directorio (ver y quitar lo que no deba estar). Gremios solo lista Oficios.
 
 **Común a todos**: registro con confirmación de email (Resend), recuperar contraseña por email, notificaciones dentro de la app y push reales, eliminar cuenta (desde la app o desde la web), importes siempre en euros, webhooks hacia n8n/Odoo (vacíos hasta configurar una URL).
 
 ## Suscripciones y Stripe
 
 Preparado, **no conectado**:
+
 - Cada cuenta de los 6 perfiles de pago nace con una fila en `suscripciones` en estado `pendiente_pago` y **sin precio** (se calcula al activar el cobro). **No bloquea nada**: bloquear antes de poder cobrar dejaría a la gente sin forma de pagar ni de entrar.
 - El precio mensual de cada rol vive en `precios_suscripcion` (provisional, ver arriba).
 - **Precio fundador**: las primeras *N* cuentas de promotor/constructora, **por orden de registro**, pagan `precio_fundador` durante `meses` meses **contados desde que empiece el cobro** (no desde el registro, para que el periodo gratuito no se lo coma). Vive en `programa_fundador`, y `precio_aplicable(profile_id)` calcula qué le toca a cada cuenta. El número de plazas está **vacío a propósito** (programa inactivo = todos a precio estándar): **hay que fijarlo antes de activar el cobro** con `update programa_fundador set plazas = N;`. Si una cuenta se da de baja antes de cobrar, la siguiente sube un puesto.
@@ -218,6 +238,9 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 29 | `0029_seguridad_tablas_nuevas_y_pago_comisiones.sql` | Pase de seguridad de las tablas nuevas (2 fallos menores cerrados) y `marcar_recompensa_pagada()` |
 | 30 | `0030_precios_suscripcion.sql` | Precios mensuales provisionales en `precios_suscripcion` y comisión del 2 % para el perfil Administrador (inmobiliarias) |
 | 31 | `0031_precio_fundador.sql` | Precio fundador de promotor/constructora: `programa_fundador`, `precio_aplicable()`; el registro deja de copiar el precio |
+| 32 | `0032_fix_avisos_repetidos_recomendaciones.sql` | `actualizar_estado_referencia()` solo avisa si el estado cambia de verdad; textos legibles |
+| 33 | `0033_licitaciones_de_terceros.sql` | Licitaciones de promotoras y constructoras: `crear_licitacion()`, `mis_licitaciones()`, `postulaciones_de_mi_licitacion()`, `aceptar_/rechazar_postulacion_propietario()`, `cambiar_estado_licitacion()`; no se postula a la propia; el dueño ve adjuntos y progreso de lo suyo |
+| 34 | `0034_verificacion_de_cuentas.sql` | **Verificación de cuentas**: `profiles.estado_cuenta` (pendiente / verificada / suspendida), `cambiar_estado_cuenta()`, `cuenta_historial`, y el bloqueo de lectura/escritura para cuentas sin verificar |
 
 Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
 
@@ -236,6 +259,7 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 ## Pendiente
 
 **Depende de decisiones o de terceros**
+
 1. **Revisión legal de los textos** (privacidad, términos, aviso legal). Lo más delicado: la base legal para tratar datos de **clientes recomendados** (hoy se apoya en que quien recomienda confirma el consentimiento, que es débil) y el aviso a esa persona en el primer contacto.
 2. **Suscripciones con Stripe** (ver arriba). Faltan por decidir: **cuántas plazas fundador** (yo pondría entre 10 y 20), si los importes llevan IVA y el precio de Oficios si finalmente paga suscripción.
 3. **Comisión por obra de Oficios**: falta decidir el porcentaje y sobre qué importe.
@@ -243,15 +267,23 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 5. **OH Score**, **OH Wallet** e **invitaciones entre profesionales**: descritos en el documento de Dirección, sin decidir ni construir.
 
 **Tareas manuales**
+
 6. Añadir `https://ohcasas.github.io/OhSubcontrata2/nueva-contrasena.html` a Redirect URLs de Supabase, si no está.
 7. Cambiar el nombre de la ficha en Play Console ("OH Contratas" → "OH Conecta") y el *Sender name* del email en Supabase.
+8. **Play Console → Contenido de la app → Acceso a la app**: dar las credenciales de una cuenta de prueba **ya verificada** (si el equipo de revisión de Google se registra por su cuenta, se queda en "pendiente" y no puede probar nada).
+9. Opcional: configurar en n8n el webhook `cuenta.pendiente` para que avise por correo a software@ohcasas.es cuando llegue una cuenta nueva (si no, el admin la ve por el contador de la pestaña Conecta).
+10. Revisar a mano los textos de "cuenta creada" de `RegistroScreen` y `RegistroReferidorScreen`: dicen que la cuenta está lista, y ahora queda pendiente de verificar (`RegistroEmpresaScreen` ya está actualizado; la pantalla de "en revisión" lo explica igualmente al iniciar sesión).
 
 **Mantenimiento**
+
 8. Dependencias que `npx expo doctor` marca como ligeramente desactualizadas.
 
 ## Límites conocidos, aceptados por ahora
 
 - Cada persona tiene **un solo rol** (`profile_roles` está preparado pero sin usar).
+- **Licitaciones de terceros**: máximo 10 abiertas por cuenta; sin moderación previa (el admin las ve en *Obras* y puede cancelarlas); los oficios no saben aún, en la lista, quién las publica; no hay valoración de la empresa por el dueño ni aviso a los oficios cuando se publica una nueva; el borrado de cuenta se bloquea mientras haya una abierta o en marcha.
+- Los oficios todavía no tienen ficha en el Directorio ni lo ven.
+- **Verificación**: es manual (nadie comprueba el CIF automáticamente) y vale también para los Oficios nuevos, que antes entraban sin revisión. Una cuenta suspendida conserva su sesión hasta que caduca su token (como mucho 1 hora) solo para `solicitar_canje` y `registrar_avance_obra`; todo lo demás se bloquea al instante. Una cuenta suspendida con una licitación abierta no puede borrarse hasta que alguien la cancele (el admin puede desde Obras).
 - Sin límite de recomendaciones por usuario y día, y los datos de contacto del Tablón y el Directorio son visibles para cualquier cuenta registrada.
 - El buscador del Tablón y el Directorio filtra en el móvil sobre lo ya cargado; con cientos de entradas habría que pasarlo al servidor.
 - **Eliminar cuenta** está bloqueado para admin/superadmin (se dan de baja a mano) y para quien tenga una comisión pendiente o aceptada sin cobrar (el mensaje le dirige a `software@ohcasas.es`).
@@ -271,6 +303,9 @@ Cosas que ya han costado tiempo y conviene no repetir:
 5. **Nombres de funciones SQL y llamadas de la app**: si renombras una función en una migración, busca sus llamadas (`supabase.rpc('...')`) en la app. Ya falló una vez (`aceptar_comision_referido` → `aceptar_recompensa_referido`).
 6. **Play Store sirve la versión con el número más alto** entre todas las pistas de prueba en las que esté la misma cuenta. Si una prueba abierta tiene un número mayor que la interna, instalará la abierta.
 7. **En PL/pgSQL, un `IF` con condición NULL cuenta como falso**: `if auth_role() not in (...) then raise exception` no salta si no hay sesión. Comprueba `auth.uid() is null` antes.
+
+8. **Las columnas de `profiles` que edita el usuario están limitadas con `grant update (nombre_completo, telefono, bio, avatar_url)` (0016).** Por eso `role` y `estado_cuenta` no se pueden cambiar a mano. No hagas nunca un `grant update on profiles` a secas: abriría esas dos columnas (un usuario podría ascenderse a admin o aprobarse a sí mismo).
+9. **Orden al desplegar un cambio de base de datos que la app ya consulta**: primero el SQL, después la versión nueva. Si la app pide una columna que aún no existe, todos verán un error de carga.
 
 ## Usuarios de prueba
 

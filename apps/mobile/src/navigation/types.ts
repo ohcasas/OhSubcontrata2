@@ -25,6 +25,7 @@ export type AuthStackParamList = {
 export type SubcontratistaTabParamList = {
   Obras: undefined;
   Postulaciones: undefined;
+  Tablon: undefined;
   Recomienda: undefined;
   Partner: undefined;
   Perfil: undefined;
@@ -49,6 +50,7 @@ export type RootStackParamList = {
   AppSubcontratista: NavigatorScreenParams<SubcontratistaTabParamList> | undefined;
   AppReferidor: NavigatorScreenParams<ReferidorTabParamList> | undefined;
   AppConecta: undefined;
+  CuentaNoActiva: undefined;
   Notificaciones: undefined;
   AppAdmin: undefined;
   DetalleObra: { obraId: string };

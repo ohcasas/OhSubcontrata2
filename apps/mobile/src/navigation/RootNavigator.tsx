@@ -26,6 +26,7 @@ import GremioDetalleScreen from '../screens/admin/GremioDetalleScreen';
 import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
 import TarjetaComisionFlotante from '../components/TarjetaComisionFlotante';
 import ConectaTabs from './ConectaTabs';
+import CuentaNoActivaScreen from '../screens/auth/CuentaNoActivaScreen';
 import type { RootStackParamList } from './types';
 
 type Rol =
@@ -55,6 +56,10 @@ export default function RootNavigator() {
   const [session, setSession] = useState<Session | null>(null);
   const [rol, setRol] = useState<Rol | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [estadoCuenta, setEstadoCuenta] = useState<'pendiente' | 'verificada' | 'suspendida' | 'error' | null>(null);
+  const [motivoCuenta, setMotivoCuenta] = useState<string | null>(null);
+  const [recargas, setRecargas] = useState(0);
+  const [comprobando, setComprobando] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -79,42 +84,55 @@ export default function RootNavigator() {
     }
   }, [session]);
 
+  // Rol y estado de la cuenta. Se vuelve a leer cuando alguien pulsa "Comprobar ahora"
+  // en la pantalla de cuenta pendiente (recargas).
   useEffect(() => {
     if (!session) {
       setRol(null);
+      setEstadoCuenta(null);
+      setMotivoCuenta(null);
       return;
     }
 
     let activo = true;
     supabase
       .from('profiles')
-      .select('role')
+      .select('role, estado_cuenta, estado_cuenta_motivo')
       .eq('id', session.user.id)
       .single()
       .then(({ data, error }) => {
         if (!activo) return;
-        if (error) {
-          // Sin fila en profiles todavía (p.ej. usuario creado a mano en
-          // Supabase Auth sin su fila correspondiente) -> fallback seguro.
-          console.warn('No se pudo cargar el perfil, usando rol por defecto:', error.message);
-          setRol('subcontratista');
+        setComprobando(false);
+        if (error || !data) {
+          // Antes aquí se asumía el rol 'subcontratista'. Ahora NO: sin poder leer la
+          // cuenta no se da por buena (la base de datos tampoco dejaría leer nada).
+          console.warn('No se pudo cargar el perfil:', error?.message);
+          setEstadoCuenta('error');
           return;
         }
-        setRol((data?.role as Rol) ?? 'subcontratista');
+        setRol((data.role as Rol) ?? null);
+        setMotivoCuenta((data.estado_cuenta_motivo as string | null) ?? null);
+        setEstadoCuenta(
+          data.estado_cuenta === 'verificada' || data.estado_cuenta === 'suspendida' ? data.estado_cuenta : 'pendiente',
+        );
       });
 
     return () => {
       activo = false;
     };
-  }, [session]);
+  }, [session, recargas]);
 
-  if (cargando || (session !== null && rol === null)) {
+  if (cargando || (session !== null && estadoCuenta === null)) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas">
         <ActivityIndicator color={colors.action} />
       </View>
     );
   }
+
+  // Solo las cuentas verificadas (y el personal de OH) entran en la app. Esto es la parte
+  // visible; lo que de verdad lo impide es la base de datos (ver migración 0034).
+  const cuentaActiva = rol === 'admin' || rol === 'superadmin' || estadoCuenta === 'verificada';
 
   // La campana de notificaciones (en el Perfil, Recomienda, etc.) navega a
   // esta pantalla. Tiene que estar registrada en TODOS los perfiles que
@@ -138,6 +156,20 @@ export default function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!session ? (
           <Stack.Screen name="Auth" component={AuthStack} />
+        ) : !cuentaActiva ? (
+          <Stack.Screen name="CuentaNoActiva">
+            {() => (
+              <CuentaNoActivaScreen
+                estado={estadoCuenta === 'suspendida' ? 'suspendida' : estadoCuenta === 'error' ? 'error' : 'pendiente'}
+                motivo={motivoCuenta}
+                comprobando={comprobando}
+                onComprobar={() => {
+                  setComprobando(true);
+                  setRecargas((n) => n + 1);
+                }}
+              />
+            )}
+          </Stack.Screen>
         ) : rol === 'admin' || rol === 'superadmin' ? (
           <>
             <Stack.Screen name="AppAdmin" component={AdminTabs} />
@@ -198,7 +230,7 @@ export default function RootNavigator() {
       {/* Tarjeta flotante de comisión pendiente: por encima de toda la
           navegación, para subcontratistas y referidores (quien haga la
           recomendación), nunca para el admin. */}
-      {session !== null && (rol === 'subcontratista' || rol === 'referidor' || rol === 'administrador') && (
+      {session !== null && cuentaActiva && (rol === 'subcontratista' || rol === 'referidor' || rol === 'administrador') && (
         <TarjetaComisionFlotante userId={session.user.id} />
       )}
     </NavigationContainer>

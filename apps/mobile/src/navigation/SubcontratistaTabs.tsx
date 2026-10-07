@@ -1,14 +1,10 @@
-/**
- * Bottom tabs — rol Subcontratista.
- * Coincide con la bottom nav bar vista en obras_disponibles, club_oh_partner
- * y perfil_profesional del export de Stitch: Obras / Postulaciones / Partner / Perfil.
- */
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { SubcontratistaTabParamList } from './types';
 import { colors } from '../design-system/tokens';
 import AnimatedTabBar from '../components/AnimatedTabBar';
 import ObrasScreen from '../screens/obras/ObrasScreen';
 import PostulacionesScreen from '../screens/postulaciones/PostulacionesScreen';
+import TablonScreen from '../screens/conecta/TablonScreen';
 import RecomiendaScreen from '../screens/recomienda/RecomiendaScreen';
 import ClubPartnerScreen from '../screens/partner/ClubPartnerScreen';
 import PerfilScreen from '../screens/perfil/PerfilScreen';
@@ -18,6 +14,7 @@ const Tab = createBottomTabNavigator<SubcontratistaTabParamList>();
 const ICONOS = {
   Obras: 'briefcase',
   Postulaciones: 'file-text',
+  Tablon: 'clipboard',
   Recomienda: 'users',
   Partner: 'award',
   Perfil: 'user',
@@ -33,6 +30,8 @@ export default function SubcontratistaTabs() {
     >
       <Tab.Screen name="Obras" component={ObrasScreen} />
       <Tab.Screen name="Postulaciones" component={PostulacionesScreen} />
+      {/* Solo lectura: el Tablón es donde promotores y constructoras dicen lo que necesitan. */}
+      <Tab.Screen name="Tablon">{() => <TablonScreen rol="subcontratista" />}</Tab.Screen>
       <Tab.Screen name="Recomienda" component={RecomiendaScreen} />
       <Tab.Screen name="Partner" component={ClubPartnerScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />

@@ -24,7 +24,8 @@ type Publicacion = {
 
 const ETIQUETA_TIPO: Record<string, string> = { necesidad: 'Necesidad', aviso: 'Aviso' };
 
-export default function TablonScreen({ rol, userId }: { rol: string; userId: string }) {
+// userId es opcional: solo lo necesita quien PUBLICA. Los Oficios solo leen el Tablón.
+export default function TablonScreen({ rol, userId }: { rol: string; userId?: string }) {
   const puedePublicar = rol === 'promotor' || rol === 'constructora' || rol === 'administrador';
   const tipoAPublicar: 'necesidad' | 'aviso' = rol === 'administrador' ? 'aviso' : 'necesidad';
 
@@ -74,6 +75,8 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId: str
       setErrorForm('Escribe un título.');
       return;
     }
+
+    if (userId === undefined) return;
 
     setPublicando(true);
     const { error: errorInsert } = await supabase.from('publicaciones_tablon').insert({

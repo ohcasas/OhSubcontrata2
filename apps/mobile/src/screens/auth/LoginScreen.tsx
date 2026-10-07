@@ -29,6 +29,9 @@ function traducirErrorSupabase(mensaje: string): string {
   if (mensaje.includes('Email not confirmed')) {
     return 'Debes confirmar tu email antes de iniciar sesión.';
   }
+  if (mensaje.toLowerCase().includes('banned')) {
+    return 'Tu cuenta está suspendida. Escríbenos a software@ohcasas.es.';
+  }
   return 'No se ha podido iniciar sesión. Inténtalo de nuevo.';
 }
 

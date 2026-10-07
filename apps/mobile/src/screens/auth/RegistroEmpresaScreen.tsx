@@ -29,7 +29,7 @@ const ETIQUETA_ROL: Record<string, string> = {
   arquitecto: 'Arquitecto',
   proveedor: 'Proveedor',
   profesional: 'Profesional',
-  administrador: 'Administrador',
+  administrador: 'Inmobiliaria / Administrador',
 };
 
 function traducirErrorRegistro(mensaje: string): string {
@@ -139,8 +139,8 @@ export default function RegistroEmpresaScreen() {
         <Text className="text-ink text-xl font-sansBold text-center mb-2">Cuenta creada</Text>
         <Text className="text-inkMuted text-sm text-center mb-6">
           {requiereConfirmacionEmail
-            ? 'Revisa tu correo y confirma tu cuenta antes de iniciar sesión.'
-            : 'Tu cuenta está lista. Ya puedes usar la app.'}
+            ? 'Revisa tu correo y confirma tu cuenta. Después la revisaremos antes de activarla: te avisaremos cuando esté verificada.'
+            : 'Tu cuenta está creada. La revisaremos antes de activarla: te avisaremos cuando esté verificada.'}
         </Text>
         {requiereConfirmacionEmail && (
           <Pressable onPress={() => navigation.navigate('Login')} className="bg-action rounded-xl py-3 px-6">

@@ -10,5 +10,8 @@ export const ETIQUETA_PERFIL: Record<string, string> = {
   administrador: 'Inmobiliaria / Administrador',
 };
 
+/** Todas las cuentas que se registran solas, Oficios incluidos (para verificarlas en el panel de admin). */
+export const ROLES_CUENTAS = ['subcontratista', 'referidor', 'promotor', 'constructora', 'arquitecto', 'proveedor', 'profesional', 'administrador'];
+
 /** Todos los tipos de cuenta que se registran solos, salvo Oficios (que tiene su pantalla, Gremios). */
 export const ROLES_RED = ['referidor', 'promotor', 'constructora', 'arquitecto', 'proveedor', 'profesional', 'administrador'];
