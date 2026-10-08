@@ -353,12 +353,18 @@ const colTrabajador = (conCuenta) => [
 function tablaDocumentos(id, docs, ctx) {
   const cols = [
     { t: 'Documento', f: (d) => `<b>${esc(d.etiqueta)}</b>${d.obligatorio ? '' : ' <span class="suave">(opcional)</span>'}<span class="sub">${[d.descripcion, d.vigencia_meses ? `Vale ${d.vigencia_meses} meses` : 'No caduca'].filter(Boolean).map(esc).join('. ')}</span>` },
-    { t: 'Estado', f: (d) => estadoDoc(d.estado_real) + (d.estado === 'rechazado' && d.motivo_rechazo ? `<span class="sub mal-t">${esc(d.motivo_rechazo)}</span>` : '') },
+    { t: 'Estado', f: (d) => estadoDoc(d.estado_real) + (d.estado === 'rechazado' && d.motivo_rechazo ? `<span class="sub mal-t">${esc(d.motivo_rechazo)}</span>` : '') + (d.renov_path ? '<span class="sub">Renovación pendiente de revisión</span>' : '') },
     { t: 'Caduca', f: (d) => d.estado === 'aprobado' ? caduca(d.caduca_en) : '<span class="suave">—</span>' },
-    { t: 'Archivo', f: (d) => d.documento_id ? `${esc(d.nombre_archivo || '')}<span class="sub">Subido ${fechaHora(d.subido_en)}</span>` : '<span class="suave">—</span>' },
+    { t: 'Archivo', f: (d) => d.documento_id ? `${esc(d.nombre_archivo || '')}<span class="sub">Subido ${fechaHora(d.subido_en)}</span>${d.renov_path ? `<span class="sub">Renovación: ${esc(d.renov_nombre || '')}, subida ${fechaHora(d.renov_en)}</span>` : ''}` : '<span class="suave">—</span>' },
     { t: '', cls: 'acc', f: (d) => {
       const a = `data-tipo="${esc(d.tipo)}" data-doc="${esc(d.documento_id || '')}" data-ctx='${esc(JSON.stringify(ctx))}'`; const b = [];
       if (d.documento_id) b.push(`<button class="btn peq" data-act="ver" data-ruta="${esc(d.storage_path)}">Ver</button>`);
+      if (d.renov_path) {
+        const ar = `data-tipo="${esc(d.tipo)}" data-doc="${esc(d.documento_id)}" data-ctx='${esc(JSON.stringify({ ...ctx, renovacion: true }))}'`;
+        b.push(`<button class="btn peq" data-act="ver" data-ruta="${esc(d.renov_path)}">Ver renovación</button>`);
+        b.push(`<button class="btn peq primario" data-act="aprobar" ${ar}>Aprobar renovación</button>`);
+        b.push(`<button class="btn peq mal" data-act="rechazar" ${ar}>Rechazar renovación</button>`);
+      }
       if (d.estado === 'pendiente') { b.push(`<button class="btn peq primario" data-act="aprobar" ${a}>Aprobar</button>`); b.push(`<button class="btn peq mal" data-act="rechazar" ${a}>Rechazar</button>`); }
       if (d.estado === 'aprobado') b.push(`<button class="btn peq" data-act="caducidad" ${a} data-fecha="${esc(d.caduca_en || '')}">Caducidad</button>`);
       if (d.documento_id) b.push(`<button class="btn peq" data-act="historial" ${a}>Historial</button>`);
@@ -420,12 +426,12 @@ async function vistaRevision(v) {
   const cola = await rpc('panel_cola_revision');
   v.innerHTML = `<div class="cab"><div><h1>Por revisar</h1><p class="suave">Documentos subidos que esperan aprobación o rechazo. Los más antiguos, primero.</p></div></div>
   <div class="panel">${htmlTabla('cola', [
-    { t: 'Documento', f: (d) => `<b>${esc(d.etiqueta)}</b>` },
+    { t: 'Documento', f: (d) => `<b>${esc(d.etiqueta)}</b>${d.renovacion ? '<span class="sub">Renovación; el anterior sigue vigente</span>' : ''}` },
     { t: 'De', f: (d) => d.origen === 'trabajador' ? `Trabajador<span class="sub">${esc(d.trabajador)}</span>` : 'Empresa' },
     { t: 'Cuenta', f: (d) => `<a href="#/empresa/${esc(d.profile_id)}">${esc(d.empresa || d.cuenta || '')}</a>`, s: (d) => String(d.empresa || d.cuenta || '').toLowerCase() },
     { t: 'Subido', f: (d) => fechaHora(d.subido_en), s: (d) => d.subido_en },
     { t: '', cls: 'acc', f: (d) => {
-      const ctx = d.origen === 'trabajador' ? { origen: 'trabajador', profile: d.profile_id, trabajador: d.trabajador_id } : { origen: 'cuenta', profile: d.profile_id };
+      const ctx = { ...(d.origen === 'trabajador' ? { origen: 'trabajador', profile: d.profile_id, trabajador: d.trabajador_id } : { origen: 'cuenta', profile: d.profile_id }), ...(d.renovacion ? { renovacion: true } : {}) };
       const a = `data-tipo="${esc(d.tipo)}" data-doc="${esc(d.documento_id)}" data-ctx='${esc(JSON.stringify(ctx))}'`;
       return `<button class="btn peq" data-act="ver" data-ruta="${esc(d.storage_path)}">Ver</button><button class="btn peq primario" data-act="aprobar" ${a}>Aprobar</button><button class="btn peq mal" data-act="rechazar" ${a}>Rechazar</button>`;
     } }], cola, 'No hay documentos pendientes de revisión.')}</div>`;
@@ -554,28 +560,30 @@ function errorVentana(err) { const x = $('#v-error'); x.textContent = mensajeErr
 const pieVentana = (ok, clase) => `<div id="v-error" class="error-caja hidden"></div><div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn ${clase}" id="v-ok">${ok}</button></div>`;
 
 function ventanaAprobar(docId, ctx) {
-  abrirVentana(`<h2>Aprobar documento</h2><p class="suave">La caducidad se calcula sola según los meses que vale este documento. Si el documento trae otra fecha, indícala.</p>
+  abrirVentana(`<h2>${ctx.renovacion ? 'Aprobar renovación' : 'Aprobar documento'}</h2><p class="suave">${ctx.renovacion ? 'El archivo anterior pasa al historial y la caducidad se cuenta desde hoy. ' : ''}La caducidad se calcula sola según los meses que vale este documento. Si el documento trae otra fecha, indícala.</p>
     <label class="campo" for="v-fecha">Fecha de caducidad (opcional)</label><input type="date" id="v-fecha" />${pieVentana('Aprobar', 'primario')}`);
   $('[data-cerrar]').onclick = cerrarVentana;
   $('#v-ok').onclick = async () => {
     const f = $('#v-fecha').value || null; $('#v-ok').disabled = true;
     try {
-      if (ctx.origen === 'trabajador') await rpc('panel_revisar_documento_trabajador', { p_documento_id: docId, p_aprobar: true, p_motivo: null, p_caduca_en: f });
+      if (ctx.renovacion) await rpc('panel_resolver_renovacion', { p_origen: ctx.origen, p_documento_id: docId, p_aprobar: true, p_motivo: null, p_caduca_en: f });
+      else if (ctx.origen === 'trabajador') await rpc('panel_revisar_documento_trabajador', { p_documento_id: docId, p_aprobar: true, p_motivo: null, p_caduca_en: f });
       else { await rpc('revisar_documento_cuenta', { p_documento_id: docId, p_aprobar: true, p_motivo: null }); if (f) await rpc('panel_fijar_caducidad', { p_origen: 'cuenta', p_documento_id: docId, p_fecha: f }); }
-      cerrarVentana(); aviso('Documento aprobado.'); recargar();
+      cerrarVentana(); aviso(ctx.renovacion ? 'Renovación aprobada.' : 'Documento aprobado.'); recargar();
     } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
   };
 }
 function ventanaRechazar(docId, ctx) {
-  abrirVentana(`<h2>Rechazar documento</h2><p class="suave">El motivo le llega a la persona como aviso en la app.</p>
+  abrirVentana(`<h2>${ctx.renovacion ? 'Rechazar renovación' : 'Rechazar documento'}</h2><p class="suave">El motivo le llega a la persona como aviso en la app.${ctx.renovacion ? ' El documento anterior sigue vigente.' : ''}</p>
     <label class="campo" for="v-motivo">Motivo</label><textarea id="v-motivo" placeholder="Por ejemplo: está caducado, no se lee o falta la segunda cara"></textarea>${pieVentana('Rechazar', 'mal')}`);
   $('[data-cerrar]').onclick = cerrarVentana;
   $('#v-ok').onclick = async () => {
     const m = $('#v-motivo').value.trim(); $('#v-ok').disabled = true;
     try {
-      if (ctx.origen === 'trabajador') await rpc('panel_revisar_documento_trabajador', { p_documento_id: docId, p_aprobar: false, p_motivo: m, p_caduca_en: null });
+      if (ctx.renovacion) await rpc('panel_resolver_renovacion', { p_origen: ctx.origen, p_documento_id: docId, p_aprobar: false, p_motivo: m, p_caduca_en: null });
+      else if (ctx.origen === 'trabajador') await rpc('panel_revisar_documento_trabajador', { p_documento_id: docId, p_aprobar: false, p_motivo: m, p_caduca_en: null });
       else await rpc('revisar_documento_cuenta', { p_documento_id: docId, p_aprobar: false, p_motivo: m });
-      cerrarVentana(); aviso('Documento rechazado.'); recargar();
+      cerrarVentana(); aviso(ctx.renovacion ? 'Renovación rechazada.' : 'Documento rechazado.'); recargar();
     } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
   };
 }
