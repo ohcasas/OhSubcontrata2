@@ -59,6 +59,7 @@
   .usuario { display:flex; align-items:center; gap:12px; color:var(--barra-texto); white-space:nowrap; font-size:13px; }
   .usuario button { background:transparent; border:1px solid #38485F; color:#fff; border-radius:4px; padding:3px 10px; cursor:pointer; }
   #vista { max-width:1280px; margin:0 auto; padding:24px 24px 64px; }
+  @media (max-width:1050px) { .barra { gap:18px; padding:0 16px; } .barra nav { gap:16px; } .usuario .nombre { display:none; } }
   @media (max-width:760px) { .barra { padding:0 12px; gap:14px; height:auto; flex-wrap:wrap; } .marca, .usuario { height:48px; } .usuario { margin-left:auto; } .barra nav { order:3; flex:0 0 100%; height:40px; border-top:1px solid #243247; gap:18px; } .marca span, .usuario .nombre { display:none; } #vista { padding:16px 12px 56px; } }
 
   /* Estructura de página */
@@ -156,7 +157,7 @@
 
 <div id="app" class="hidden">
   <div class="barra">
-    <a class="marca" href="#/panel" aria-label="Ir al resumen"><b id="nombre-marca">3B Conecta</b><span>Documentación</span></a>
+    <a class="marca" href="#/panel" aria-label="3B Conecta, ir al resumen"><b id="nombre-marca">3B Conecta</b></a>
     <nav>
       <a href="#/panel" data-nav="panel">Resumen</a>
       <a href="#/revision" data-nav="revision">Por revisar <span class="n hidden" id="cnt-revision">0</span></a>
