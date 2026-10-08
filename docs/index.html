@@ -86,7 +86,7 @@ p{margin:0 0 1rem;max-width:40rem}
 /* borde de luz (brillo especular): más claro arriba a la izquierda, como el cristal de iOS */
 .cristal::after,.vidrio::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
   background:linear-gradient(145deg,rgba(255,255,255,.95),rgba(255,255,255,.12) 32%,rgba(255,255,255,.04) 62%,rgba(255,255,255,.5));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .vidrio::after{opacity:.75}
 
 /* Fondos de color detrás del cristal (si no, no hay nada que refractar) */
