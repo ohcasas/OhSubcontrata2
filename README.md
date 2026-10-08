@@ -77,7 +77,7 @@ oh-casas-subcontratas/
 │   │       ├── conecta/        # Tablón y Directorio
 │   │       ├── perfil/         # PerfilScreen + PerfilPorRol
 │   │       └── admin/          # Obras, Postulaciones, Gremios, Recompensas, Conecta (+ Secciones), Referidos, Perfil
-│   └── assets/branding/
+│   └── assets/branding/        # logo, iconos y pantalla de carga (ver "Logo e identidad")
 ├── docs/                       # páginas legales públicas (GitHub Pages)
 ├── supabase/
 │   ├── migrations/             # 0001 → 0031
@@ -182,6 +182,45 @@ values ('promotor', 'sector', 'Sector', 'seleccion', '["Residencial","Industrial
 
 Perfiles: `arquitecto`, `profesional`, `promotor`, `constructora`, `proveedor`, `administrador` (inmobiliarias), `subcontratista` (Oficios). `referidor` no pide nada. Las claves `nombre_empresa` y `cif` son especiales: viajan aparte, porque las leen los disparadores de registro de siempre. Cambiar lo que se pide **no afecta a las cuentas ya verificadas**.
 
+## Logo e identidad
+
+El logo es **OH** en blanco sobre negro: una **O en forma de anillo**, una **H** de barras redondeadas y una **línea gruesa** que sale de dentro del hueco de la O, atraviesa el aro y llega a la H, donde es a la vez su travesaño (la dirección pidió el enlace "entre la O y la H, por el medio, sobre la línea de la H"). La línea tiene la misma altura que el travesaño y termina redondeada dentro de la O. La pantalla de carga y el gráfico de Play llevan de fondo el dibujo arquitectónico de la dirección.
+
+**Archivos** (están en `branding/`; los de la app van en `apps/mobile/assets/branding/`, con **estos mismos nombres**, sustituyendo a los antiguos):
+
+| Archivo | Para qué sirve | Dónde va |
+|---|---|---|
+| `icon.png` (1024×1024) | Icono de la app | `apps/mobile/assets/branding/` |
+| `adaptive-icon-foreground.png` (1024×1024, transparente) | Icono adaptable de Android (el fondo es negro, en `app.config.ts`) | ídem |
+| `splash-nativo.png` (1024×1024, transparente) | Pantalla de carga nativa de Android | ídem |
+| `splash-conecta.png` (1080×2340) | Pantalla de carga que dibuja la app (logo + dibujo arquitectónico) | ídem |
+| `oh-casas-logo.jpg` (512×512) | Logo de las pantallas de entrar y registrarse (el nombre se mantiene porque el código lo carga así) | ídem |
+| `icono_play_store_512.png` (512×512) | Icono de la ficha de Play Console | se sube a mano a Play Console |
+| `grafico_funciones_1024x500.png` | Gráfico de funciones de Play Console | se sube a mano a Play Console |
+| `logo-oh-simbolo-blanco.svg` / `-negro.svg` | El símbolo OH en vector, para cualquier uso | solo como archivo fuente |
+| `logo-oh-conecta-blanco.svg` / `-negro.svg` | Símbolo + palabra CONECTA en vector | ídem |
+| `logo-oh-conecta-blanco.png` / `-negro.png` (2048 px, transparentes) | Para documentos, presentaciones y correos | ídem |
+
+La web (`docs/index.html`) lleva el símbolo **en vector** dentro del propio archivo y un icono de pestaña propio.
+
+**Construcción del símbolo** (medidas sobre un lienzo de 1024, un único eje horizontal en y = 503,6; todo son círculos y barras redondeadas, sin curvas libres):
+
+| Elemento | Medida |
+|---|---|
+| La O: círculo exterior / hueco | radio 135,8 / 66,5, centro en x = 382,4 (grosor del anillo: 69,3) |
+| Línea de enlace | barra de **65,2 de alto** (igual que el travesaño), de x = 426,4 (dentro del hueco, extremo redondeado) hasta la barra derecha de la H; cruza el aro sin separación |
+| Barras de la H | 72,8 de ancho, 263,2 de alto, extremos semicirculares, de x = 535,8 a 771,9 |
+| Travesaño de la H | 65,2 de alto, con empalmes redondeados de radio 9,7 |
+
+**El grosor de la línea es un solo número** (65,2 px, igual que el travesaño): si se cambia, cambia también el travesaño de la H. Dónde empieza dentro de la O: a un tercio del radio del hueco desde el centro (x = 426,4).
+
+**Cómo se hizo y qué conviene saber:**
+- Se partió de las imágenes de la dirección y se **reconstruyó en vector con formas exactas** (círculos y barras redondeadas). Un trazado automático de la imagen copiaba las irregularidades del original y salía rugoso al ampliar.
+- **La palabra CONECTA se ha rehecho con la tipografía Nunito ExtraBold** (libre, licencia OFL), la más parecida a la del original, porque las letras de la imagen tenían los bordes irregulares. Está convertida a contornos (no depende de ninguna fuente) y centrada bajo el símbolo. **Si el diseñador tiene la tipografía original, lo ideal es sustituirla.**
+- **Icono de Android**: el símbolo ocupa como mucho 298 px desde el centro, dentro de la zona segura de 313 px; no se recorta con ninguna forma de máscara.
+- **Tamaños pequeños**: el único detalle interior es la punta de la línea dentro de la O; se lee bien: a 16 px ya se distingue "OH", a 24 y 32 queda claro y a 48 o más es nítido.
+- Cambiar el logo en la app **exige compilar de nuevo** (los iconos y la pantalla de carga van dentro de la compilación). La ficha de Play Store se actualiza a mano en Play Console.
+
 ## Suscripciones y Stripe
 
 Preparado, **no conectado**:
@@ -268,6 +307,43 @@ Descarga el `.aab` desde la página del build en expo.dev y súbelo a Play Conso
 
 Qué obliga a compilar de nuevo: cambios en `app.config.ts`, librerías nativas nuevas, o querer probar en una build sin servidor de desarrollo. Cambiar solo pantallas o SQL **no** obliga a nada nuevo en la development build.
 
+## Webhooks (hacia n8n y Odoo)
+
+La tabla `webhooks_config` guarda, para cada evento, una URL de destino y un secreto. Cuando ocurre el evento, `disparar_webhook()` envía un mensaje a cada URL activa de ese evento, con la cabecera `X-Webhook-Secret` (para que n8n compruebe que viene de Supabase) y este cuerpo: `{"evento": "...", "fecha": "...", "datos": {...}}`. **Mientras no haya filas en `webhooks_config`, no se envía nada a ningún sitio.** Si un envío falla, nunca tumba la operación real.
+
+| Evento | Cuándo se dispara |
+|---|---|
+| `obra.adjudicada`, `obra.en_curso`, `obra.finalizada`, `obra.cancelada` | Cambia el estado de una obra |
+| `postulacion.creada`, `postulacion.aceptada`, `postulacion.rechazada` | Una empresa se postula; se acepta o se rechaza |
+| `avance.registrado` | Un oficio registra el avance de una obra |
+| `canje.solicitado`, `canje.completado`, `canje.cancelado` | Canjes de puntos del Club |
+| `empresa.registrada` | Se da de alta una empresa |
+| `cuenta.pendiente` | Se registra una cuenta que espera verificación |
+| `cuenta.verificada`, `cuenta.suspendida`, `cuenta.en_revision` | El admin cambia el estado de una cuenta (`verificada` también al reactivarla); lleva nombre, correo, perfil y motivo |
+| `documentacion.completa` | Una cuenta pendiente ha subido todos sus documentos obligatorios |
+| `recomendacion.creada` | Alguien recomienda a un cliente; lleva los datos de contacto del cliente y de quien lo recomienda (es un posible cliente para Odoo) |
+| `recomendacion.estado` | La recomendación avanza o se descarta (de qué estado a cuál) |
+| `comision.generada`, `comision.aceptada`, `comision.pagada` | Ciclo de la comisión (porcentaje, base e importe) |
+| `licitacion.creada`, `licitacion.estado` | Una promotora o constructora publica una licitación; cambia de estado |
+
+Los 11 últimos son de la migración `0039`. **Datos personales**: `recomendacion.creada` lleva nombre, teléfono y correo del cliente recomendado, y `cuenta.*` el nombre y el correo de la persona. Usa solo destinos de la empresa.
+
+```sql
+-- Añadir un destino (el secreto es opcional; llega en la cabecera X-Webhook-Secret)
+insert into webhooks_config (evento, url, secreto) values
+  ('recomendacion.creada', 'https://TU-N8N/webhook/xxxx', 'un-secreto-largo'),
+  ('documentacion.completa', 'https://TU-N8N/webhook/yyyy', 'un-secreto-largo');
+
+-- Ver lo que hay configurado, y apagar uno sin borrarlo
+select evento, url, activo from webhooks_config order by evento;
+update webhooks_config set activo = false where evento = 'documentacion.completa';
+```
+
+**Lo que falta, además de Stripe:**
+- **Entrante, Stripe** (pendiente): `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.paid` e `invoice.payment_failed`, para que una Edge Function actualice la tabla `suscripciones`. Necesita la clave secreta de Stripe y una dirección pública.
+- **Entrante, opcional**: Resend (rebotes y quejas, para saber cuándo un correo de confirmación no llega) y los recibos de Expo (errores de entrega que aparecen *después* de que Expo acepte el push).
+- **Saliente, opcional y no añadido**: nuevas publicaciones del Tablón y fichas del Directorio (para moderar). Tampoco `cuenta.eliminada`: `eliminar_mi_cuenta()` también se ejecuta en modo "comprobar" y deshace todo, y antes de añadir un aviso ahí hay que confirmar que `pg_net` descarta lo encolado en una transacción deshecha.
+
 ## Notificaciones push
 
 - Firebase `oh-contratas` con la app Android registrada bajo `es.ohcasas.subcontratas`; si existe otra registrada con un paquete distinto, no se usa.
@@ -288,6 +364,33 @@ select p.email, count(*) as moviles, max(t.updated_at) as ultimo_uso
 from push_tokens t join profiles p on p.id = t.user_id
 group by p.email order by moviles desc;
 ```
+
+### Si el push no llega al móvil (pero el aviso sí sale dentro de la app)
+
+La campana de la app lee la base de datos, y el push es un envío aparte, así que pueden fallar por separado. En el SQL Editor, por este orden:
+
+```sql
+-- 1) ¿A qué cuenta pertenece cada móvil? (un móvil solo recibe los avisos de la ÚLTIMA cuenta con la que se entró en él)
+select p.email, right(t.token, 10) as token, t.plataforma, t.updated_at
+from push_tokens t join profiles p on p.id = t.user_id order by t.updated_at desc;
+
+-- 2) Envío directo a la cuenta con la que has iniciado sesión en el móvil (cambia el correo)
+select enviar_push((select id from profiles where email = 'TU_CORREO'), 'Prueba', 'Si ves esto, el push funciona', '{}'::jsonb);
+
+-- 3) Qué respondió Expo a los últimos envíos (se conservan unas horas)
+select created, status_code, left(content, 400) as respuesta from net._http_response order by created desc limit 5;
+```
+
+| Lo que ves | Qué significa |
+|---|---|
+| El paso 1 muestra solo una cuenta para tu móvil | Es lo normal: **con un móvil y dos cuentas (por ejemplo, admin y una de prueba), solo la última recibe push**; la otra solo ve el aviso en la campana. Para probar el circuito entero hacen falta dos dispositivos |
+| El paso 2 llega al móvil | La tubería funciona; el problema era el de arriba |
+| El paso 3 no devuelve filas | `pg_net` no está activada (Database → Extensions) |
+| `"status":"ok"` pero no llega | Mira en el móvil: Ajustes → Aplicaciones → OH Conecta → Notificaciones permitidas; en Xiaomi, ahorro de batería «Sin restricciones» e inicio automático |
+| `DeviceNotRegistered` | El token está obsoleto: cierra sesión y vuelve a entrar en la app |
+| `InvalidCredentials` o `MismatchSenderId` | Las credenciales de Firebase no coinciden: paquete `es.ohcasas.subcontratas`, `google-services.json` y la clave FCM V1 subida a EAS |
+
+`registrarPush()` **falla en silencio** (sin permiso, sin red o sin proyecto EAS simplemente no guarda nada), así que si el paso 1 no muestra tu móvil, hay que revisar el permiso de notificaciones.
 
 ## Migraciones de base de datos
 
@@ -333,6 +436,7 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 36 | `0036_alta_por_perfil_y_documentacion.sql` | Alta por perfil: `campos_registro` y `documentos_requeridos` (editables), `datos_registro`, `documentos_cuenta` y su almacén privado; verificar una cuenta nueva exige los documentos aprobados (`cambiar_estado_cuenta` gana `p_forzar`); `comprobar_eliminacion_cuenta()` |
 | 37 | `0037_historial_y_bloqueo_de_recomendaciones.sql` | `referencias_historial` (quién cambió cada estado, de cuál a cuál y cuándo; solo lo leen los admin) y bloqueo para no retroceder ni descartar una recomendación que ya tiene comisión |
 | 38 | `0038_un_movil_un_usuario.sql` | Un token de push pertenece a un único usuario (disparador en `push_tokens`) y limpia los duplicados que había: los avisos de una cuenta ya no suenan en móviles donde se usó otra |
+| 39 | `0039_webhooks_de_recomendaciones_cuentas_y_licitaciones.sql` | 11 webhooks nuevos (recomendaciones, comisiones, cuentas, documentación, licitaciones); no cambian el comportamiento de la app |
 
 Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
 
@@ -364,8 +468,9 @@ Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en 
 7. Cambiar el nombre de la ficha en Play Console ("OH Contratas" → "OH Conecta") y el *Sender name* del email en Supabase.
 8. **Play Console → Contenido de la app → Acceso a la app**: dar las credenciales de una cuenta de prueba **ya verificada** (si el equipo de revisión de Google se registra por su cuenta, se queda en "pendiente" y no puede probar nada).
 9. Opcional: el aviso al móvil del admin ya funciona solo; si además se quiere correo, se puede configurar en n8n el webhook `cuenta.pendiente`.
-10. **Validar con una gestoría la lista de documentos de cada perfil** (`documentos_requeridos`) y los campos (`campos_registro`): son una propuesta de partida. Y ajustar las consultas del apartado anterior si cambia algo.
-11. Si OH **rechaza o elimina una cuenta desde el panel de Supabase** (no desde la app), sus archivos quedan en el almacén `documentos-verificacion`: hay que borrarlos a mano desde Storage (Supabase no deja hacerlo desde SQL).
+10. **Configurar los webhooks que quieras** (apartado "Webhooks"): lo más útil, `recomendacion.creada` hacia Odoo y `cuenta.pendiente` / `documentacion.completa` hacia un correo o un mensaje al equipo.
+11. **Validar con una gestoría la lista de documentos de cada perfil** (`documentos_requeridos`) y los campos (`campos_registro`): son una propuesta de partida. Y ajustar las consultas del apartado anterior si cambia algo.
+12. Si OH **rechaza o elimina una cuenta desde el panel de Supabase** (no desde la app), sus archivos quedan en el almacén `documentos-verificacion`: hay que borrarlos a mano desde Storage (Supabase no deja hacerlo desde SQL).
 
 **Mantenimiento**
 
