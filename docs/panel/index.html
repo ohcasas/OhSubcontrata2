@@ -45,7 +45,12 @@
 
   /* Barra superior */
   .barra { background:var(--barra); color:#fff; display:flex; align-items:stretch; gap:28px; padding:0 24px; height:48px; position:sticky; top:0; z-index:20; }
-  .marca { display:flex; align-items:center; font-weight:600; white-space:nowrap; }
+  .marca { display:flex; align-items:center; font-weight:600; white-space:nowrap; color:#fff; text-decoration:none; }
+  .marca:hover span { color:#fff; }
+  /* Barras de desplazamiento discretas; la del menú superior se oculta (se sigue pudiendo deslizar) */
+  * { scrollbar-width:thin; scrollbar-color:#C3CCD8 transparent; }
+  .barra nav { scrollbar-width:none; } .barra nav::-webkit-scrollbar { display:none; }
+  ::-webkit-scrollbar { height:8px; width:8px; } ::-webkit-scrollbar-thumb { background:#C3CCD8; border-radius:4px; } ::-webkit-scrollbar-track { background:transparent; }
   .marca span { font-weight:400; color:var(--barra-texto); margin-left:12px; padding-left:12px; border-left:1px solid #38485F; }
   .barra nav { display:flex; gap:22px; overflow-x:auto; flex:1; }
   .barra nav a { color:var(--barra-texto); text-decoration:none; display:flex; align-items:center; gap:7px; border-bottom:2px solid transparent; padding-top:2px; white-space:nowrap; }
@@ -54,7 +59,7 @@
   .usuario { display:flex; align-items:center; gap:12px; color:var(--barra-texto); white-space:nowrap; font-size:13px; }
   .usuario button { background:transparent; border:1px solid #38485F; color:#fff; border-radius:4px; padding:3px 10px; cursor:pointer; }
   #vista { max-width:1280px; margin:0 auto; padding:24px 24px 64px; }
-  @media (max-width:760px) { .barra { padding:0 12px; gap:14px; } .marca span, .usuario .nombre { display:none; } #vista { padding:16px 12px 56px; } }
+  @media (max-width:760px) { .barra { padding:0 12px; gap:14px; height:auto; flex-wrap:wrap; } .marca, .usuario { height:48px; } .usuario { margin-left:auto; } .barra nav { order:3; flex:0 0 100%; height:40px; border-top:1px solid #243247; gap:18px; } .marca span, .usuario .nombre { display:none; } #vista { padding:16px 12px 56px; } }
 
   /* Estructura de página */
   .cab { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
@@ -151,7 +156,7 @@
 
 <div id="app" class="hidden">
   <div class="barra">
-    <div class="marca"><b id="nombre-marca">3B Conecta</b><span>Documentación</span></div>
+    <a class="marca" href="#/panel" aria-label="Ir al resumen"><b id="nombre-marca">3B Conecta</b><span>Documentación</span></a>
     <nav>
       <a href="#/panel" data-nav="panel">Resumen</a>
       <a href="#/revision" data-nav="revision">Por revisar <span class="n hidden" id="cnt-revision">0</span></a>
