@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Panel de documentación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --lienzo:#F4F7FC; --tarjeta:#fff; --tinta:#0B2035; --suave:#5A6B80; --linea:#DCE4F0; --linea-fuerte:#B9C7DD;
+    --azul:#0057FF; --azul-fondo:#E8F0FF; --nav:#0C1626; --nav-texto:#B8C4D6;
+    --verde:#0E9F6E; --verde-fondo:#DDF5EA; --ambar:#B7791F; --ambar-fondo:#FCF0D6; --rojo:#C53030; --rojo-fondo:#FCE4E4;
+    --gris-fondo:#EAEFF6;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--lienzo); color:var(--tinta); font-family:'DM Sans',system-ui,sans-serif; font-size:15px; line-height:1.5; }
+  button,input,select,textarea { font:inherit; color:inherit; }
+  a { color:var(--azul); }
+  .hidden { display:none !important; }
+  h1 { font-size:24px; margin:0 0 4px; } h2 { font-size:17px; margin:0 0 10px; } h3 { font-size:15px; margin:0 0 6px; }
+  .suave { color:var(--suave); } .peq { font-size:13px; }
+
+  /* Entrar */
+  .centro { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--nav); }
+  .caja-entrar { width:100%; max-width:380px; background:#fff; border-radius:18px; padding:28px 24px; }
+  .caja-entrar h1 { font-size:21px; }
+  label.campo { display:block; font-size:13px; font-weight:600; margin:14px 0 5px; }
+  input[type=text],input[type=email],input[type=password],input[type=date],input[type=search],input[type=number],select,textarea {
+    width:100%; padding:10px 12px; border:1px solid var(--linea-fuerte); border-radius:10px; background:#fff; outline:none; }
+  input:focus,select:focus,textarea:focus { border-color:var(--azul); box-shadow:0 0 0 3px rgba(0,87,255,.15); }
+  textarea { min-height:80px; resize:vertical; }
+
+  /* Botones */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:9px 14px; border:1px solid var(--linea-fuerte); border-radius:10px;
+    background:#fff; cursor:pointer; font-weight:600; font-size:14px; white-space:nowrap; }
+  .btn:hover { background:var(--gris-fondo); }
+  .btn.primario { background:var(--azul); border-color:var(--azul); color:#fff; } .btn.primario:hover { background:#0046CC; }
+  .btn.ok { background:var(--verde); border-color:var(--verde); color:#fff; } .btn.ok:hover { background:#0B8460; }
+  .btn.peligro { background:#fff; border-color:#E8AEAE; color:var(--rojo); } .btn.peligro:hover { background:var(--rojo-fondo); }
+  .btn.mini { padding:5px 10px; font-size:13px; border-radius:8px; }
+  .btn:disabled { opacity:.55; cursor:not-allowed; }
+  .ancho { width:100%; margin-top:18px; }
+
+  /* Estructura */
+  #app { display:flex; min-height:100vh; }
+  #lateral { width:230px; flex-shrink:0; background:var(--nav); color:var(--nav-texto); padding:20px 14px; position:sticky; top:0; height:100vh; display:flex; flex-direction:column; }
+  .marca { color:#fff; font-weight:700; font-size:18px; padding:4px 10px 18px; display:flex; align-items:center; gap:10px; }
+  .marca .sello { width:34px; height:34px; border-radius:9px; background:#fff; color:var(--nav); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+  .marca small { display:block; font-weight:500; color:var(--nav-texto); font-size:12px; }
+  #lateral a.nav { display:flex; align-items:center; justify-content:space-between; color:var(--nav-texto); text-decoration:none; padding:10px 12px; border-radius:10px; font-weight:500; margin-bottom:2px; }
+  #lateral a.nav:hover { background:rgba(255,255,255,.07); color:#fff; }
+  #lateral a.nav.activo { background:rgba(0,87,255,.28); color:#fff; }
+  .contador { background:var(--rojo); color:#fff; border-radius:999px; font-size:12px; font-weight:700; padding:1px 8px; }
+  #lateral .pie { margin-top:auto; font-size:13px; padding:10px; }
+  #lateral .pie button { margin-top:8px; width:100%; background:transparent; color:#fff; border:1px solid rgba(255,255,255,.25); }
+  #principal { flex:1; min-width:0; }
+  .barra { display:none; align-items:center; gap:12px; padding:12px 16px; background:var(--nav); color:#fff; position:sticky; top:0; z-index:20; }
+  .barra button { background:transparent; border:1px solid rgba(255,255,255,.3); color:#fff; border-radius:8px; padding:6px 10px; }
+  #vista { padding:28px 32px 60px; max-width:1180px; }
+  @media (max-width:860px) {
+    #lateral { position:fixed; left:-260px; top:0; z-index:30; transition:left .2s; width:240px; }
+    #lateral.abierto { left:0; box-shadow:0 0 0 100vmax rgba(0,0,0,.45); }
+    .barra { display:flex; }
+    #vista { padding:18px 16px 60px; }
+  }
+
+  /* Componentes */
+  .tarjeta { background:var(--tarjeta); border:1px solid var(--linea); border-radius:14px; padding:18px; margin-bottom:16px; }
+  .cuadricula { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:12px; margin-bottom:18px; }
+  .kpi { background:#fff; border:1px solid var(--linea); border-radius:14px; padding:14px 16px; text-decoration:none; color:inherit; display:block; }
+  .kpi b { display:block; font-size:28px; line-height:1.1; } .kpi span { color:var(--suave); font-size:13px; }
+  .kpi.rojo b { color:var(--rojo); } .kpi.ambar b { color:var(--ambar); } .kpi.verde b { color:var(--verde); } .kpi.azul b { color:var(--azul); }
+  a.kpi:hover { border-color:var(--azul); }
+  .herramientas { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; align-items:center; }
+  .herramientas input[type=search] { flex:1 1 220px; max-width:360px; } .herramientas select { width:auto; }
+  .fila { display:flex; align-items:center; gap:14px; padding:12px 14px; background:#fff; border:1px solid var(--linea); border-radius:12px; margin-bottom:8px; }
+  .fila.clic { cursor:pointer; } .fila.clic:hover { border-color:var(--azul); }
+  .fila .grande { flex:1; min-width:0; } .fila .grande > b { display:block; overflow:hidden; text-overflow:ellipsis; }
+  .fila .acciones { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+  .fila .datos { display:flex; gap:6px; flex-wrap:wrap; }
+  @media (max-width:700px) { .fila { flex-wrap:wrap; } .fila .acciones { width:100%; justify-content:flex-start; } }
+  .sem { width:12px; height:12px; border-radius:50%; flex-shrink:0; background:var(--linea-fuerte); }
+  .sem.verde { background:var(--verde); } .sem.ambar { background:#E6A117; } .sem.rojo { background:var(--rojo); }
+  .chip { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; font-weight:600; background:var(--gris-fondo); color:var(--suave); white-space:nowrap; }
+  .chip.vigente,.chip.verde,.chip.verificada { background:var(--verde-fondo); color:var(--verde); }
+  .chip.por_caducar,.chip.pendiente,.chip.ambar { background:var(--ambar-fondo); color:var(--ambar); }
+  .chip.caducado,.chip.rechazado,.chip.rojo,.chip.suspendida,.chip.faltante { background:var(--rojo-fondo); color:var(--rojo); }
+  .chip.azul { background:var(--azul-fondo); color:var(--azul); }
+  .vacio { text-align:center; color:var(--suave); padding:28px 12px; border:1px dashed var(--linea-fuerte); border-radius:12px; background:#fff; }
+  .miga { font-size:13px; margin-bottom:10px; } .miga a { text-decoration:none; }
+  .cabecera-ficha { display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; justify-content:space-between; }
+  .pestanas { display:flex; gap:4px; border-bottom:1px solid var(--linea); margin:18px 0 16px; overflow-x:auto; }
+  .pestanas button { background:none; border:none; padding:10px 14px; font-weight:600; color:var(--suave); cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap; }
+  .pestanas button.activa { color:var(--azul); border-bottom-color:var(--azul); }
+  .datos-ficha { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px 20px; margin-top:12px; }
+  .datos-ficha div span { display:block; font-size:12px; color:var(--suave); } .datos-ficha div b { font-weight:500; word-break:break-word; }
+  .doc-aviso { font-size:13px; margin-top:4px; }
+  .linea-tiempo { border-left:2px solid var(--linea); margin-left:6px; padding-left:16px; }
+  .linea-tiempo .ev { position:relative; padding:0 0 14px; } .linea-tiempo .ev::before { content:''; position:absolute; left:-23px; top:6px; width:10px; height:10px; border-radius:50%; background:var(--azul); }
+  .linea-tiempo .ev.aprobado::before { background:var(--verde); } .linea-tiempo .ev.rechazado::before { background:var(--rojo); }
+  .form-rejilla { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0 16px; }
+
+  /* Ventana */
+  #velo { position:fixed; inset:0; background:rgba(11,32,53,.55); z-index:50; display:flex; align-items:flex-start; justify-content:center; padding:5vh 16px; overflow-y:auto; }
+  #ventana { background:#fff; border-radius:16px; width:100%; max-width:520px; padding:22px; }
+  #ventana h2 { font-size:19px; } #ventana .pie-modal { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; flex-wrap:wrap; }
+  .aviso-error { background:var(--rojo-fondo); color:var(--rojo); padding:10px 12px; border-radius:10px; font-size:14px; margin-top:12px; }
+  #aviso { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--tinta); color:#fff; padding:11px 18px; border-radius:12px; z-index:60; max-width:92vw; font-weight:500; }
+  #aviso.error { background:var(--rojo); }
+  .cargando { padding:40px; text-align:center; color:var(--suave); }
+</style>
+</head>
+<body>
+
+<!-- Configuración de la conexión (solo la primera vez, si no está rellenada en el archivo) -->
+<div id="config" class="centro hidden">
+  <form class="caja-entrar" id="form-config">
+    <h1>Conectar con Supabase</h1>
+    <p class="suave peq">Son los mismos datos que usa la app (Supabase → Project Settings → API). Se guardan solo en este navegador.</p>
+    <label class="campo" for="cfg-url">URL del proyecto</label>
+    <input type="text" id="cfg-url" placeholder="https://xxxx.supabase.co" />
+    <label class="campo" for="cfg-key">Clave anon (pública)</label>
+    <input type="text" id="cfg-key" placeholder="eyJ…" />
+    <button class="btn primario ancho" type="submit">Guardar y continuar</button>
+  </form>
+</div>
+
+<!-- Entrar -->
+<div id="entrar" class="centro hidden">
+  <form class="caja-entrar" id="form-entrar">
+    <h1 id="titulo-entrar">Panel de documentación</h1>
+    <p class="suave peq">Acceso solo para el equipo.</p>
+    <div id="error-entrar" class="aviso-error hidden"></div>
+    <label class="campo" for="ent-email">Correo</label>
+    <input type="email" id="ent-email" autocomplete="username" required />
+    <label class="campo" for="ent-pass">Contraseña</label>
+    <input type="password" id="ent-pass" autocomplete="current-password" required />
+    <button class="btn primario ancho" type="submit" id="btn-entrar">Entrar</button>
+  </form>
+</div>
+
+<!-- Aplicación -->
+<div id="app" class="hidden">
+  <aside id="lateral">
+    <div class="marca"><div class="sello" id="sello">3B</div><div><span id="nombre-marca">Conecta</span><small>Panel de documentación</small></div></div>
+    <a class="nav" href="#/panel" data-nav="panel">Panel</a>
+    <a class="nav" href="#/revision" data-nav="revision">Por revisar <span class="contador hidden" id="cnt-revision">0</span></a>
+    <a class="nav" href="#/empresas" data-nav="empresas">Empresas</a>
+    <a class="nav" href="#/trabajadores" data-nav="trabajadores">Trabajadores</a>
+    <a class="nav" href="#/actividad" data-nav="actividad">Actividad</a>
+    <a class="nav" href="#/ajustes" data-nav="ajustes">Documentos que se piden</a>
+    <div class="pie"><span id="usuario" class="peq"></span><button class="btn mini" id="btn-salir">Salir</button></div>
+  </aside>
+  <div id="principal">
+    <div class="barra"><button id="btn-menu" aria-label="Abrir menú">☰ Menú</button><b id="barra-titulo">Panel</b></div>
+    <section id="vista"></section>
+  </div>
+</div>
+
+<div id="velo" class="hidden"><div id="ventana" role="dialog" aria-modal="true"></div></div>
+<div id="aviso" class="hidden"></div>
+
+<script>
+// ───────────────────────── Configuración ─────────────────────────
+// Pon aquí los datos de tu proyecto (Supabase → Project Settings → API). La clave "anon" es pública por
+// diseño (es la misma que lleva la app): lo que protege los datos son las reglas de la base de datos.
+// Si lo dejas sin rellenar, la página te los pedirá la primera vez y los guardará en este navegador.
+const SUPABASE_URL = 'https://vvghqtwwrwdtekropavo.supabase.co';
+const SUPABASE_ANON_KEY = 'PEGA_AQUI_TU_ANON_KEY';
+const NOMBRE_MARCA = 'Conecta';      // se cambia cuando esté el nombre final
+const SELLO_MARCA = '3B';            // letras del cuadradito del menú
+const BUCKET = 'documentos-verificacion';
+
+// ───────────────────────── Utilidades ─────────────────────────
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const fecha = (d) => { if (!d) return '—'; const x = new Date(String(d).length === 10 ? d + 'T00:00:00' : d); return isNaN(x) ? '—' : x.toLocaleDateString('es-ES'); };
+const fechaHora = (d) => { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }); };
+const ETIQ_ROL = { arquitecto:'Arquitecto', profesional:'Profesional', promotor:'Promotor', constructora:'Constructora', proveedor:'Proveedor', administrador:'Inmobiliaria', subcontratista:'Oficios', referidor:'Recomendador' };
+const ETIQ_ESTADO = { vigente:'Vigente', por_caducar:'Caduca pronto', caducado:'Caducado', pendiente:'Por revisar', rechazado:'Rechazado', faltante:'Falta' };
+const ETIQ_CUENTA = { verificada:'Verificada', pendiente:'Pendiente', suspendida:'Suspendida' };
+const ETIQ_SEM = { verde:'Todo en orden', ambar:'Pendiente', rojo:'Con incidencias' };
+const ETIQ_ACCION = { documento_subido:'subió', documento_aprobado:'aprobó', documento_rechazado:'rechazó' };
+const chip = (clase, texto) => `<span class="chip ${esc(clase)}">${esc(texto)}</span>`;
+const semaforo = (s) => `<span class="sem ${esc(s)}" title="${esc(ETIQ_SEM[s] || '')}"></span>`;
+const mensajeError = (e) => {
+  const m = (e && (e.message || e.error_description)) || String(e || 'Error');
+  if (/No autorizado|No autenticado/i.test(m)) return 'No tienes permiso para esto.';
+  if (/Failed to fetch|NetworkError/i.test(m)) return 'No hay conexión con el servidor.';
+  return m;
+};
+let temporizadorAviso;
+function aviso(texto, error) {
+  const a = $('#aviso'); a.textContent = texto; a.className = error ? 'error' : ''; clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => a.classList.add('hidden'), error ? 6000 : 3000);
+}
+function abrirVentana(html) { $('#ventana').innerHTML = html; $('#velo').classList.remove('hidden'); const p = $('#ventana input, #ventana textarea, #ventana select'); if (p) p.focus(); }
+function cerrarVentana() { $('#velo').classList.add('hidden'); $('#ventana').innerHTML = ''; }
+function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function nombreSeguro(n) { return String(n || 'archivo').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-60); }
+
+// ───────────────────────── Datos ─────────────────────────
+let sb = null; let yo = null;
+let cache = { empresas: null, trabajadores: null };
+async function rpc(nombre, args) {
+  const { data, error } = await sb.rpc(nombre, args || {});
+  if (error) throw error;
+  return data;
+}
+async function empresas(forzar) { if (forzar || !cache.empresas) cache.empresas = await rpc('panel_empresas'); return cache.empresas; }
+function invalidar() { cache = { empresas: null, trabajadores: null }; actualizarContador(); }
+async function actualizarContador() {
+  try { const r = await rpc('panel_resumen'); const c = $('#cnt-revision'); c.textContent = r.por_revisar; c.classList.toggle('hidden', !r.por_revisar); } catch (e) {}
+}
+async function verArchivo(ruta) {
+  const w = window.open('', '_blank');
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(ruta, 300);
+  if (error || !data) { if (w) w.close(); aviso('No se ha podido abrir el archivo.', true); return; }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+
+// ───────────────────────── Entrada y arranque ─────────────────────────
+function mostrarSolo(id) { ['config', 'entrar', 'app'].forEach((x) => $('#' + x).classList.toggle('hidden', x !== id)); }
+function claves() {
+  const url = SUPABASE_URL, key = SUPABASE_ANON_KEY;
+  if (key && !key.startsWith('PEGA_AQUI')) return { url, key };
+  const u = leerLocal('panel_url'), k = leerLocal('panel_key');
+  return u && k ? { url: u, key: k } : null;
+}
+async function arrancar() {
+  document.title = 'Panel de documentación · ' + NOMBRE_MARCA;
+  $('#nombre-marca').textContent = NOMBRE_MARCA; $('#sello').textContent = SELLO_MARCA;
+  const c = claves();
+  if (!c) { mostrarSolo('config'); return; }
+  sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) await entrarComo(data.session.user); else mostrarSolo('entrar');
+}
+async function entrarComo(user) {
+  const { data, error } = await sb.from('profiles').select('id, role, nombre_completo, email').eq('id', user.id).maybeSingle();
+  if (error || !data || !['admin', 'superadmin'].includes(data.role)) {
+    await sb.auth.signOut(); mostrarSolo('entrar');
+    const e = $('#error-entrar'); e.textContent = 'Esta cuenta no tiene acceso al panel.'; e.classList.remove('hidden'); return;
+  }
+  yo = data; $('#usuario').textContent = data.nombre_completo || data.email || '';
+  mostrarSolo('app'); actualizarContador(); enrutar();
+}
+$('#form-config').addEventListener('submit', (e) => {
+  e.preventDefault(); const u = $('#cfg-url').value.trim(), k = $('#cfg-key').value.trim();
+  if (!/^https:\/\/.+/.test(u) || k.length < 20) { aviso('Revisa la URL y la clave.', true); return; }
+  guardarLocal('panel_url', u); guardarLocal('panel_key', k); arrancar();
+});
+$('#form-entrar').addEventListener('submit', async (e) => {
+  e.preventDefault(); const b = $('#btn-entrar'); b.disabled = true; b.textContent = 'Entrando…'; $('#error-entrar').classList.add('hidden');
+  const { data, error } = await sb.auth.signInWithPassword({ email: $('#ent-email').value.trim(), password: $('#ent-pass').value });
+  b.disabled = false; b.textContent = 'Entrar';
+  if (error) { const x = $('#error-entrar'); x.textContent = 'Correo o contraseña incorrectos.'; x.classList.remove('hidden'); return; }
+  await entrarComo(data.user);
+});
+$('#btn-salir').addEventListener('click', async () => { await sb.auth.signOut(); invalidar(); yo = null; location.hash = ''; mostrarSolo('entrar'); });
+$('#btn-menu').addEventListener('click', () => $('#lateral').classList.toggle('abierto'));
+$('#velo').addEventListener('mousedown', (e) => { if (e.target.id === 'velo') cerrarVentana(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarVentana(); });
+
+// ───────────────────────── Rutas ─────────────────────────
+const TITULOS = { panel:'Panel', revision:'Por revisar', empresas:'Empresas', empresa:'Ficha de empresa', trabajadores:'Trabajadores', trabajador:'Ficha de trabajador', actividad:'Actividad', ajustes:'Documentos que se piden' };
+async function enrutar() {
+  if (!yo) return;
+  const partes = (location.hash || '#/panel').replace(/^#\//, '').split('?')[0].split('/');
+  const ruta = partes[0] || 'panel', id = partes[1];
+  $('#lateral').classList.remove('abierto');
+  const activa = ruta === 'empresa' ? 'empresas' : ruta === 'trabajador' ? 'trabajadores' : ruta;
+  document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('activo', a.dataset.nav === activa));
+  $('#barra-titulo').textContent = TITULOS[ruta] || 'Panel';
+  const v = $('#vista'); v.innerHTML = '<div class="cargando">Cargando…</div>'; window.scrollTo(0, 0);
+  try {
+    if (ruta === 'panel') await vistaPanel(v);
+    else if (ruta === 'revision') await vistaRevision(v);
+    else if (ruta === 'empresas') await vistaEmpresas(v);
+    else if (ruta === 'empresa') await vistaEmpresa(v, id, partes[2]);
+    else if (ruta === 'trabajadores') await vistaTrabajadores(v);
+    else if (ruta === 'trabajador') await vistaTrabajador(v, id);
+    else if (ruta === 'actividad') await vistaActividad(v);
+    else if (ruta === 'ajustes') await vistaAjustes(v);
+    else location.hash = '#/panel';
+  } catch (e) { v.innerHTML = `<div class="aviso-error">${esc(mensajeError(e))}</div>`; }
+}
+window.addEventListener('hashchange', enrutar);
+const recargar = () => { invalidar(); return enrutar(); };
+
+// ───────────────────────── Piezas comunes ─────────────────────────
+function filaEmpresa(e) {
+  const partes = [];
+  if (e.caducados) partes.push(chip('caducado', `${e.caducados} caducado${e.caducados > 1 ? 's' : ''}`));
+  if (e.rechazados) partes.push(chip('rechazado', `${e.rechazados} rechazado${e.rechazados > 1 ? 's' : ''}`));
+  if (e.pendientes) partes.push(chip('pendiente', `${e.pendientes} por revisar`));
+  if (e.por_caducar) partes.push(chip('por_caducar', `${e.por_caducar} caducan pronto`));
+  if (e.faltan) partes.push(chip('faltante', `Faltan ${e.faltan}`));
+  if (e.trab_incidencias) partes.push(chip('rojo', `${e.trab_incidencias} trabajador${e.trab_incidencias > 1 ? 'es' : ''} con incidencias`));
+  return `<div class="fila clic" data-ir="#/empresa/${esc(e.profile_id)}">
+    ${semaforo(e.semaforo)}
+    <div class="grande"><b>${esc(e.empresa || e.nombre_completo || e.email)}</b>
+      <span class="suave peq">${esc(e.nombre_completo || '')} · ${esc(ETIQ_ROL[e.role] || e.role)}${e.cif ? ' · ' + esc(e.cif) : ''}</span></div>
+    <div class="datos">${partes.join('') || chip('verde', 'Todo en orden')}</div>
+    <div class="peq suave" style="min-width:90px;text-align:right">${e.trabajadores} trabajador${e.trabajadores === 1 ? '' : 'es'}</div>
+  </div>`;
+}
+function filaTrabajador(t, conCuenta) {
+  const partes = [];
+  if (t.caducados) partes.push(chip('caducado', `${t.caducados} caducado${t.caducados > 1 ? 's' : ''}`));
+  if (t.rechazados) partes.push(chip('rechazado', `${t.rechazados} rechazado${t.rechazados > 1 ? 's' : ''}`));
+  if (t.faltan) partes.push(chip('faltante', `Faltan ${t.faltan}`));
+  if (t.pendientes) partes.push(chip('pendiente', `${t.pendientes} por revisar`));
+  if (t.por_caducar) partes.push(chip('por_caducar', `${t.por_caducar} caducan pronto`));
+  return `<div class="fila clic" data-ir="#/trabajador/${esc(t.id)}">
+    ${semaforo(t.activo ? t.semaforo : '')}
+    <div class="grande"><b>${esc(t.nombre)} ${esc(t.apellidos || '')}${t.activo ? '' : ' (baja)'}</b>
+      <span class="suave peq">${esc(t.dni)}${t.puesto ? ' · ' + esc(t.puesto) : ''}${conCuenta ? ' · ' + esc(t.empresa || t.cuenta || '') : ''}</span></div>
+    <div class="datos">${t.activo ? (partes.join('') || chip('verde', 'Todo en orden')) : chip('', 'Baja')}</div>
+  </div>`;
+}
+document.addEventListener('click', (e) => {
+  const ir = e.target.closest('[data-ir]');
+  if (ir && !e.target.closest('button, a')) location.hash = ir.dataset.ir;
+});
+
+// Lista de documentos (de una cuenta o de un trabajador) con sus acciones
+function listaDocumentos(docs, ctx) {
+  if (!docs.length) return '<div class="vacio">No se pide ningún documento.</div>';
+  return docs.map((d) => {
+    const est = d.estado_real;
+    let extra = '';
+    if (d.caduca_en && d.estado === 'aprobado') extra += `<div class="doc-aviso ${est === 'caducado' ? '' : 'suave'}">${est === 'caducado' ? 'Caducó' : 'Caduca'} el <b>${fecha(d.caduca_en)}</b></div>`;
+    if (d.estado === 'rechazado' && d.motivo_rechazo) extra += `<div class="doc-aviso" style="color:var(--rojo)">Motivo: ${esc(d.motivo_rechazo)}</div>`;
+    if (d.subido_en && d.documento_id) extra += `<div class="doc-aviso suave">${esc(d.nombre_archivo || '')} · subido ${fechaHora(d.subido_en)}</div>`;
+    const a = `data-tipo="${esc(d.tipo)}" data-doc="${esc(d.documento_id || '')}" data-ctx='${esc(JSON.stringify(ctx))}'`;
+    const botones = [];
+    if (d.documento_id) botones.push(`<button class="btn mini" data-act="ver" data-ruta="${esc(d.storage_path)}">Ver</button>`);
+    if (d.estado === 'pendiente') { botones.push(`<button class="btn mini ok" data-act="aprobar" ${a}>Aprobar</button>`); botones.push(`<button class="btn mini peligro" data-act="rechazar" ${a}>Rechazar</button>`); }
+    if (d.estado === 'aprobado') botones.push(`<button class="btn mini" data-act="caducidad" ${a} data-fecha="${esc(d.caduca_en || '')}">Caducidad</button>`);
+    if (d.documento_id) botones.push(`<button class="btn mini" data-act="historial" ${a}>Historial</button>`);
+    botones.push(`<button class="btn mini ${d.documento_id ? '' : 'primario'}" data-act="subir" ${a} data-etiqueta="${esc(d.etiqueta)}">${d.documento_id ? 'Subir nuevo' : 'Subir'}</button>`);
+    return `<div class="fila"><div class="grande"><b>${esc(d.etiqueta)} ${d.obligatorio ? '' : '<span class="suave peq">(opcional)</span>'}</b>
+      <span class="suave peq">${[d.descripcion, d.vigencia_meses ? `vale ${d.vigencia_meses} meses` : 'no caduca'].filter(Boolean).map(esc).join(' · ')}</span>${extra}</div>
+      <div>${chip(est, ETIQ_ESTADO[est] || est)}</div><div class="acciones">${botones.join('')}</div></div>`;
+  }).join('');
+}
+function lineaActividad(a) {
+  const quien = a.quien_nombre || 'Alguien';
+  const que = `${ETIQ_ACCION[a.accion] || a.accion} <b>${esc(a.etiqueta || a.tipo || '')}</b>`;
+  const de = a.trabajador ? ` de ${esc(a.trabajador)}` : '';
+  const cuenta = a.cuenta ? ` · ${esc(a.cuenta)}` : '';
+  const mot = a.accion === 'documento_rechazado' && a.detalle && a.detalle.motivo ? `<div class="peq" style="color:var(--rojo)">${esc(a.detalle.motivo)}</div>` : '';
+  const clase = a.accion === 'documento_aprobado' ? 'aprobado' : a.accion === 'documento_rechazado' ? 'rechazado' : '';
+  return `<div class="ev ${clase}"><div>${esc(quien)} ${que}${de}<span class="suave">${cuenta}</span></div>${mot}<div class="peq suave">${fechaHora(a.created_at)}</div></div>`;
+}
+
+// ───────────────────────── Vistas ─────────────────────────
+async function vistaPanel(v) {
+  const [r, lista] = await Promise.all([rpc('panel_resumen'), empresas(true)]);
+  actualizarContador();
+  const atencion = lista.filter((e) => e.semaforo !== 'verde').sort((a, b) => (a.semaforo === 'rojo' ? 0 : 1) - (b.semaforo === 'rojo' ? 0 : 1)).slice(0, 10);
+  v.innerHTML = `<h1>Panel</h1><p class="suave">Estado de la documentación de las empresas y sus trabajadores.</p>
+  <div class="cuadricula">
+    <a class="kpi azul" href="#/revision"><b>${r.por_revisar}</b><span>Documentos por revisar</span></a>
+    <a class="kpi rojo" href="#/empresas?f=rojo"><b>${r.caducados}</b><span>Documentos caducados</span></a>
+    <a class="kpi ambar" href="#/empresas?f=ambar"><b>${r.caducan_pronto}</b><span>Caducan en 15 días</span></a>
+    <a class="kpi" href="#/empresas"><b>${r.cuentas}</b><span>Cuentas</span></a>
+    <a class="kpi" href="#/empresas?f=pendiente"><b>${r.cuentas_pendientes}</b><span>Cuentas por verificar</span></a>
+    <a class="kpi" href="#/trabajadores"><b>${r.trabajadores}</b><span>Trabajadores activos</span></a>
+  </div>
+  <div class="cuadricula">
+    <div class="kpi verde"><b>${r.verde}</b><span>Cuentas en orden</span></div>
+    <div class="kpi ambar"><b>${r.ambar}</b><span>Cuentas con algo pendiente</span></div>
+    <div class="kpi rojo"><b>${r.rojo}</b><span>Cuentas con incidencias</span></div>
+  </div>
+  <h2>Requieren atención</h2>
+  ${atencion.length ? atencion.map(filaEmpresa).join('') : '<div class="vacio">No hay nada pendiente. Todo en orden.</div>'}`;
+}
+
+async function vistaRevision(v) {
+  const cola = await rpc('panel_cola_revision');
+  v.innerHTML = `<h1>Por revisar</h1><p class="suave">Documentos subidos que esperan que alguien los apruebe o rechace. Los más antiguos, primero.</p>` +
+    (cola.length ? cola.map((d) => {
+      const ctx = d.origen === 'trabajador' ? { origen: 'trabajador', profile: d.profile_id, trabajador: d.trabajador_id } : { origen: 'cuenta', profile: d.profile_id };
+      const a = `data-tipo="${esc(d.tipo)}" data-doc="${esc(d.documento_id)}" data-ctx='${esc(JSON.stringify(ctx))}'`;
+      return `<div class="fila"><div class="grande"><b>${esc(d.etiqueta)}${d.trabajador ? ' · ' + esc(d.trabajador) : ''}</b>
+        <span class="suave peq"><a href="#/empresa/${esc(d.profile_id)}">${esc(d.empresa || d.cuenta || '')}</a> · ${d.origen === 'trabajador' ? 'Trabajador' : 'Empresa'} · subido ${fechaHora(d.subido_en)}</span></div>
+        <div class="acciones"><button class="btn mini" data-act="ver" data-ruta="${esc(d.storage_path)}">Ver</button>
+        <button class="btn mini ok" data-act="aprobar" ${a}>Aprobar</button><button class="btn mini peligro" data-act="rechazar" ${a}>Rechazar</button></div></div>`;
+    }).join('') : '<div class="vacio">No hay documentos por revisar.</div>');
+}
+
+async function vistaEmpresas(v) {
+  const todas = await empresas(true);
+  const q = new URLSearchParams((location.hash.split('?')[1]) || '');
+  const roles = [...new Set(todas.map((e) => e.role))];
+  v.innerHTML = `<h1>Empresas</h1><p class="suave">Todas las cuentas y el estado de su documentación.</p>
+  <div class="herramientas"><input type="search" id="f-texto" placeholder="Buscar por nombre, empresa, CIF o correo" />
+    <select id="f-sem"><option value="">Todos los estados</option><option value="rojo">Con incidencias</option><option value="ambar">Algo pendiente</option><option value="verde">En orden</option><option value="pendiente">Cuenta por verificar</option></select>
+    <select id="f-rol"><option value="">Todos los perfiles</option>${roles.map((r) => `<option value="${esc(r)}">${esc(ETIQ_ROL[r] || r)}</option>`).join('')}</select></div>
+  <div id="lista"></div>`;
+  if (q.get('f')) $('#f-sem').value = q.get('f');
+  const pintar = () => {
+    const t = $('#f-texto').value.trim().toLowerCase(), s = $('#f-sem').value, r = $('#f-rol').value;
+    const lista = todas.filter((e) =>
+      (!t || [e.nombre_completo, e.empresa, e.cif, e.email].some((x) => String(x || '').toLowerCase().includes(t))) &&
+      (!s || (s === 'pendiente' ? e.estado_cuenta === 'pendiente' : e.semaforo === s)) && (!r || e.role === r));
+    $('#lista').innerHTML = lista.length ? lista.map(filaEmpresa).join('') : '<div class="vacio">No hay cuentas con esos filtros.</div>';
+  };
+  ['f-texto', 'f-sem', 'f-rol'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+}
+
+async function vistaEmpresa(v, id, pestana) {
+  pestana = pestana || 'documentos';
+  const [lista, docs, trabs, act] = await Promise.all([empresas(), rpc('panel_documentos_cuenta', { p_profile_id: id }),
+    rpc('panel_trabajadores', { p_profile_id: id }), rpc('panel_actividad', { p_limite: 60, p_profile_id: id })]);
+  const e = lista.find((x) => x.profile_id === id);
+  if (!e) { v.innerHTML = '<div class="aviso-error">Cuenta no encontrada.</div>'; return; }
+  const ctx = { origen: 'cuenta', profile: id };
+  v.innerHTML = `<div class="miga"><a href="#/empresas">← Empresas</a></div>
+  <div class="tarjeta"><div class="cabecera-ficha"><div><h1>${semaforo(e.semaforo)} ${esc(e.empresa || e.nombre_completo)}</h1>
+      <div>${chip(e.estado_cuenta, 'Cuenta ' + (ETIQ_CUENTA[e.estado_cuenta] || e.estado_cuenta).toLowerCase())} ${chip('azul', ETIQ_ROL[e.role] || e.role)} ${chip(e.semaforo, ETIQ_SEM[e.semaforo])}</div></div>
+    <div class="acciones" style="display:flex;gap:8px;flex-wrap:wrap">
+      ${e.estado_cuenta !== 'verificada' ? `<button class="btn ok" data-act="estado-cuenta" data-id="${esc(id)}" data-nuevo="verificada">Verificar cuenta</button>` : ''}
+      ${e.estado_cuenta !== 'suspendida' ? `<button class="btn peligro" data-act="estado-cuenta" data-id="${esc(id)}" data-nuevo="suspendida">Suspender</button>` : ''}</div></div>
+    <div class="datos-ficha"><div><span>Persona de contacto</span><b>${esc(e.nombre_completo || '—')}</b></div><div><span>Correo</span><b>${esc(e.email || '—')}</b></div>
+      <div><span>Teléfono</span><b>${esc(e.telefono || '—')}</b></div><div><span>CIF</span><b>${esc(e.cif || '—')}</b></div>
+      <div><span>Documentos en regla</span><b>${e.aprobados} de ${e.requeridos} obligatorios</b></div><div><span>Próxima caducidad</span><b>${fecha(e.proxima_caducidad)}</b></div></div></div>
+  <div class="pestanas">${['documentos', 'trabajadores', 'actividad'].map((p) => `<button class="${p === pestana ? 'activa' : ''}" data-pest="${p}">${{ documentos: 'Documentos', trabajadores: `Trabajadores (${trabs.length})`, actividad: 'Actividad' }[p]}</button>`).join('')}</div>
+  <div id="pestana"></div>`;
+  const pintar = (p) => {
+    document.querySelectorAll('.pestanas button').forEach((b) => b.classList.toggle('activa', b.dataset.pest === p));
+    $('#pestana').innerHTML = p === 'documentos' ? listaDocumentos(docs, ctx)
+      : p === 'trabajadores' ? `<div style="margin-bottom:12px"><button class="btn primario" data-act="nuevo-trabajador" data-id="${esc(id)}">+ Añadir trabajador</button></div>` +
+        (trabs.length ? trabs.map((t) => filaTrabajador(t, false)).join('') : '<div class="vacio">Esta cuenta no tiene trabajadores todavía.</div>')
+      : act.length ? `<div class="tarjeta"><div class="linea-tiempo">${act.map(lineaActividad).join('')}</div></div>` : '<div class="vacio">Sin actividad todavía.</div>';
+  };
+  document.querySelectorAll('.pestanas button').forEach((b) => b.addEventListener('click', () => pintar(b.dataset.pest))); pintar(pestana);
+}
+
+async function vistaTrabajadores(v) {
+  const [todos, cuentas] = await Promise.all([rpc('panel_trabajadores', { p_profile_id: null }), empresas()]);
+  v.innerHTML = `<div class="cabecera-ficha"><div><h1>Trabajadores</h1><p class="suave">Todas las personas dadas de alta, con el estado de sus documentos.</p></div>
+    <button class="btn primario" data-act="nuevo-trabajador" data-id="">+ Añadir trabajador</button></div>
+  <div class="herramientas"><input type="search" id="f-texto" placeholder="Buscar por nombre, DNI o empresa" />
+    <select id="f-sem"><option value="">Todos los estados</option><option value="rojo">Con incidencias</option><option value="ambar">Algo pendiente</option><option value="verde">En orden</option></select>
+    <label class="peq"><input type="checkbox" id="f-bajas" /> Ver también las bajas</label></div><div id="lista"></div>`;
+  const pintar = () => {
+    const t = $('#f-texto').value.trim().toLowerCase(), s = $('#f-sem').value, b = $('#f-bajas').checked;
+    const lista = todos.filter((x) => (b || x.activo) && (!s || x.semaforo === s) &&
+      (!t || [x.nombre, x.apellidos, x.dni, x.empresa, x.cuenta].some((y) => String(y || '').toLowerCase().includes(t))));
+    $('#lista').innerHTML = lista.length ? lista.map((x) => filaTrabajador(x, true)).join('') : '<div class="vacio">No hay trabajadores con esos filtros.</div>';
+  };
+  ['f-texto', 'f-sem', 'f-bajas'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+}
+
+async function vistaTrabajador(v, id) {
+  const [todos, docs] = await Promise.all([rpc('panel_trabajadores', { p_profile_id: null }), rpc('panel_documentos_trabajador', { p_trabajador_id: id })]);
+  const t = todos.find((x) => x.id === id);
+  if (!t) { v.innerHTML = '<div class="aviso-error">Trabajador no encontrado.</div>'; return; }
+  const act = await rpc('panel_actividad', { p_limite: 200, p_profile_id: t.profile_id });
+  const ctx = { origen: 'trabajador', profile: t.profile_id, trabajador: id };
+  const propia = act.filter((a) => a.trabajador && a.trabajador === (t.nombre + ' ' + (t.apellidos || '')).trim());
+  v.innerHTML = `<div class="miga"><a href="#/empresa/${esc(t.profile_id)}/trabajadores">← ${esc(t.empresa || t.cuenta || 'Empresa')}</a></div>
+  <div class="tarjeta"><div class="cabecera-ficha"><div><h1>${semaforo(t.activo ? t.semaforo : '')} ${esc(t.nombre)} ${esc(t.apellidos || '')}</h1>
+    <div>${t.activo ? chip(t.semaforo, ETIQ_SEM[t.semaforo]) : chip('', 'Baja')}</div></div>
+    <button class="btn" data-act="editar-trabajador" data-id="${esc(id)}">Editar datos</button></div>
+    <div class="datos-ficha"><div><span>DNI / NIE</span><b>${esc(t.dni)}</b></div><div><span>Puesto</span><b>${esc(t.puesto || '—')}</b></div>
+    <div><span>Empresa</span><b><a href="#/empresa/${esc(t.profile_id)}">${esc(t.empresa || t.cuenta || '—')}</a></b></div><div><span>Alta</span><b>${fecha(t.fecha_alta)}</b></div>
+    <div><span>Teléfono</span><b>${esc(t.telefono || '—')}</b></div><div><span>Correo</span><b>${esc(t.email || '—')}</b></div>
+    ${t.notas ? `<div style="grid-column:1/-1"><span>Notas</span><b>${esc(t.notas)}</b></div>` : ''}</div></div>
+  <h2>Documentos</h2>${listaDocumentos(docs, ctx)}
+  <h2 style="margin-top:20px">Actividad</h2>${propia.length ? `<div class="tarjeta"><div class="linea-tiempo">${propia.map(lineaActividad).join('')}</div></div>` : '<div class="vacio">Sin actividad todavía.</div>'}`;
+  window.__trab = t;
+}
+
+async function vistaActividad(v) {
+  const act = await rpc('panel_actividad', { p_limite: 200, p_profile_id: null });
+  v.innerHTML = `<h1>Actividad</h1><p class="suave">Quién ha subido, aprobado o rechazado cada documento.</p>` +
+    (act.length ? `<div class="tarjeta"><div class="linea-tiempo">${act.map(lineaActividad).join('')}</div></div>` : '<div class="vacio">Todavía no hay actividad.</div>');
+}
+
+async function vistaAjustes(v) {
+  const [a, b] = await Promise.all([sb.from('documentos_requeridos').select('*').order('role').order('orden'), sb.from('documentos_trabajador_requeridos').select('*').order('orden')]);
+  if (a.error) throw a.error; if (b.error) throw b.error;
+  const porRol = {}; a.data.forEach((d) => (porRol[d.role] = porRol[d.role] || []).push(d));
+  const fila = (d, tabla, clave) => `<div class="fila"><div class="grande"><b>${esc(d.etiqueta)}</b><span class="suave peq">${d.obligatorio ? 'Obligatorio' : 'Opcional'} · ${d.vigencia_meses ? 'vale ' + d.vigencia_meses + ' meses' : 'no caduca'}</span></div>
+    <div class="acciones"><button class="btn mini" data-act="editar-requisito" data-tabla="${tabla}" data-clave='${esc(JSON.stringify(clave))}'>Editar</button></div></div>`;
+  v.innerHTML = `<h1>Documentos que se piden</h1><p class="suave">Qué documentos se piden a cada tipo de cuenta y a los trabajadores, y cuántos meses vale cada uno. Los cambios afectan a lo que se apruebe a partir de ahora.</p>
+  <h2>Trabajadores</h2>${b.data.map((d) => fila(d, 'documentos_trabajador_requeridos', { tipo: d.tipo })).join('')}
+  ${Object.keys(porRol).map((r) => `<h2 style="margin-top:22px">${esc(ETIQ_ROL[r] || r)}</h2>${porRol[r].map((d) => fila(d, 'documentos_requeridos', { role: d.role, tipo: d.tipo })).join('')}`).join('')}`;
+  window.__req = { a: a.data, b: b.data };
+}
+
+// ───────────────────────── Acciones ─────────────────────────
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const act = b.dataset.act; const ctx = b.dataset.ctx ? JSON.parse(b.dataset.ctx) : null;
+  try {
+    if (act === 'ver') return verArchivo(b.dataset.ruta);
+    if (act === 'aprobar') return ventanaAprobar(b.dataset.doc, ctx, b.dataset.tipo);
+    if (act === 'rechazar') return ventanaRechazar(b.dataset.doc, ctx);
+    if (act === 'caducidad') return ventanaCaducidad(b.dataset.doc, ctx, b.dataset.fecha);
+    if (act === 'historial') return ventanaHistorial(ctx, b.dataset.tipo);
+    if (act === 'subir') return ventanaSubir(ctx, b.dataset.tipo, b.dataset.etiqueta);
+    if (act === 'estado-cuenta') return ventanaEstadoCuenta(b.dataset.id, b.dataset.nuevo);
+    if (act === 'nuevo-trabajador') return ventanaTrabajador(null, b.dataset.id);
+    if (act === 'editar-trabajador') return ventanaTrabajador(window.__trab, window.__trab.profile_id);
+    if (act === 'editar-requisito') return ventanaRequisito(b.dataset.tabla, JSON.parse(b.dataset.clave));
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+
+function ventanaAprobar(docId, ctx, tipo) {
+  abrirVentana(`<h2>Aprobar documento</h2><p class="suave peq">La caducidad se calcula sola según los meses que vale este documento. Si el documento trae otra fecha, indícala.</p>
+    <label class="campo" for="v-fecha">Fecha de caducidad (opcional)</label><input type="date" id="v-fecha" />
+    <div id="v-error" class="aviso-error hidden"></div>
+    <div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn ok" id="v-ok">Aprobar</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const f = $('#v-fecha').value || null; $('#v-ok').disabled = true;
+    try {
+      if (ctx.origen === 'trabajador') await rpc('panel_revisar_documento_trabajador', { p_documento_id: docId, p_aprobar: true, p_motivo: null, p_caduca_en: f });
+      else { await rpc('revisar_documento_cuenta', { p_documento_id: docId, p_aprobar: true, p_motivo: null }); if (f) await rpc('panel_fijar_caducidad', { p_origen: 'cuenta', p_documento_id: docId, p_fecha: f }); }
+      cerrarVentana(); aviso('Documento aprobado.'); recargar();
+    } catch (err) { $('#v-ok').disabled = false; const x = $('#v-error'); x.textContent = mensajeError(err); x.classList.remove('hidden'); }
+  };
+}
+function ventanaRechazar(docId, ctx) {
+  abrirVentana(`<h2>Rechazar documento</h2><p class="suave peq">El motivo le llegará a la persona por aviso en la app.</p>
+    <label class="campo" for="v-motivo">Motivo</label><textarea id="v-motivo" placeholder="Ej: está caducado, no se lee bien, falta la segunda cara…"></textarea>
+    <div id="v-error" class="aviso-error hidden"></div>
+    <div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn peligro" id="v-ok">Rechazar</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const m = $('#v-motivo').value.trim(); $('#v-ok').disabled = true;
+    try {
+      if (ctx.origen === 'trabajador') await rpc('panel_revisar_documento_trabajador', { p_documento_id: docId, p_aprobar: false, p_motivo: m, p_caduca_en: null });
+      else await rpc('revisar_documento_cuenta', { p_documento_id: docId, p_aprobar: false, p_motivo: m });
+      cerrarVentana(); aviso('Documento rechazado.'); recargar();
+    } catch (err) { $('#v-ok').disabled = false; const x = $('#v-error'); x.textContent = mensajeError(err); x.classList.remove('hidden'); }
+  };
+}
+function ventanaCaducidad(docId, ctx, actual) {
+  abrirVentana(`<h2>Cambiar la caducidad</h2><label class="campo" for="v-fecha">Caduca el</label><input type="date" id="v-fecha" value="${esc(actual || '')}" />
+    <div id="v-error" class="aviso-error hidden"></div><div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn primario" id="v-ok">Guardar</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_fijar_caducidad', { p_origen: ctx.origen, p_documento_id: docId, p_fecha: $('#v-fecha').value || null }); cerrarVentana(); aviso('Caducidad guardada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; const x = $('#v-error'); x.textContent = mensajeError(err); x.classList.remove('hidden'); }
+  };
+}
+async function ventanaHistorial(ctx, tipo) {
+  abrirVentana('<h2>Historial de archivos</h2><div class="cargando">Cargando…</div>');
+  const h = await rpc('panel_historial_documento', { p_origen: ctx.origen, p_profile_id: ctx.profile || null, p_trabajador_id: ctx.trabajador || null, p_tipo: tipo });
+  $('#ventana').innerHTML = `<h2>Historial de archivos</h2>` + (h.length ? h.map((x) => `<div class="fila"><div class="grande"><b>${esc(x.nombre_archivo)}</b>
+    <span class="suave peq">Subido ${fechaHora(x.subido_en)} · sustituido ${fechaHora(x.archivado_en)} · ${esc(ETIQ_ESTADO[x.estado] || x.estado || '')}</span></div>
+    <button class="btn mini" data-act="ver" data-ruta="${esc(x.storage_path)}">Ver</button></div>`).join('') : '<div class="vacio">Todavía no se ha sustituido ningún archivo.</div>') +
+    '<div class="pie-modal"><button class="btn" data-cerrar>Cerrar</button></div>';
+  $('[data-cerrar]').onclick = cerrarVentana;
+}
+function ventanaSubir(ctx, tipo, etiqueta) {
+  abrirVentana(`<h2>Subir: ${esc(etiqueta)}</h2><p class="suave peq">Para cuando te lo mandan por correo. PDF o imagen, hasta 10 MB.</p>
+    <label class="campo" for="v-archivo">Archivo</label><input type="file" id="v-archivo" accept="application/pdf,image/jpeg,image/png,image/webp" />
+    <label class="peq" style="display:block;margin-top:14px"><input type="checkbox" id="v-aprobar" checked /> Aprobarlo directamente</label>
+    <label class="campo" for="v-fecha">Fecha de caducidad (opcional, si lo apruebas)</label><input type="date" id="v-fecha" />
+    <div id="v-error" class="aviso-error hidden"></div><div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn primario" id="v-ok">Subir</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const f = $('#v-archivo').files[0]; const x = $('#v-error'); x.classList.add('hidden');
+    if (!f) { x.textContent = 'Elige un archivo.'; x.classList.remove('hidden'); return; }
+    if (f.size > 10 * 1024 * 1024) { x.textContent = 'El archivo pesa más de 10 MB.'; x.classList.remove('hidden'); return; }
+    $('#v-ok').disabled = true; $('#v-ok').textContent = 'Subiendo…';
+    const ruta = `${ctx.profile}/${ctx.origen === 'trabajador' ? 'trab-' + ctx.trabajador + '-' : ''}${tipo}-${Date.now()}-${nombreSeguro(f.name)}`;
+    try {
+      const { error } = await sb.storage.from(BUCKET).upload(ruta, f, { contentType: f.type, upsert: false });
+      if (error) throw error;
+      await rpc('panel_subir_documento', { p_tipo: tipo, p_profile_id: ctx.profile, p_trabajador_id: ctx.trabajador || null, p_nombre: f.name, p_ruta: ruta, p_mime: f.type,
+        p_aprobar: $('#v-aprobar').checked, p_caduca_en: $('#v-fecha').value || null });
+      cerrarVentana(); aviso('Documento subido.'); recargar();
+    } catch (err) { $('#v-ok').disabled = false; $('#v-ok').textContent = 'Subir'; x.textContent = mensajeError(err); x.classList.remove('hidden'); }
+  };
+}
+function ventanaEstadoCuenta(id, nuevo) {
+  const verif = nuevo === 'verificada';
+  abrirVentana(`<h2>${verif ? 'Verificar la cuenta' : 'Suspender la cuenta'}</h2>
+    <p class="suave peq">${verif ? 'La persona podrá usar la app con normalidad.' : 'La persona dejará de poder usar la app. Se le enviará el motivo.'}</p>
+    ${verif ? '' : '<label class="campo" for="v-motivo">Motivo</label><textarea id="v-motivo"></textarea>'}
+    <div id="v-error" class="aviso-error hidden"></div><div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn ${verif ? 'ok' : 'peligro'}" id="v-ok">${verif ? 'Verificar' : 'Suspender'}</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('cambiar_estado_cuenta', { p_profile_id: id, p_nuevo_estado: nuevo, p_motivo: verif ? null : ($('#v-motivo').value.trim() || null) }); cerrarVentana(); aviso('Cuenta actualizada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; const x = $('#v-error'); x.textContent = mensajeError(err); x.classList.remove('hidden'); }
+  };
+}
+async function ventanaTrabajador(t, profileId) {
+  const cuentas = await empresas();
+  const opciones = cuentas.map((c) => `<option value="${esc(c.profile_id)}" ${c.profile_id === profileId ? 'selected' : ''}>${esc(c.empresa || c.nombre_completo)} (${esc(ETIQ_ROL[c.role] || c.role)})</option>`).join('');
+  const c = (k) => esc(t ? t[k] || '' : '');
+  abrirVentana(`<h2>${t ? 'Editar trabajador' : 'Añadir trabajador'}</h2>
+    ${t ? '' : `<label class="campo" for="t-cuenta">Cuenta</label><select id="t-cuenta"><option value="">Elige una cuenta…</option>${opciones}</select>`}
+    <div class="form-rejilla"><div><label class="campo" for="t-nombre">Nombre</label><input type="text" id="t-nombre" value="${c('nombre')}" /></div>
+    <div><label class="campo" for="t-apellidos">Apellidos</label><input type="text" id="t-apellidos" value="${c('apellidos')}" /></div>
+    <div><label class="campo" for="t-dni">DNI o NIE</label><input type="text" id="t-dni" value="${c('dni')}" /></div>
+    <div><label class="campo" for="t-puesto">Puesto</label><input type="text" id="t-puesto" value="${c('puesto')}" /></div>
+    <div><label class="campo" for="t-tel">Teléfono</label><input type="text" id="t-tel" value="${c('telefono')}" /></div>
+    <div><label class="campo" for="t-email">Correo</label><input type="email" id="t-email" value="${c('email')}" /></div>
+    <div><label class="campo" for="t-alta">Fecha de alta</label><input type="date" id="t-alta" value="${t && t.fecha_alta ? esc(t.fecha_alta) : ''}" /></div></div>
+    <label class="campo" for="t-notas">Notas</label><textarea id="t-notas">${c('notas')}</textarea>
+    <label class="peq" style="display:block;margin-top:12px"><input type="checkbox" id="t-activo" ${!t || t.activo ? 'checked' : ''} /> Trabajador en activo (quita la marca si causa baja)</label>
+    <div id="v-error" class="aviso-error hidden"></div><div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn primario" id="v-ok">Guardar</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try {
+      const id = await rpc('panel_guardar_trabajador', { p_id: t ? t.id : null, p_profile_id: t ? t.profile_id : $('#t-cuenta').value || null,
+        p_nombre: $('#t-nombre').value, p_apellidos: $('#t-apellidos').value, p_dni: $('#t-dni').value, p_puesto: $('#t-puesto').value,
+        p_telefono: $('#t-tel').value, p_email: $('#t-email').value, p_fecha_alta: $('#t-alta').value || null, p_activo: $('#t-activo').checked, p_notas: $('#t-notas').value });
+      cerrarVentana(); aviso('Trabajador guardado.'); invalidar();
+      if (!t) location.hash = '#/trabajador/' + id; else enrutar();
+    } catch (err) { $('#v-ok').disabled = false; const x = $('#v-error'); x.textContent = mensajeError(err); x.classList.remove('hidden'); }
+  };
+}
+function ventanaRequisito(tabla, clave) {
+  const lista = tabla === 'documentos_requeridos' ? window.__req.a : window.__req.b;
+  const d = lista.find((x) => x.tipo === clave.tipo && (!clave.role || x.role === clave.role));
+  abrirVentana(`<h2>${esc(d.etiqueta)}</h2>
+    <label class="campo" for="r-meses">Meses que vale (0 = no caduca)</label><input type="number" id="r-meses" min="0" max="120" value="${esc(d.vigencia_meses)}" />
+    <label class="peq" style="display:block;margin-top:14px"><input type="checkbox" id="r-oblig" ${d.obligatorio ? 'checked' : ''} /> Es obligatorio</label>
+    <div id="v-error" class="aviso-error hidden"></div><div class="pie-modal"><button class="btn" data-cerrar>Cancelar</button><button class="btn primario" id="v-ok">Guardar</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const meses = parseInt($('#r-meses').value, 10);
+    if (isNaN(meses) || meses < 0) { const x = $('#v-error'); x.textContent = 'Escribe un número de meses (0 o más).'; x.classList.remove('hidden'); return; }
+    $('#v-ok').disabled = true;
+    let q = sb.from(tabla).update({ vigencia_meses: meses, obligatorio: $('#r-oblig').checked }).eq('tipo', clave.tipo); if (clave.role) q = q.eq('role', clave.role);
+    const { error } = await q;
+    if (error) { $('#v-ok').disabled = false; const x = $('#v-error'); x.textContent = mensajeError(error); x.classList.remove('hidden'); return; }
+    cerrarVentana(); aviso('Guardado.'); recargar();
+  };
+}
+
+arrancar();
+</script>
+</body>
+</html>
