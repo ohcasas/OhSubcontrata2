@@ -94,7 +94,7 @@ export default function ElegirTipoCuentaScreen() {
       <ScrollView contentContainerStyle={{ padding: 24 }}>
         <View className="items-center mb-6">
           <Image
-            source={require('../../../assets/branding/oh-casas-logo.jpg')}
+            source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
             style={{ width: 52, height: 52, borderRadius: 13 }}
             className="mb-3"
           />

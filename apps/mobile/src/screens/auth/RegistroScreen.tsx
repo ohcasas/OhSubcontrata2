@@ -206,7 +206,7 @@ export default function RegistroScreen() {
         >
           <View className="items-center mb-6">
             <Image
-              source={require('../../../assets/branding/oh-casas-logo.jpg')}
+              source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
               style={{ width: 56, height: 56, borderRadius: 14 }}
               className="mb-3"
             />

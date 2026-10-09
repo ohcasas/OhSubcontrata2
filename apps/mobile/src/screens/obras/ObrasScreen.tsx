@@ -217,7 +217,7 @@ export default function ObrasScreen() {
       <View className="bg-surface rounded-2xl border border-border p-4 flex-row items-center justify-between">
         <View className="flex-row items-center flex-1 pr-3">
           <Image
-            source={require('../../../assets/branding/oh-casas-logo.jpg')}
+            source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
             style={{ width: 40, height: 40, borderRadius: 12 }}
             className="mr-3"
           />

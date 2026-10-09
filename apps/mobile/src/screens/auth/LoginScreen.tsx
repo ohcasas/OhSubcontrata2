@@ -93,7 +93,7 @@ export default function LoginScreen() {
           {/* Marca */}
           <View className="items-center mb-8">
             <Image
-              source={require('../../../assets/branding/oh-casas-logo.jpg')}
+              source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
               style={{ width: 64, height: 64, borderRadius: 16 }}
               className="mb-3"
             />

@@ -147,7 +147,7 @@ export default function RegistroParticularScreen() {
 
           <View className="items-center mb-6">
             <Image
-              source={require('../../../assets/branding/oh-casas-logo.jpg')}
+              source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
               style={{ width: 48, height: 48, borderRadius: 12 }}
               className="mb-3"
             />

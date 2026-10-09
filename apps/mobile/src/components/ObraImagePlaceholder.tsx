@@ -11,7 +11,7 @@ type Props = {
   rounded?: 'top' | 'all';
 };
 
-const LOGO = require('../../assets/branding/oh-casas-logo.jpg');
+const LOGO = require('../../assets/branding/logo-3b-simbolo-negro.png');
 
 /**
  * Banner de portada de una obra. Si `imageUrl` tiene un valor, muestra la
