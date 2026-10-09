@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Términos y condiciones — OH Conecta</title>
+<title>Términos y condiciones — 3B Conecta</title>
+<link rel="icon" type="image/png" href="img/favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -11,94 +12,83 @@
   :root { --canvas:#F8FAFD; --surface:#FFFFFF; --ink:#0B1F35; --ink-muted:#52657A; --action:#0057FF; --border:#D7E0EB; }
   * { box-sizing: border-box; }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  body { margin:0; background:var(--canvas); color:var(--ink); font-family:'DM Sans', system-ui, sans-serif; line-height:1.6;
-    padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .top { padding:28px 24px 20px; border-bottom:1px solid var(--border); background:var(--surface); }
-  .wordmark { font-size:12px; font-weight:700; letter-spacing:2px; color:var(--ink); text-transform:uppercase; }
-  main { max-width:680px; margin:0 auto; padding:40px 24px 40px; }
+  body { margin:0; background:var(--canvas); color:var(--ink); font-family:'DM Sans',system-ui,sans-serif; line-height:1.6; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  .top { padding:18px 24px; border-bottom:1px solid var(--border); background:#000; }
+  .top a { display:inline-block; line-height:0; }
+  .top img { height:30px; width:auto; }
+  main { max-width:680px; margin:0 auto; padding:40px 24px 80px; }
   h1 { font-size:clamp(28px,5vw,36px); font-weight:700; margin:0 0 8px; }
   .fecha { color:var(--ink-muted); font-size:14px; margin:0 0 40px; }
-  h2 { font-size:19px; font-weight:700; margin:36px 0 12px; }
+  h2 { font-size:19px; font-weight:700; margin:40px 0 12px; }
   p, li { font-size:16px; color:var(--ink); }
-  p { margin:0 0 14px; }
-  ul { margin:0 0 14px; padding-left:22px; }
-  li { margin-bottom:6px; }
+  p { margin:0 0 14px; } ul { margin:0 0 14px; padding-left:22px; } li { margin-bottom:6px; }
   a { color:var(--action); text-decoration:underline; }
   .caja { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin:24px 0; }
   .caja p:last-child { margin-bottom:0; }
-  nav.legal { max-width:680px; margin:0 auto; padding:0 24px 60px; display:flex; flex-wrap:wrap; gap:16px; font-size:13px; }
+  .pasos { list-style:none; padding:0; counter-reset:p; } .pasos li { counter-increment:p; position:relative; padding:0 0 14px 44px; }
+  .pasos li::before { content:counter(p); position:absolute; left:0; top:0; width:30px; height:30px; border-radius:50%; background:var(--ink); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .btn { display:inline-block; background:var(--ink); color:#fff; text-decoration:none; font-weight:600; padding:12px 20px; border-radius:10px; }
   footer { max-width:680px; margin:0 auto; padding:0 24px 60px; color:var(--ink-muted); font-size:13px; }
+  footer a { color:var(--ink-muted); margin-right:14px; }
 </style>
 </head>
 <body>
-  <div class="top"><span class="wordmark">OH Conecta</span></div>
-  <main>
-    <h1>Términos y condiciones de uso</h1>
-    <p class="fecha">Última actualización: octubre de 2026</p>
-
-    <p>Estos términos regulan el uso de OH Conecta, la plataforma de OHHO Casas Modulares Sociedad Limitada (NIF B02596344) que conecta a empresas y profesionales del sector de la construcción. Al registrarte y usar la app, los aceptas.</p>
-
-    <h2>1. Quién puede usar la app</h2>
-    <p>Cualquier persona o empresa del sector que se registre eligiendo uno de estos tipos de cuenta: oficios (subcontratistas), promotores, constructoras, arquitectos, proveedores, profesionales técnicos, inmobiliarias y administradores, o personas que recomiendan clientes. Debes facilitar datos veraces sobre ti y, si procede, sobre tu empresa.</p>
-
-    <h2>2. Licitaciones y postulaciones</h2>
-    <ul>
-      <li>Las licitaciones publicadas (presupuesto, plazo, especialidad requerida) son orientativas hasta que se produce la adjudicación.</li>
-      <li>Postular a una licitación no garantiza que la obra se adjudique a tu empresa.</li>
-      <li>La oferta económica indicada en tu postulación es tu propuesta; queda sujeta a revisión y, en su caso, negociación con OH Casas antes de confirmarse.</li>
-      <li>OH Casas puede cancelar, modificar o reabrir una licitación en cualquier momento antes de su finalización.</li>
-    </ul>
-
-    <h2>3. Progreso de obra</h2>
-    <p>La empresa a la que se le adjudica una obra se compromete a mantener razonablemente actualizado, mientras la obra esté en curso, el registro de progreso dentro de la app.</p>
-
-    <div class="caja">
-      <h2 style="margin-top:0;">4. Club OH Partner: puntos y recompensas</h2>
-      <ul>
-        <li>Los puntos se generan al finalizar obras, según las reglas vigentes en cada momento dentro de la app.</li>
-        <li><strong>Los puntos no son dinero:</strong> no generan intereses, no son transferibles entre empresas ni convertibles en efectivo, salvo que la recompensa concreta canjeada consista en un pago.</li>
-        <li>El catálogo de recompensas, su coste en puntos, su disponibilidad y el nivel necesario para canjearlas pueden cambiar sin previo aviso.</li>
-        <li>OH Casas puede anular puntos obtenidos por error del sistema o de forma fraudulenta.</li>
-        <li>Los plazos de entrega de una recompensa canjeada se comunican al solicitar el canje.</li>
-      </ul>
-    </div>
-
-    <h2>5. Tablón y Directorio</h2>
-    <ul>
-      <li>Lo que publiques en el Tablón, o en tu ficha del Directorio, incluidos los datos de contacto que añadas, lo verán las demás cuentas registradas.</li>
-      <li>Eres responsable de que lo que publiques sea veraz, lícito y no vulnere derechos de terceros.</li>
-      <li>OH Casas puede retirar cualquier publicación o ficha que incumpla estos términos o resulte inadecuada.</li>
-      <li>OH Casas facilita el contacto entre cuentas, pero no es parte de los acuerdos que se alcancen entre ellas ni garantiza su resultado.</li>
-    </ul>
-
-    <div class="caja">
-      <h2 style="margin-top:0;">6. Recomendaciones y comisiones</h2>
-      <ul>
-        <li>Antes de recomendar a alguien debes asegurarte de que esa persona sabe que vas a compartir sus datos con OH Casas para que la contacte. La app te pide confirmarlo.</li>
-        <li>Recomendar no garantiza ninguna comisión. Solo se genera si la persona recomendada formaliza una compra y OH Casas confirma la venta.</li>
-        <li>La comisión es un porcentaje del precio de venta de la vivienda al cliente final, sin IVA. Depende del tipo de cuenta de quien recomienda y puedes consultarlo en la app. OH Casas puede modificar esos porcentajes para recomendaciones futuras.</li>
-        <li>Cuando se genera una comisión, la verás en la app y podrás aceptarla. El pago se gestiona fuera de la app y puede requerir que facilites datos fiscales o una factura, según tu caso.</li>
-        <li>No se genera comisión si la persona ya estaba en contacto con OH Casas, si te recomiendas a ti mismo o si se detecta un uso fraudulento.</li>
-      </ul>
-    </div>
-
-    <h2>7. Precio del servicio</h2>
-    <p>Durante el lanzamiento, el uso de OH Conecta es gratuito para todos los tipos de cuenta. Está previsto introducir más adelante condiciones de pago para determinados perfiles (por ejemplo, una suscripción mensual o una comisión por obra). Cuando eso ocurra, se informará con antelación de las condiciones y los importes, y solo se cobrará si la persona los acepta.</p>
-
-    <h2>8. Baja de cuenta</h2>
-    <p>Puedes eliminar tu cuenta en cualquier momento. Al hacerlo, se pierde el acceso a la app, los puntos disponibles asociados a tu usuario, tu ficha del Directorio y tus publicaciones del Tablón. Si tienes comisiones pendientes de cobro, tendrás que resolverlas con OH Casas antes de poder eliminar la cuenta. Puedes ver en detalle qué datos se eliminan y cuáles se conservan en la <a href="https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html">página de eliminación de cuenta</a>.</p>
-
-    <h2>9. Modificación de estos términos</h2>
-    <p>Estos términos pueden actualizarse. Si el cambio es relevante, se avisará dentro de la propia app o se actualizará la fecha de esta página.</p>
-
-    <h2>10. Ley aplicable</h2>
-    <p>Esta relación se rige por la legislación española. Para cualquier conflicto se aplicarán los juzgados y tribunales que resulten competentes conforme a la normativa vigente.</p>
-  </main>
-  <nav class="legal">
-    <a href="https://ohcasas.github.io/OhSubcontrata2/privacidad.html">Política de privacidad</a>
-    <a href="https://ohcasas.github.io/OhSubcontrata2/aviso-legal.html">Aviso legal</a>
-    <a href="https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html">Eliminar cuenta</a>
-  </nav>
-  <footer>OH Casas Modulares · OH Conecta</footer>
+<div class="top"><a href="index.html" aria-label="3B Conecta, inicio"><img src="img/logo-3b-simbolo-blanco.png" alt="3B" /></a></div>
+<main>
+<h1>Términos y condiciones de uso</h1>
+<p class="fecha">Última actualización: octubre de 2026</p>
+<p>Estos términos regulan el uso de 3B Conecta, la plataforma de 3B GROUP ARQUITECTURA, S.L.U. (CIF B02601367) que pone en contacto a particulares y a empresas y profesionales del sector de la construcción. Al registrarte y usar la app, los aceptas.</p>
+<h2>1. Quién puede usar la app</h2>
+<p>Cualquier persona mayor de edad o empresa que se registre eligiendo uno de estos tipos de cuenta: particular, oficios (subcontratistas), promotor, constructora, arquitecto, proveedor, profesional técnico, inmobiliaria o administrador, o persona que recomienda clientes. Debes facilitar datos veraces. Cada cuenta se verifica antes de empezar a usar la app, y 3B puede suspenderla si incumples estos términos.</p>
+<h2>2. El papel de 3B</h2>
+<p>3B es intermediario. Pone en contacto a los usuarios, revisa las peticiones de los particulares y filtra las ofertas que reciben, pero no es parte de los contratos que se firmen entre ellos ni garantiza su resultado.</p>
+<h2>3. Si eres particular</h2>
+<ul>
+<li>Tu petición de obra se revisa antes de publicarse. Nuestro objetivo es responder en un máximo de 3 días laborables, pero es un objetivo, no una garantía.</li>
+<li>Podemos publicarla, pedirte más información, enviar a un técnico a ver la obra o rechazarla si no es viable o no cumple estos términos. Te lo comunicaremos en la app.</li>
+<li>La visita técnica la organiza y la asume 3B; no tiene coste para ti. Solo se hace si la aceptas al enviar la petición.</li>
+<li>Las empresas solo ven el municipio de tu obra. Cuando adjudicas una oferta, 3B puede compartir tus datos de contacto con la empresa elegida.</li>
+<li>Las ofertas que ves han pasado un filtro de 3B. Eso no es un aval: eres tú quien decide con quién contratas.</li>
+<li>Puedes retirar tu petición o eliminar tu cuenta en cualquier momento.</li>
+</ul>
+<h2>4. Si eres empresa o profesional</h2>
+<ul>
+<li>Las licitaciones y peticiones publicadas (presupuesto, plazo, especialidad requerida) son orientativas hasta que se produce la adjudicación.</li>
+<li>Postular no garantiza que la obra se adjudique a tu empresa. Tu oferta económica es tu propuesta y queda sujeta a lo que se acuerde con quien la contrata.</li>
+<li>Las ofertas a peticiones de particulares pasan antes por un filtro de 3B, que puede trasladarlas al particular o descartarlas.</li>
+<li>No puedes contactar con el particular por tu cuenta antes de que 3B comparta sus datos. Está prohibido intentar obtener esos datos por otros medios.</li>
+<li>Debes mantener al día la documentación de tu empresa y de tus trabajadores que 3B te pida.</li>
+<li>La empresa a la que se adjudica una obra se compromete a mantener razonablemente actualizado el registro de progreso en la app mientras la obra esté en curso.</li>
+</ul>
+<h2>5. Puntos y recompensas</h2>
+<ul>
+<li>Los puntos se generan al finalizar obras, según las reglas vigentes en cada momento dentro de la app.</li>
+<li>Los puntos no son dinero: no generan intereses, no son transferibles entre empresas ni convertibles en efectivo, salvo que la recompensa concreta canjeada consista en un pago.</li>
+<li>El catálogo de recompensas, su coste en puntos y su disponibilidad pueden cambiar sin previo aviso.</li>
+<li>Se pueden anular puntos obtenidos por error del sistema o de forma fraudulenta.</li>
+</ul>
+<h2>6. Tablón y Directorio</h2>
+<ul>
+<li>Lo que publiques en el Tablón, o en tu ficha del Directorio, incluidos los datos de contacto que añadas, lo verán las demás cuentas registradas.</li>
+<li>Eres responsable de que lo que publiques sea veraz, lícito y no vulnere derechos de terceros.</li>
+<li>3B puede retirar cualquier publicación o ficha que incumpla estos términos o resulte inadecuada.</li>
+</ul>
+<h2>7. Recomendaciones y comisiones</h2>
+<ul>
+<li>Antes de recomendar a alguien debes asegurarte de que esa persona sabe que vas a compartir sus datos para que la contacten. La app te pide confirmarlo.</li>
+<li>Recomendar no garantiza ninguna comisión. Solo se genera si la persona recomendada formaliza una compra y se confirma la venta.</li>
+<li>La comisión, su porcentaje y su pago se indican en la app. El pago se gestiona fuera de ella y puede requerir que facilites datos fiscales o una factura.</li>
+<li>No se genera comisión si la persona ya estaba en contacto con la empresa, si te recomiendas a ti mismo o si se detecta un uso fraudulento.</li>
+</ul>
+<h2>8. Precio del servicio</h2>
+<p>Durante el lanzamiento, el uso de 3B Conecta es gratuito para todos los tipos de cuenta. Está previsto introducir más adelante condiciones de pago para determinados perfiles. Cuando eso ocurra, se informará con antelación de las condiciones y los importes, y solo se cobrará si la persona los acepta.</p>
+<h2>9. Baja de cuenta</h2>
+<p>Puedes eliminar tu cuenta en cualquier momento. Al hacerlo, pierdes el acceso a la app, los puntos disponibles, tu ficha del Directorio y tus publicaciones del Tablón, y se cancelan tus peticiones abiertas. Si tienes comisiones pendientes de cobro, tendrás que resolverlas antes de poder eliminar la cuenta. Qué datos se eliminan y cuáles se conservan está en la <a href="eliminar-cuenta.html">página de eliminación de cuenta</a>.</p>
+<h2>10. Modificación de estos términos</h2>
+<p>Estos términos pueden actualizarse. Si el cambio es relevante, se avisará dentro de la app o se actualizará la fecha de esta página.</p>
+<h2>11. Ley aplicable</h2>
+<p>Esta relación se rige por la legislación española. Para cualquier conflicto se aplicarán los juzgados y tribunales que resulten competentes conforme a la normativa vigente.</p>
+</main>
+<footer><a href="privacidad.html">Política de privacidad</a><a href="aviso-legal.html">Aviso legal</a><a href="eliminar-cuenta.html">Eliminar cuenta</a><p style="margin-top:14px">3B Conecta</p></footer>
 </body>
 </html>

@@ -3,163 +3,57 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Eliminar cuenta — OH Conecta</title>
+<title>Eliminar cuenta — 3B Conecta</title>
+<link rel="icon" type="image/png" href="img/favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --canvas: #F8FAFD;
-    --surface: #FFFFFF;
-    --ink: #0B1F35;
-    --ink-muted: #52657A;
-    --action: #0057FF;
-    --action-tint: #E8F0FF;
-    --border: #D7E0EB;
-    --error: #B33A3A;
-    --error-tint: #FCE8E8;
-  }
+  :root { --canvas:#F8FAFD; --surface:#FFFFFF; --ink:#0B1F35; --ink-muted:#52657A; --action:#0057FF; --border:#D7E0EB; }
   * { box-sizing: border-box; }
   html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  body {
-    margin: 0;
-    background: var(--canvas);
-    color: var(--ink);
-    font-family: 'DM Sans', system-ui, sans-serif;
-    line-height: 1.6;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .top {
-    padding: 28px 24px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-  }
-  .wordmark {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--ink);
-    text-transform: uppercase;
-  }
-  main {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 40px 24px 80px;
-  }
-  h1 {
-    font-size: clamp(28px, 5vw, 36px);
-    font-weight: 700;
-    margin: 0 0 12px;
-  }
-  p, li { font-size: 16px; }
-  p { margin: 0 0 14px; }
-  a { color: var(--action); }
-  .caja {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 22px;
-    margin: 28px 0;
-  }
-  .caja h2 { font-size: 18px; margin: 0 0 10px; }
-  .paso {
-    display: flex;
-    gap: 14px;
-    margin-bottom: 18px;
-  }
-  .paso:last-child { margin-bottom: 0; }
-  .numero {
-    flex-shrink: 0;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--action-tint);
-    color: var(--action);
-    font-weight: 700;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .paso p { margin: 0; }
-  .paso strong { display: block; margin-bottom: 2px; }
-  .boton {
-    display: inline-block;
-    background: var(--action);
-    color: #FFFFFF;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 15px;
-    padding: 14px 22px;
-    border-radius: 12px;
-    margin-top: 6px;
-  }
-  .aviso {
-    background: var(--error-tint);
-    color: var(--error);
-    border-radius: 12px;
-    padding: 14px 16px;
-    font-size: 14px;
-    margin: 24px 0;
-  }
-  .aviso strong { color: var(--error); }
-  footer {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 0 24px 60px;
-    color: var(--ink-muted);
-    font-size: 13px;
-  }
+  body { margin:0; background:var(--canvas); color:var(--ink); font-family:'DM Sans',system-ui,sans-serif; line-height:1.6; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+  .top { padding:18px 24px; border-bottom:1px solid var(--border); background:#000; }
+  .top a { display:inline-block; line-height:0; }
+  .top img { height:30px; width:auto; }
+  main { max-width:680px; margin:0 auto; padding:40px 24px 80px; }
+  h1 { font-size:clamp(28px,5vw,36px); font-weight:700; margin:0 0 8px; }
+  .fecha { color:var(--ink-muted); font-size:14px; margin:0 0 40px; }
+  h2 { font-size:19px; font-weight:700; margin:40px 0 12px; }
+  p, li { font-size:16px; color:var(--ink); }
+  p { margin:0 0 14px; } ul { margin:0 0 14px; padding-left:22px; } li { margin-bottom:6px; }
+  a { color:var(--action); text-decoration:underline; }
+  .caja { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; margin:24px 0; }
+  .caja p:last-child { margin-bottom:0; }
+  .pasos { list-style:none; padding:0; counter-reset:p; } .pasos li { counter-increment:p; position:relative; padding:0 0 14px 44px; }
+  .pasos li::before { content:counter(p); position:absolute; left:0; top:0; width:30px; height:30px; border-radius:50%; background:var(--ink); color:#fff; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .btn { display:inline-block; background:var(--ink); color:#fff; text-decoration:none; font-weight:600; padding:12px 20px; border-radius:10px; }
+  footer { max-width:680px; margin:0 auto; padding:0 24px 60px; color:var(--ink-muted); font-size:13px; }
+  footer a { color:var(--ink-muted); margin-right:14px; }
 </style>
 </head>
 <body>
-  <div class="top"><span class="wordmark">OH Conecta</span></div>
-  <main>
-    <h1>Eliminar tu cuenta</h1>
-    <p>Puedes pedir que se elimine tu cuenta y tus datos personales de OH Conecta en cualquier momento, tengas o no la app instalada.</p>
-
-    <div class="caja">
-      <h2>Si tienes la app instalada</h2>
-      <div class="paso">
-        <span class="numero">1</span>
-        <p>Abre OH Conecta e inicia sesión.</p>
-      </div>
-      <div class="paso">
-        <span class="numero">2</span>
-        <p>Ve a la pestaña <strong>Perfil</strong>.</p>
-      </div>
-      <div class="paso">
-        <span class="numero">3</span>
-        <p>Al final de la pantalla, toca <strong>Eliminar mi cuenta</strong> y confirma. Se elimina al instante.</p>
-      </div>
-    </div>
-
-    <div class="caja">
-      <h2>Si no tienes la app instalada</h2>
-      <p>Escríbenos desde el email con el que te registraste, indicando el nombre de tu empresa y pidiendo la eliminación de tu cuenta.</p>
-      <a class="boton" href="mailto:software@ohcasas.es?subject=Solicitud%20de%20eliminaci%C3%B3n%20de%20cuenta%20-%20OH%20Contratas&body=Nombre%20de%20la%20empresa%3A%0AEmail%20con%20el%20que%20me%20registr%C3%A9%3A%0A">
-        Solicitar por email
-      </a>
-      <p style="margin-top: 14px;">Procesaremos tu solicitud en un plazo máximo de 30 días.</p>
-    </div>
-
-    <h2 style="font-size: 19px;">Qué se elimina y qué se conserva</h2>
-    <p><strong>Se elimina:</strong> tu nombre, teléfono, foto de perfil, biografía, los documentos de verificación que hubieras subido, tu ficha del Directorio, tus publicaciones del Tablón y el acceso a tu cuenta.</p>
-    <p><strong>Se conserva:</strong> el historial de obras, postulaciones y puntos de tu empresa — son datos de la relación comercial entre tu empresa y OH Casas Modulares, no datos personales tuyos, igual que se conservaría cualquier registro contable. También se conservan, sin tu nombre, las recomendaciones de clientes que hayas hecho y sus comisiones.</p>
-    <p><strong>Importante:</strong> si tienes comisiones pendientes de cobro, no se puede eliminar la cuenta hasta resolverlas. Escríbenos a <a href="mailto:software@ohcasas.es">software@ohcasas.es</a> y lo vemos contigo.</p>
-
-    <div class="aviso">
-      Esta acción no se puede deshacer. Si tu empresa tiene más de una persona con acceso a la cuenta, avisa antes a tu equipo.
-    </div>
-
-    <p>Más información en la <a href="https://ohcasas.github.io/OhSubcontrata2/privacidad.html">política de privacidad</a>.</p>
-  </main>
-  <nav style="max-width:680px;margin:0 auto;padding:0 24px 60px;display:flex;flex-wrap:wrap;gap:16px;font-size:13px;">
-    <a href="https://ohcasas.github.io/OhSubcontrata2/aviso-legal.html">Aviso legal</a>
-    <a href="https://ohcasas.github.io/OhSubcontrata2/terminos.html">Términos y condiciones</a>
-    <a href="https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html">Eliminar cuenta</a>
-  </nav>
-  <footer>OH Casas Modulares · OH Conecta</footer>
+<div class="top"><a href="index.html" aria-label="3B Conecta, inicio"><img src="img/logo-3b-simbolo-blanco.png" alt="3B" /></a></div>
+<main>
+<h1>Eliminar tu cuenta</h1>
+<p>Puedes pedir que se elimine tu cuenta y tus datos personales de 3B Conecta en cualquier momento, tengas o no la app instalada.</p>
+<h2>Si tienes la app instalada</h2>
+<ol class="pasos">
+<li>Abre 3B Conecta e inicia sesión.</li>
+<li>Ve a la pestaña Perfil.</li>
+<li>Al final de la pantalla, toca Eliminar mi cuenta y confirma. Se elimina al instante.</li>
+</ol>
+<h2>Si no tienes la app instalada</h2>
+<p>Escríbenos desde el correo con el que te registraste, indicando tu nombre (y el de tu empresa, si tienes) y pidiendo la eliminación de tu cuenta.</p>
+<p><a class="btn" href="mailto:software@ohcasas.es?subject=Eliminar%20mi%20cuenta%20de%203B%20Conecta">Solicitar por correo</a></p>
+<p>Procesaremos tu solicitud en un plazo máximo de 30 días.</p>
+<h2>Qué se elimina y qué se conserva</h2>
+<p><b>Se elimina:</b> tu nombre, teléfono, correo, foto de perfil, biografía, los documentos de verificación que hubieras subido, tu ficha del Directorio, tus publicaciones del Tablón y el acceso a tu cuenta. Si eres particular, también los datos de contacto y la dirección de tus peticiones; las peticiones que siguieran abiertas se cancelan.</p>
+<p><b>Se conserva:</b> el historial de obras, postulaciones y puntos de tu empresa, que son datos de la relación comercial entre empresas y no datos personales tuyos, igual que se conservaría cualquier registro contable. También se conservan, sin tu nombre, las recomendaciones de clientes que hayas hecho y sus comisiones.</p>
+<p><b>Importante:</b> si tienes comisiones pendientes de cobro, no se puede eliminar la cuenta hasta resolverlas. Escríbenos a software@ohcasas.es y lo vemos contigo.</p>
+<div class="caja"><p>Esta acción no se puede deshacer. Si tu empresa tiene más de una persona con acceso a la cuenta, avisa antes a tu equipo.</p></div>
+<p>Más información en la <a href="privacidad.html">política de privacidad</a>.</p>
+</main>
+<footer><a href="privacidad.html">Política de privacidad</a><a href="aviso-legal.html">Aviso legal</a><a href="terminos.html">Términos y condiciones</a><p style="margin-top:14px">3B Conecta</p></footer>
 </body>
 </html>
