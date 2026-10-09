@@ -19,6 +19,8 @@ import { colors } from '../design-system/tokens';
 import AuthStack from './AuthStack';
 import SubcontratistaTabs from './SubcontratistaTabs';
 import ReferidorTabs from './ReferidorTabs';
+import ParticularTabs from './ParticularTabs';
+import TecnicoTabs from './TecnicoTabs';
 import AdminTabs from './AdminTabs';
 import DetalleObraScreen from '../screens/obras/DetalleObraScreen';
 import NotificacionesScreen from '../screens/notificaciones/NotificacionesScreen';
@@ -27,6 +29,10 @@ import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
 import TarjetaComisionFlotante from '../components/TarjetaComisionFlotante';
 import ConectaTabs from './ConectaTabs';
 import CuentaNoActivaScreen from '../screens/auth/CuentaNoActivaScreen';
+import MisDocumentosScreen from '../screens/documentos/MisDocumentosScreen';
+import MisTrabajadoresScreen from '../screens/documentos/MisTrabajadoresScreen';
+import TrabajadorDetalleScreen from '../screens/documentos/TrabajadorDetalleScreen';
+import TrabajadorFormScreen from '../screens/documentos/TrabajadorFormScreen';
 import type { RootStackParamList } from './types';
 
 type Rol =
@@ -39,7 +45,9 @@ type Rol =
   | 'arquitecto'
   | 'proveedor'
   | 'profesional'
-  | 'administrador';
+  | 'administrador'
+  | 'particular'
+  | 'tecnico';
 
 const ROLES_CONECTA: Rol[] = [
   'promotor',
@@ -151,6 +159,21 @@ export default function RootNavigator() {
     />
   );
 
+  // Documentación de la cuenta y de sus trabajadores (subir, renovar, ver). Se abre desde el Perfil.
+  const opcionesDocumentos = (titulo: string) => ({
+    headerShown: true,
+    title: titulo,
+    headerStyle: { backgroundColor: colors.canvas },
+    headerTintColor: colors.ink,
+    headerTitleStyle: { color: colors.ink },
+  });
+  const pantallasDocumentos = [
+    <Stack.Screen key="MisDocumentos" name="MisDocumentos" component={MisDocumentosScreen} options={opcionesDocumentos('Mis documentos')} />,
+    <Stack.Screen key="MisTrabajadores" name="MisTrabajadores" component={MisTrabajadoresScreen} options={opcionesDocumentos('Mis trabajadores')} />,
+    <Stack.Screen key="TrabajadorDetalle" name="TrabajadorDetalle" component={TrabajadorDetalleScreen} options={opcionesDocumentos('Trabajador')} />,
+    <Stack.Screen key="TrabajadorForm" name="TrabajadorForm" component={TrabajadorFormScreen} options={opcionesDocumentos('Datos del trabajador')} />,
+  ];
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -163,6 +186,7 @@ export default function RootNavigator() {
                 estado={estadoCuenta === 'suspendida' ? 'suspendida' : estadoCuenta === 'error' ? 'error' : 'pendiente'}
                 motivo={motivoCuenta}
                 userId={session!.user.id}
+                rol={rol}
                 comprobando={comprobando}
                 onComprobar={() => {
                   setComprobando(true);
@@ -197,10 +221,21 @@ export default function RootNavigator() {
               }}
             />
           </>
+        ) : rol === 'particular' ? (
+          <>
+            <Stack.Screen name="AppParticular" component={ParticularTabs} />
+            {pantallaNotificaciones}
+          </>
+        ) : rol === 'tecnico' ? (
+          <>
+            <Stack.Screen name="AppTecnico" component={TecnicoTabs} />
+            {pantallaNotificaciones}
+          </>
         ) : rol === 'referidor' ? (
           <>
             <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
             {pantallaNotificaciones}
+            {pantallasDocumentos}
           </>
         ) : rol !== null && ROLES_CONECTA.includes(rol) ? (
           <>
@@ -208,6 +243,7 @@ export default function RootNavigator() {
               {() => <ConectaTabs rol={rol} userId={session!.user.id} />}
             </Stack.Screen>
             {pantallaNotificaciones}
+            {pantallasDocumentos}
           </>
         ) : (
           <>
@@ -224,6 +260,7 @@ export default function RootNavigator() {
               }}
             />
             {pantallaNotificaciones}
+            {pantallasDocumentos}
           </>
         )}
       </Stack.Navigator>

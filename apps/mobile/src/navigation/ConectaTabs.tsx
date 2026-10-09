@@ -18,7 +18,7 @@ const ICONOS = {
 } as const;
 
 /**
- * Pestañas de los 6 perfiles de OH Conecta (promotor, constructora,
+ * Pestañas de los 6 perfiles de 3B Conecta (promotor, constructora,
  * arquitecto, proveedor, profesional, administrador). Todos ven el Tablón
  * y el Directorio completos; lo que cambia según el rol es qué pueden
  * PUBLICAR (ver TablonScreen y DirectorioScreen).

@@ -15,7 +15,7 @@ const SECCIONES: { clave: Seccion; etiqueta: string }[] = [
   { clave: 'directorio', etiqueta: 'Directorio' },
 ];
 
-/** Pestaña "Conecta" del admin: todo lo de OH Conecta en un solo sitio. */
+/** Pestaña "Conecta" del admin: todo lo de 3B Conecta en un solo sitio. */
 export default function AdminConectaScreen() {
   const [seccion, setSeccion] = useState<Seccion>('recomendaciones');
   const [pendientes, setPendientes] = useState(0);

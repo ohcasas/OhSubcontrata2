@@ -182,6 +182,40 @@ values ('promotor', 'sector', 'Sector', 'seleccion', '["Residencial","Industrial
 
 Perfiles: `arquitecto`, `profesional`, `promotor`, `constructora`, `proveedor`, `administrador` (inmobiliarias), `subcontratista` (Oficios). `referidor` no pide nada. Las claves `nombre_empresa` y `cif` son especiales: viajan aparte, porque las leen los disparadores de registro de siempre. Cambiar lo que se pide **no afecta a las cuentas ya verificadas**.
 
+## Panel de documentación (web interna)
+
+Web para que el equipo gestione los documentos de las empresas y de sus trabajadores. Es **un solo archivo** (`docs/panel/index.html`) que usa el mismo Supabase que la app; se publica con GitHub Pages igual que el resto de `docs/`, en `https://ohcasas.github.io/OhSubcontrata2/panel/`. No guarda datos propios: lo que protege la información son las reglas de la base de datos (solo entran los usuarios con rol `admin` o `superadmin`).
+
+**Qué hace**
+
+| Pantalla | Para qué |
+|---|---|
+| Panel | Contadores (por revisar, caducados, caducan en 15 días, cuentas en orden/pendientes/con incidencias) y las cuentas que requieren atención |
+| Por revisar | Cola de documentos subidos (de empresas y de trabajadores), los más antiguos primero: ver, aprobar, rechazar con motivo |
+| Empresas | Todas las cuentas con semáforo, buscador y filtros. La **ficha** tiene sus documentos, sus trabajadores y su actividad; permite subir un documento en su nombre (cuando lo mandan por correo), cambiar la caducidad, ver el historial de archivos y verificar o suspender la cuenta |
+| Trabajadores | Alta, baja y ficha de cada trabajador con sus documentos (DNI, alta en la Seguridad Social, formación PRL, aptitud médica, EPIs) |
+| Actividad | Quién subió, aprobó o rechazó qué documento y cuándo |
+| Documentos que se piden | Qué se pide a cada perfil y a los trabajadores, si es obligatorio y cuántos meses vale |
+
+**Caducidad.** Todos los documentos valen **2 meses** (se cambia por documento en "Documentos que se piden"). Al aprobar un documento la fecha de caducidad se calcula sola (o se indica a mano). Pasada la fecha, el documento figura como **caducado**. No se suspende ninguna cuenta automáticamente: se avisa y se ve en el panel. `avisar_caducidades()` avisa a la cuenta a los 15 y a los 7 días y el día que caduca, y dispara el webhook `documento.caduca` (hacia n8n/Odoo, como los demás).
+
+**Puesta en marcha (una sola vez)**
+1. Ejecutar `supabase/migrations/0040_panel_documentos_caducidad_y_trabajadores.sql` en el SQL Editor.
+2. Activar los avisos diarios: Supabase → Database → Extensions → activar `pg_cron`; luego ejecutar `select cron.schedule('avisar-caducidades', '0 7 * * *', $cron$ select avisar_caducidades(); $cron$);`. Para probarlo al momento: `select avisar_caducidades();`.
+3. Copiar `docs/panel/index.html` a `docs/panel/` y subir con Git. La primera vez la página pide la URL y la clave `anon` de Supabase y las guarda solo en ese navegador (o se escriben en las dos constantes del principio del archivo).
+4. Entrar con el correo y la contraseña de una cuenta admin.
+
+**Desde la app (migración 0041)**
+- **Mis documentos** (Perfil → Mis documentos): la cuenta ve el estado y la caducidad de cada documento y lo sube o renueva. Si le quedan 15 días o menos, el archivo nuevo se guarda como **renovación** y el documento actual **sigue vigente** hasta que el equipo apruebe el nuevo; entonces el anterior pasa al historial y la caducidad se recalcula. Si se rechaza, el actual sigue vigente y la cuenta recibe el motivo. Si el documento está rechazado, caducado o pendiente, el archivo nuevo lo sustituye.
+- **Mis trabajadores** (Perfil → Mis trabajadores): la empresa da de alta a su gente y sube la documentación de cada persona. Solo ve y toca los suyos.
+- En el panel, las renovaciones salen en "Por revisar" y en la ficha ("Aprobar renovación" / "Rechazar renovación").
+- Orden de puesta en marcha: ejecutar la `0041` y publicar el `docs/panel/index.html` nuevo antes de compilar la app.
+
+**Lo que NO hace todavía**
+- **Requisitos por cliente u obra** (por ejemplo, que un cliente exija un seguro mayor): hoy los requisitos son por tipo de cuenta.
+- **Abrir el documento al tocar el aviso de caducidad**: el aviso llega, pero la app todavía no navega directamente a la pantalla del documento.
+- Los archivos de trabajadores se guardan en la carpeta de la cuenta (`<id de la cuenta>/trab-…`), así que al eliminar la cuenta se borran con el resto.
+
 ## Logo e identidad
 
 El logo es **OH** en blanco sobre negro: una **O en forma de anillo**, una **H** de barras redondeadas y una **línea gruesa** que sale de dentro del hueco de la O, atraviesa el aro y llega a la H, donde es a la vez su travesaño (la dirección pidió el enlace "entre la O y la H, por el medio, sobre la línea de la H"). La línea tiene la misma altura que el travesaño y termina redondeada dentro de la O. La pantalla de carga y el gráfico de Play llevan de fondo el dibujo arquitectónico de la dirección.
@@ -321,6 +355,7 @@ La tabla `webhooks_config` guarda, para cada evento, una URL de destino y un sec
 | `cuenta.pendiente` | Se registra una cuenta que espera verificación |
 | `cuenta.verificada`, `cuenta.suspendida`, `cuenta.en_revision` | El admin cambia el estado de una cuenta (`verificada` también al reactivarla); lleva nombre, correo, perfil y motivo |
 | `documentacion.completa` | Una cuenta pendiente ha subido todos sus documentos obligatorios |
+| `documento.caduca` | Un documento caduca (aviso a los 15 y 7 días y el día que caduca); lo dispara `avisar_caducidades()` (migración `0040`) |
 | `recomendacion.creada` | Alguien recomienda a un cliente; lleva los datos de contacto del cliente y de quien lo recomienda (es un posible cliente para Odoo) |
 | `recomendacion.estado` | La recomendación avanza o se descarta (de qué estado a cuál) |
 | `comision.generada`, `comision.aceptada`, `comision.pagada` | Ciclo de la comisión (porcentaje, base e importe) |
@@ -437,6 +472,12 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 37 | `0037_historial_y_bloqueo_de_recomendaciones.sql` | `referencias_historial` (quién cambió cada estado, de cuál a cuál y cuándo; solo lo leen los admin) y bloqueo para no retroceder ni descartar una recomendación que ya tiene comisión |
 | 38 | `0038_un_movil_un_usuario.sql` | Un token de push pertenece a un único usuario (disparador en `push_tokens`) y limpia los duplicados que había: los avisos de una cuenta ya no suenan en móviles donde se usó otra |
 | 39 | `0039_webhooks_de_recomendaciones_cuentas_y_licitaciones.sql` | 11 webhooks nuevos (recomendaciones, comisiones, cuentas, documentación, licitaciones); no cambian el comportamiento de la app |
+| 40 | `0040_panel_documentos_caducidad_y_trabajadores.sql` | Panel de documentación: caducidad a 2 meses, trabajadores y sus documentos, historial de archivos, registro de actividad y aviso `documento.caduca`; no cambia el comportamiento de la app |
+| 41 | `0041_renovaciones_y_trabajadores_desde_la_app.sql` | Renovar documentos y gestionar trabajadores desde la app (el documento antiguo sigue vigente hasta aprobar la renovación); el panel ve y resuelve las renovaciones |
+| 42 | `0042_roles_y_estados_para_peticiones.sql` | Roles `particular` y `tecnico` y estados de obra `en_revision`, `pendiente_info`, `rechazada`. **Ejecutar sola**, antes de la 0043 |
+| 43 | `0043_revision_previa_particulares_y_tecnicos.sql` | Las peticiones de particulares pasan por revisión de 3B (publicar / pedir información / visita técnica / rechazar, respuesta en 3 días laborables); datos personales aparte; técnicos internos o externos con informe y fotos |
+| 44 | `0044_publicacion_directa_y_filtro_de_ofertas.sql` | Las licitaciones de empresas verificadas se publican directamente; las ofertas a peticiones de particulares las filtra 3B (trasladar / descartar) antes de que el particular las vea |
+| 45 | `0045_alta_de_particulares.sql` | Crea el perfil al registrarse un particular (las funciones de alta anteriores no lo hacían) |
 
 Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
 

@@ -1,5 +1,5 @@
 /**
- * Bottom tabs — rol Administrador OH Club.
+ * Bottom tabs — rol Administrador 3B Conecta.
  * Coincide con la bottom nav bar vista en perfil_administrador del export
  * de Stitch: Obras / Postulaciones / Gremios / Perfil Admin (distinta de la
  * del subcontratista: cambia "Partner" por "Gremios" y "Perfil" por "Perfil Admin").

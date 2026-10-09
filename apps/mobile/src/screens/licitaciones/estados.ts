@@ -5,6 +5,9 @@ export const ETIQUETA_ESTADO_OBRA: Record<string, string> = {
   en_curso: 'En curso',
   cerrada: 'Finalizada',
   cancelada: 'Cancelada',
+  en_revision: 'En revisión',
+  pendiente_info: 'Falta información',
+  rechazada: 'No publicada',
 };
 
 // Clases escritas completas (no construidas con texto) para que Tailwind las detecte.
@@ -14,6 +17,9 @@ export const ESTILO_ESTADO_OBRA: Record<string, { fondo: string; texto: string }
   en_curso: { fondo: 'bg-actionTint', texto: 'text-action' },
   cerrada: { fondo: 'bg-successTint', texto: 'text-success' },
   cancelada: { fondo: 'bg-errorTint', texto: 'text-error' },
+  en_revision: { fondo: 'bg-warningTint', texto: 'text-warning' },
+  pendiente_info: { fondo: 'bg-warningTint', texto: 'text-warning' },
+  rechazada: { fondo: 'bg-errorTint', texto: 'text-error' },
 };
 
 export const ETIQUETA_ESTADO_POSTULACION: Record<string, string> = {

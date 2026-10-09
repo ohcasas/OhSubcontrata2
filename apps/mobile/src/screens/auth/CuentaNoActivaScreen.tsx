@@ -7,8 +7,10 @@ import { supabase } from '../../services/supabase';
 import { cerrarSesion } from '../../services/sesion';
 import { subirArchivoPrivado } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
+import { EMAIL_SOPORTE } from '../../constants/enlaces';
 
 type Props = {
+  rol?: string;
   estado: 'pendiente' | 'suspendida' | 'error';
   motivo: string | null;
   comprobando: boolean;
@@ -68,7 +70,7 @@ function mensajeDeError(e: unknown): string {
  * Si está pendiente, aquí sube los documentos que se piden a su perfil. Es solo la parte
  * visible: lo que de verdad impide usar la app es la base de datos (migraciones 0034 y 0036).
  */
-export default function CuentaNoActivaScreen({ estado, motivo, comprobando, onComprobar, userId }: Props) {
+export default function CuentaNoActivaScreen({ estado, motivo, comprobando, onComprobar, userId, rol }: Props) {
   const insets = useSafeAreaInsets();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [cargandoDocs, setCargandoDocs] = useState(false);
@@ -137,7 +139,9 @@ export default function CuentaNoActivaScreen({ estado, motivo, comprobando, onCo
     ? 'Para poder verificar tu cuenta necesitamos estos documentos. Los marcados con * son obligatorios.'
     : documentos.length > 0
       ? 'Gracias. Estamos revisando tu documentación; cuando tu cuenta esté verificada recibirás un aviso y podrás empezar a usar la app.'
-      : 'Comprobamos que cada cuenta de OH Conecta pertenece a una empresa o profesional del sector. Cuando esté verificada recibirás un aviso y podrás empezar a usar la app.';
+      : rol === 'particular' || rol === 'tecnico'
+        ? 'Estamos revisando tu cuenta. Cuando esté verificada recibirás un aviso y podrás empezar a usar la app.'
+        : 'Comprobamos que cada cuenta de 3B Conecta pertenece a una empresa o profesional del sector. Cuando esté verificada recibirás un aviso y podrás empezar a usar la app.';
 
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -230,10 +234,10 @@ export default function CuentaNoActivaScreen({ estado, motivo, comprobando, onCo
         )}
 
         {estado !== 'error' && (
-          <Pressable onPress={() => Linking.openURL('mailto:software@ohcasas.es')} className="mb-2 mt-4">
+          <Pressable onPress={() => Linking.openURL(`mailto:${EMAIL_SOPORTE}`)} className="mb-2 mt-4">
             <Text className="text-inkMuted text-xs text-center">
               {estado === 'suspendida' ? 'Si crees que es un error, escríbenos a ' : '¿Alguna duda? Escríbenos a '}
-              <Text className="text-action font-sansSemiBold">software@ohcasas.es</Text>
+              <Text className="text-action font-sansSemiBold">{EMAIL_SOPORTE}</Text>
             </Text>
           </Pressable>
         )}

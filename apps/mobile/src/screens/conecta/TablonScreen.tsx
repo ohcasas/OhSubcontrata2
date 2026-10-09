@@ -320,7 +320,7 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId?: st
                   )}
                 </View>
                 <View className="flex-row items-center flex-wrap gap-x-3 gap-y-1 mt-1.5 pt-2 border-t border-border">
-                  <Text className="text-inkMuted text-[11px]">{pub.profiles?.nombre_completo ?? 'OH Conecta'}</Text>
+                  <Text className="text-inkMuted text-[11px]">{pub.profiles?.nombre_completo ?? '3B Conecta'}</Text>
                   {pub.contacto_telefono !== null && (
                     <Text className="text-action text-[11px] font-sansSemiBold">{pub.contacto_telefono}</Text>
                   )}

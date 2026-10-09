@@ -274,7 +274,7 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
             </>
           ) : miFicha === null ? (
             <Text className="text-inkMuted text-sm">
-              Todavía no tienes ficha. Créala para que otras cuentas de OH Conecta te encuentren.
+              Todavía no tienes ficha. Créala para que otras cuentas de 3B Conecta te encuentren.
             </Text>
           ) : (
             <View>

@@ -117,6 +117,7 @@
     .t td.acc { justify-content:flex-start; flex-wrap:wrap; text-align:left; } .t td.acc::before { content:none; } .t td.acc .btn { margin:4px 6px 0 0; }
   }
 
+  a.btn { text-decoration:none; color:var(--tinta); } a.btn.primario { color:#fff; }
   /* Ventana y avisos */
   #velo { position:fixed; inset:0; background:rgba(17,27,43,.5); z-index:50; display:flex; align-items:flex-start; justify-content:center; padding:8vh 16px; overflow-y:auto; }
   #ventana { background:#fff; border-radius:6px; width:100%; max-width:500px; padding:22px; border:1px solid var(--linea); }
@@ -161,6 +162,7 @@
     <nav>
       <a href="#/panel" data-nav="panel">Resumen</a>
       <a href="#/revision" data-nav="revision">Por revisar <span class="n hidden" id="cnt-revision">0</span></a>
+      <a href="#/peticiones" data-nav="peticiones">Peticiones <span class="n hidden" id="cnt-peticiones">0</span></a>
       <a href="#/empresas" data-nav="empresas">Empresas</a>
       <a href="#/trabajadores" data-nav="trabajadores">Trabajadores</a>
       <a href="#/actividad" data-nav="actividad">Actividad</a>
@@ -191,7 +193,7 @@ const aFecha = (d) => new Date(String(d).length === 10 ? d + 'T00:00:00' : d);
 const fecha = (d) => { if (!d) return '—'; const x = aFecha(d); return isNaN(x) ? '—' : x.toLocaleDateString('es-ES'); };
 const fechaHora = (d) => { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? '—' : x.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }); };
 const dias = (d) => { const h = new Date(); h.setHours(0, 0, 0, 0); return Math.round((aFecha(d) - h) / 864e5); };
-const ETIQ_ROL = { arquitecto:'Arquitecto', profesional:'Profesional', promotor:'Promotor', constructora:'Constructora', proveedor:'Proveedor', administrador:'Inmobiliaria', subcontratista:'Oficios', referidor:'Recomendador' };
+const ETIQ_ROL = { arquitecto:'Arquitecto', profesional:'Profesional', promotor:'Promotor', constructora:'Constructora', proveedor:'Proveedor', administrador:'Inmobiliaria', subcontratista:'Oficios', referidor:'Recomendador', particular:'Particular', tecnico:'Técnico' };
 const DOC_ESTADO = { vigente:['ok','Vigente'], por_caducar:['aviso','Caduca pronto'], caducado:['mal','Caducado'], pendiente:['aviso','Pendiente de revisión'], rechazado:['mal','Rechazado'], faltante:['falta','Sin subir'] };
 const SEM = { verde:['ok','Al día'], ambar:['aviso','Pendiente'], rojo:['mal','Incidencia'] };
 const CUENTA = { verificada:['ok','Verificada'], pendiente:['aviso','Por verificar'], suspendida:['mal','Suspendida'] };
@@ -285,7 +287,7 @@ async function entrarComo(user) {
     const e = $('#error-entrar'); e.textContent = 'Este usuario no tiene acceso a la documentación.'; e.classList.remove('hidden'); return;
   }
   yo = data; $('#usuario').textContent = data.nombre_completo || data.email || '';
-  mostrarSolo('app'); actualizarContador(); enrutar();
+  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); enrutar();
 }
 $('#form-config').addEventListener('submit', (e) => {
   e.preventDefault(); const u = $('#cfg-url').value.trim(), k = $('#cfg-key').value.trim();
@@ -314,6 +316,7 @@ async function enrutar() {
   try {
     if (ruta === 'panel') await vistaResumen(v);
     else if (ruta === 'revision') await vistaRevision(v);
+    else if (ruta === 'peticiones') await vistaPeticiones(v);
     else if (ruta === 'empresas') await vistaEmpresas(v);
     else if (ruta === 'empresa') await vistaEmpresa(v, id, partes[2]);
     else if (ruta === 'trabajadores') await vistaTrabajadores(v);
@@ -544,6 +547,156 @@ async function vistaRequisitos(v) {
   <div class="panel"><header><h2>Trabajadores</h2></header>${tabla('rq-t', b.data, 'documentos_trabajador_requeridos', (d) => ({ tipo: d.tipo }))}</div>
   ${Object.keys(porRol).map((r) => `<div class="panel" style="margin-top:16px"><header><h2>${esc(ETIQ_ROL[r] || r)}</h2></header>${tabla('rq-' + r, porRol[r], 'documentos_requeridos', (d) => ({ role: d.role, tipo: d.tipo }))}</div>`).join('')}`;
 }
+
+// ───────────────────────── Peticiones de particulares ─────────────────────────
+const EST_PET = { en_revision:['aviso','En revisión'], pendiente_info:['neutro','Esperando respuesta'] };
+const VISITA_EST = { asignada:'Asignada', agendada:'Agendada', realizada:'Realizada' };
+const VISITA_RES = { apto:['ok','Apto'], ajustar:['aviso','Ajustar'], no_apto:['mal','No apto'] };
+async function actualizarContadorPeticiones() {
+  try { const c = (await rpc('panel_cola_peticiones')).filter((p) => p.estado === 'en_revision').length; const n = $('#cnt-peticiones'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) {}
+}
+async function vistaPeticiones(v) {
+  const t = new URLSearchParams((location.hash.split('?')[1]) || '').get('t') || 'cola';
+  const pestanas = [['cola', 'Por revisar'], ['ofertas', 'Ofertas'], ['tecnicos', 'Técnicos']];
+  v.innerHTML = `<div class="cab"><div><h1>Peticiones</h1><p class="suave">Lo que piden los particulares pasa por aquí antes de publicarse. Compromiso de respuesta: 3 días laborables.</p></div></div>
+  <div class="herramientas">${pestanas.map(([k, n]) => `<a class="btn ${k === t ? 'primario' : ''}" href="#/peticiones?t=${k}">${n}</a>`).join('')}</div><div id="pet-cuerpo"><div class="cargando">Cargando…</div></div>`;
+  const cuerpo = $('#pet-cuerpo');
+  if (t === 'ofertas') await petOfertas(cuerpo); else if (t === 'tecnicos') await petTecnicos(cuerpo); else await petCola(cuerpo);
+  actualizarContadorPeticiones();
+}
+async function petCola(c) {
+  const cola = await rpc('panel_cola_peticiones'); window.__cola = cola;
+  if (!cola.length) { c.innerHTML = '<div class="panel"><div class="vacio">No hay peticiones pendientes de revisar.</div></div>'; return; }
+  c.innerHTML = cola.map((p) => {
+    const plazo = p.estado === 'en_revision' && p.revisar_antes_de ? `<span class="sub ${p.vencida ? 'mal-t' : ''}">${p.vencida ? 'Plazo vencido el ' : 'Responder antes del '}${fecha(p.revisar_antes_de)}</span>` : '';
+    const visita = p.visita_id ? `<p><b>Visita:</b> ${esc(VISITA_EST[p.visita_estado] || p.visita_estado)}${p.tecnico_nombre ? ' · ' + esc(p.tecnico_nombre) : ''}${p.visita_fecha ? ' · ' + fechaHora(p.visita_fecha) : ''} ${p.visita_resultado ? marca(VISITA_RES[p.visita_resultado]) : ''}</p>
+      ${p.visita_informe ? `<p class="suave" style="white-space:pre-wrap">${esc(p.visita_informe)}</p>` : ''}
+      ${(p.visita_fotos || []).length ? `<p>${p.visita_fotos.map((f, i) => `<button class="btn peq" data-act="pet-foto" data-ruta="${esc(f)}">Foto ${i + 1}</button>`).join(' ')}</p>` : ''}` : '';
+    return `<div class="panel" style="margin-bottom:16px"><header><h2>${esc(p.titulo)} <span class="suave" style="font-weight:400">${esc(p.referencia || '')}</span></h2>${marca(EST_PET[p.estado])}</header>
+      <div style="padding:14px 18px">
+        <p>${plazo}</p>
+        <p><b>${esc(p.solicitante_nombre || '—')}</b> · ${esc(p.solicitante_telefono || 'sin teléfono')} · ${esc(p.solicitante_email || '')}</p>
+        <p class="suave">${esc(p.direccion || '')}${p.direccion && p.ubicacion ? ' · ' : ''}${esc(p.ubicacion || '')}${p.acepta_visita ? '' : ' · <b>No acepta visita técnica</b>'}</p>
+        <p style="white-space:pre-wrap;margin-top:10px">${esc(p.descripcion || '')}</p>
+        ${p.requisitos ? `<p class="suave" style="white-space:pre-wrap">Requisitos: ${esc(p.requisitos)}</p>` : ''}
+        <p class="suave">${p.especialidad ? 'Especialidad: ' + esc(p.especialidad) + ' · ' : ''}${p.presupuesto ? 'Presupuesto: ' + esc(p.presupuesto) + ' €' : 'Sin presupuesto indicado'}</p>
+        ${p.motivo && p.estado === 'pendiente_info' ? `<p><b>Se le pidió:</b> ${esc(p.motivo)}</p>` : ''}
+        ${visita}
+        <div class="pie-modal" style="justify-content:flex-start">
+          <button class="btn primario" data-act="pet-decidir" data-id="${esc(p.obra_id)}" data-a="publicar">Publicar</button>
+          <button class="btn" data-act="pet-decidir" data-id="${esc(p.obra_id)}" data-a="pedir_info">Pedir información</button>
+          <button class="btn" data-act="pet-decidir" data-id="${esc(p.obra_id)}" data-a="visita">${p.visita_id && p.visita_estado !== 'cancelada' ? 'Cambiar de técnico' : 'Enviar técnico'}</button>
+          <button class="btn mal" data-act="pet-decidir" data-id="${esc(p.obra_id)}" data-a="rechazar">Rechazar</button>
+          <button class="btn" data-act="pet-historial" data-id="${esc(p.obra_id)}">Historial</button>
+        </div></div></div>`;
+  }).join('');
+}
+async function petOfertas(c) {
+  const lista = await rpc('panel_postulaciones_peticiones', { p_obra_id: null, p_incluir_revisadas: true });
+  window.__ofertas = lista;
+  const FIL = { pendiente:['aviso','Por revisar'], trasladada:['ok','Trasladada'], descartada:['mal','Descartada'] };
+  c.innerHTML = `<p class="suave">Ofertas de empresas a peticiones de particulares. El particular solo ve las que trasladas. Tras la adjudicación, comparte el contacto con la empresa.</p><div class="panel">${htmlTabla('ofertas', [
+    { t: 'Petición', f: (o) => `<b>${esc(o.obra_titulo)}</b><span class="sub">${esc(o.obra_referencia || '')}</span>` },
+    { t: 'Empresa', f: (o) => `${esc(o.empresa_nombre)}${o.empresa_homologada ? ' ✓' : ''}<span class="sub">${esc(o.empresa_especialidad || '')}${o.empresa_rating ? ' · ' + esc(o.empresa_rating) + '★' : ''}${o.empresa_obras_completadas ? ' · ' + esc(o.empresa_obras_completadas) + ' obras' : ''}</span>` },
+    { t: 'Oferta', cls: 'der', f: (o) => o.oferta_economica != null ? esc(o.oferta_economica) + ' €' : '—', s: (o) => Number(o.oferta_economica) },
+    { t: 'Mensaje', f: (o) => `${esc(o.motivacion || '')}<span class="sub">${esc(o.disponibilidad_equipo || '')}</span>${(o.archivos || []).map((a) => `<button class="btn peq" data-act="ver" data-ruta="${esc(a.storage_path)}">${esc(a.nombre_archivo)}</button>`).join(' ')}` },
+    { t: 'Estado', f: (o) => `${marca(FIL[o.filtro])}${o.estado === 'aceptada' ? '<span class="sub"><b>Adjudicada</b></span>' : ''}` },
+    { t: '', cls: 'acc', f: (o) => o.filtro === 'pendiente'
+      ? `<button class="btn peq primario" data-act="pet-oferta" data-id="${esc(o.postulacion_id)}" data-a="trasladar">Trasladar</button><button class="btn peq mal" data-act="pet-oferta" data-id="${esc(o.postulacion_id)}" data-a="descartar">Descartar</button>`
+      : o.estado === 'aceptada' ? `<button class="btn peq primario" data-act="pet-contacto" data-obra="${esc(o.obra_id)}" data-emp="${esc(o.empresa_id)}" data-nombre="${esc(o.empresa_nombre)}">Compartir contacto</button>` : '' }],
+    lista, 'No hay ofertas a peticiones de particulares.')}</div>`;
+}
+async function petTecnicos(c) {
+  const lista = await rpc('panel_tecnicos');
+  c.innerHTML = `<div class="panel"><header><h2>Técnicos</h2><button class="btn peq primario" data-act="pet-nuevo-tecnico">Añadir técnico</button></header>${htmlTabla('tecnicos', [
+    { t: 'Nombre', f: (x) => `<b>${esc(x.nombre || '—')}</b><span class="sub">${esc(x.email || '')}</span>` },
+    { t: 'Tipo', f: (x) => x.externo ? 'Externo' : 'Interno' },
+    { t: 'Cuenta', f: (x) => marca(CUENTA[x.estado_cuenta]) },
+    { t: 'Visitas abiertas', cls: 'der', f: (x) => esc(x.visitas_abiertas), s: (x) => Number(x.visitas_abiertas) },
+    { t: '', cls: 'acc', f: (x) => `<button class="btn peq" data-act="pet-tipo-tecnico" data-id="${esc(x.id)}" data-ext="${x.externo ? '' : '1'}">Pasar a ${x.externo ? 'interno' : 'externo'}</button>` }],
+    lista, 'Todavía no hay técnicos. Crea su cuenta en Supabase (Authentication) y añádela aquí con su correo.')}</div>`;
+}
+async function ventanaDecision(id, accion) {
+  const titulos = { publicar:'Publicar la petición', pedir_info:'Pedir información', visita:'Enviar un técnico', rechazar:'Rechazar la petición' };
+  const ayuda = { publicar:'Se publicará ya y las empresas podrán enviar ofertas. Se avisa a la persona.', pedir_info:'Se le avisa y la petición espera su respuesta.', visita:'El técnico recibe la visita en su app. La petición sigue en revisión hasta que decidas.', rechazar:'Se le avisa con el motivo.' };
+  let tecnicos = '';
+  if (accion === 'visita') {
+    const t = (await rpc('panel_tecnicos')).filter((x) => x.estado_cuenta === 'verificada');
+    if (!t.length) { aviso('Primero añade un técnico en la pestaña Técnicos.', true); return; }
+    tecnicos = `<label class="campo" for="p-tec">Técnico</label><select id="p-tec">${t.map((x) => `<option value="${esc(x.id)}">${esc(x.nombre || x.email)} · ${x.externo ? 'externo' : 'interno'} (${esc(x.visitas_abiertas)} abiertas)</option>`).join('')}</select>`;
+  }
+  const motivo = accion === 'publicar' ? '' : `<label class="campo" for="p-motivo">${accion === 'visita' ? 'Nota para el técnico (opcional)' : accion === 'pedir_info' ? 'Qué necesitas saber' : 'Motivo'}</label><textarea id="p-motivo"></textarea>`;
+  abrirVentana(`<h2>${titulos[accion]}</h2><p class="suave">${ayuda[accion]}</p>${tecnicos}${motivo}${pieVentana(accion === 'publicar' ? 'Publicar' : accion === 'rechazar' ? 'Rechazar' : 'Enviar', accion === 'rechazar' ? 'mal' : 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const m = $('#p-motivo') ? $('#p-motivo').value.trim() : '';
+    if ((accion === 'pedir_info' || accion === 'rechazar') && !m) return errorVentana('Escribe el motivo.');
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_revisar_peticion', { p_obra_id: id, p_accion: accion, p_motivo: m || null, p_tecnico_id: accion === 'visita' ? $('#p-tec').value : null }); cerrarVentana(); aviso('Hecho.'); enrutar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+async function ventanaHistorialPeticion(id) {
+  const h = await rpc('panel_historial_peticion', { p_obra_id: id });
+  abrirVentana(`<h2>Historial</h2>${h.length ? htmlTabla('hist-pet', [
+    { t: 'Cuándo', f: (x) => fechaHora(x.cuando) }, { t: 'Quién', f: (x) => esc(x.quien || 'Sistema') },
+    { t: 'Cambio', f: (x) => `${esc(x.estado_anterior || '')}${x.estado_anterior && x.estado_nuevo ? ' → ' : ''}${esc(x.estado_nuevo || '')}${x.motivo ? `<span class="sub">${esc(x.motivo)}</span>` : ''}` }], h, '') : '<div class="vacio">Sin movimientos.</div>'}<div class="pie-modal"><button class="btn" data-cerrar>Cerrar</button></div>`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+}
+function ventanaOferta(id, accion) {
+  const tras = accion === 'trasladar';
+  abrirVentana(`<h2>${tras ? 'Trasladar la oferta' : 'Descartar la oferta'}</h2><p class="suave">${tras ? 'El particular podrá verla y adjudicarla. No verá el contacto de la empresa hasta que lo compartas.' : 'El particular no la verá. Se avisa a la empresa si escribes un motivo.'}</p>
+    ${tras ? '' : '<label class="campo" for="p-motivo">Motivo (opcional)</label><textarea id="p-motivo"></textarea>'}${pieVentana(tras ? 'Trasladar' : 'Descartar', tras ? 'primario' : 'mal')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_revisar_postulacion', { p_postulacion_id: id, p_accion: accion, p_motivo: $('#p-motivo') ? $('#p-motivo').value.trim() || null : null }); cerrarVentana(); aviso('Hecho.'); enrutar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaContacto(obra, emp, nombre) {
+  abrirVentana(`<h2>Compartir el contacto</h2><p class="suave">${esc(nombre)} podrá ver nombre, teléfono, correo y dirección del particular. Hazlo solo si ya ha adjudicado la obra y está de acuerdo.</p>${pieVentana('Compartir', 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_compartir_contacto', { p_obra_id: obra, p_empresa_id: emp }); cerrarVentana(); aviso('Contacto compartido.'); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaNuevoTecnico() {
+  abrirVentana(`<h2>Añadir técnico</h2><p class="suave">Crea antes su cuenta en Supabase (Authentication → Add user) o que se registre en la app. Aquí la conviertes en técnico.</p>
+    <label class="campo" for="p-email">Correo de la cuenta</label><input type="email" id="p-email" />
+    <label style="display:block;margin-top:14px"><input type="checkbox" id="p-ext" /> Es externo (no es de 3B)</label>${pieVentana('Añadir', 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const email = $('#p-email').value.trim().toLowerCase(); if (!email) return errorVentana('Escribe el correo.');
+    $('#v-ok').disabled = true;
+    try {
+      const { data, error } = await sb.from('profiles').select('id').ilike('email', email).maybeSingle();
+      if (error) throw error; if (!data) throw new Error('No hay ninguna cuenta con ese correo.');
+      await rpc('panel_marcar_tecnico', { p_profile_id: data.id, p_externo: $('#p-ext').checked }); cerrarVentana(); aviso('Técnico añadido.'); enrutar();
+    } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+async function verFotoVisita(ruta) {
+  const w = window.open('', '_blank');
+  const { data, error } = await sb.storage.from('visitas-tecnicas').createSignedUrl(ruta, 300);
+  if (error || !data) { if (w) w.close(); aviso('No se ha podido abrir la foto.', true); return; }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act^="pet-"]'); if (!b) return;
+  const d = b.dataset;
+  try {
+    if (d.act === 'pet-decidir') return await ventanaDecision(d.id, d.a);
+    if (d.act === 'pet-historial') return await ventanaHistorialPeticion(d.id);
+    if (d.act === 'pet-oferta') return ventanaOferta(d.id, d.a);
+    if (d.act === 'pet-contacto') return ventanaContacto(d.obra, d.emp, d.nombre);
+    if (d.act === 'pet-nuevo-tecnico') return ventanaNuevoTecnico();
+    if (d.act === 'pet-foto') return await verFotoVisita(d.ruta);
+    if (d.act === 'pet-tipo-tecnico') { await rpc('panel_marcar_tecnico', { p_profile_id: d.id, p_externo: !!d.ext }); aviso('Actualizado.'); enrutar(); }
+  } catch (err) { aviso(mensajeError(err), true); }
+});
 
 // ───────────────────────── Acciones ─────────────────────────
 document.addEventListener('click', async (e) => {

@@ -1,30 +1,42 @@
 import type { ExpoConfig } from 'expo/config';
 
+/**
+ * 3B Conecta: configuración de la app.
+ *
+ * Antes de compilar hay que rellenar a mano lo marcado con REEMPLAZAR:
+ *  - owner: la cuenta de Expo (expo.dev) de 3B, NO la de OH Casas ("softwareoh").
+ *  - extra.eas.projectId: lo escribe solo `npx eas init` al ejecutarlo con la cuenta de 3B.
+ *  - El identificador (package / bundleIdentifier) queda fijado para siempre en cuanto se sube
+ *    la primera versión a Google Play: confirmarlo antes. Un segmento no puede empezar por un
+ *    número, por eso no es "3b".
+ *  - google-services.json: tiene que ser el de un proyecto de Firebase de 3B con la app
+ *    registrada con ESTE package (si no, las notificaciones push no llegan).
+ */
 const config: ExpoConfig = {
-  name: 'OH Conecta',
-  slug: 'oh-casas-subcontratas',
-  owner: 'softwareoh',
-  scheme: 'ohcasas',
+  name: '3B Conecta',
+  slug: '3b-conecta',
+  owner: 'REEMPLAZAR',
+  scheme: 'tresbeconecta',
   version: '0.0.1',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/branding/icon.png',
   extra: {
     eas: {
-      projectId: '229d325c-77bd-4732-8c92-a482abd11b74',
+      // REEMPLAZAR: lo genera `npx eas init`
+      projectId: 'REEMPLAZAR',
     },
   },
   ios: {
-    bundleIdentifier: 'es.ohcasas.subcontratas',
+    bundleIdentifier: 'es.tresbe.conecta',
     supportsTablet: false,
   },
   android: {
-    package: 'es.ohcasas.subcontratas',
+    package: 'es.tresbe.conecta',
     googleServicesFile: './google-services.json',
     adaptiveIcon: {
       foregroundImage: './assets/branding/adaptive-icon-foreground.png',
-      // El logo de OH Conecta es blanco sobre negro: el primer plano es blanco
-      // y transparente, así que el fondo tiene que ser oscuro.
+      // Se ajustará cuando esté el logo definitivo de 3B (ahora, el fondo del icono de OH).
       backgroundColor: '#000000',
     },
   },

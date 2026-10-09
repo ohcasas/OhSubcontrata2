@@ -33,7 +33,7 @@ export default function GremiosScreen() {
 
   const cargarEmpresas = useCallback(async () => {
     setError(null);
-    // Cada cuenta de OH Conecta (arquitecto, promotor, recomendador...) crea
+    // Cada cuenta de 3B Conecta (arquitecto, promotor, recomendador...) crea
     // también una fila en empresas_subcontratistas. Aquí solo interesan los
     // Oficios, así que se descartan las empresas que pertenecen a esos perfiles.
     const [{ data, error: errorConsulta }, { data: ajenas }] = await Promise.all([

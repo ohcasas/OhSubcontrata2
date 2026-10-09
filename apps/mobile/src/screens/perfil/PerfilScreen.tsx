@@ -14,6 +14,9 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { Feather } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 import type { ComponentProps } from 'react';
 import { supabase } from '../../services/supabase';
 import { cerrarSesion } from '../../services/sesion';
@@ -109,6 +112,7 @@ const ETIQUETA_PERFIL: Record<string, string> = {
 };
 
 export default function PerfilScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
@@ -553,6 +557,40 @@ export default function PerfilScreen() {
             </Text>
           )}
         </View>
+
+        {/* Documentación: renovar los documentos de la cuenta y gestionar a los trabajadores */}
+        {rol !== null && rol !== 'particular' && rol !== 'tecnico' && (
+          <View className="bg-surface rounded-2xl border border-border mt-3 overflow-hidden">
+            <Pressable
+              onPress={() => navigation.navigate('MisDocumentos')}
+              className="flex-row items-center px-4 py-3.5"
+            >
+              <View className="w-8 h-8 rounded-lg bg-actionTint items-center justify-center mr-3">
+                <Feather name="file-text" size={16} color={colors.action} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-ink text-sm font-sansBold">Mis documentos</Text>
+                <Text className="text-inkMuted text-xs mt-0.5">Estado, caducidad y renovación</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={colors.inkMuted} />
+            </Pressable>
+            {rol !== 'referidor' && (
+              <Pressable
+                onPress={() => navigation.navigate('MisTrabajadores')}
+                className="flex-row items-center px-4 py-3.5 border-t border-border"
+              >
+                <View className="w-8 h-8 rounded-lg bg-actionTint items-center justify-center mr-3">
+                  <Feather name="users" size={16} color={colors.action} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-ink text-sm font-sansBold">Mis trabajadores</Text>
+                  <Text className="text-inkMuted text-xs mt-0.5">Altas y documentación de cada persona</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.inkMuted} />
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* Contenido propio de cada tipo de cuenta (todos menos Oficios) */}
         {rol !== null && !esSubcontratista && usuarioId !== null && (

@@ -1,5 +1,5 @@
 /**
- * Pantalla de carga con el logo de OH Conecta y los dibujos arquitectónicos.
+ * Pantalla de carga con el logo de 3B Conecta y los dibujos arquitectónicos.
  *
  * Por qué es un componente y no la pantalla de carga "normal": desde Android 12
  * la pantalla de carga NATIVA solo puede ser un icono pequeño sobre un color

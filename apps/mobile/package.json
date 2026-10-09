@@ -2,7 +2,7 @@
   "name": "mobile",
   "version": "0.0.0",
   "private": true,
-  "description": "App móvil OH Contratas — portal de subcontratas para OH Casas Modulares (Expo SDK 57).",
+  "description": "App móvil 3B Conecta (Expo SDK 57).",
   "main": "index.js",
   "scripts": {
     "start": "expo start",

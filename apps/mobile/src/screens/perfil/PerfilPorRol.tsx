@@ -270,14 +270,14 @@ function MiFichaResumen({ userId }: { userId: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Los 6 perfiles de OH Conecta: la cuenta es gratuita de momento
+// Los 6 perfiles de 3B Conecta: la cuenta es gratuita de momento
 // ---------------------------------------------------------------------------
 function AvisoGratuito() {
   return (
     <View className="bg-actionTint rounded-xl p-3.5 mt-5 flex-row items-start gap-2.5">
       <Feather name="info" size={15} color={colors.action} style={{ marginTop: 1 }} />
       <Text className="text-ink text-xs flex-1 leading-relaxed">
-        Tu cuenta es gratuita durante el lanzamiento de OH Conecta.
+        Tu cuenta es gratuita durante el lanzamiento de 3B Conecta.
       </Text>
     </View>
   );

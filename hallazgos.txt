@@ -1,0 +1,32 @@
+﻿apps\mobile\src\components\PantallaCarga.tsx:2: * Pantalla de carga con el logo de OH Conecta y los dibujos arquitectónicos.
+apps\mobile\src\components\ScreenHeader.tsx:13: * "OH CONECTA" en mayúsculas pequeñas encima del título grande de
+apps\mobile\src\components\ScreenHeader.tsx:29: OH CONECTA
+apps\mobile\src\constants\enlaces.ts:8: export const URL_POLITICA_PRIVACIDAD = 'https://ohcasas.github.io/OhSubcontrata2/privacidad.html';
+apps\mobile\src\constants\enlaces.ts:9: export const URL_ELIMINAR_CUENTA = 'https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html';
+apps\mobile\src\constants\enlaces.ts:10: export const URL_AVISO_LEGAL = 'https://ohcasas.github.io/OhSubcontrata2/aviso-legal.html';
+apps\mobile\src\constants\enlaces.ts:11: export const URL_TERMINOS = 'https://ohcasas.github.io/OhSubcontrata2/terminos.html';
+apps\mobile\src\constants\enlaces.ts:13: export const URL_NUEVA_CONTRASENA = 'https://ohcasas.github.io/OhSubcontrata2/nueva-contrasena.html';
+apps\mobile\src\navigation\AdminTabs.tsx:2: * Bottom tabs — rol Administrador OH Club.
+apps\mobile\src\navigation\ConectaTabs.tsx:21: * Pestañas de los 6 perfiles de OH Conecta (promotor, constructora,
+apps\mobile\src\screens\admin\AdminConectaScreen.tsx:18: /** Pestaña "Conecta" del admin: todo lo de OH Conecta en un solo sitio. */
+apps\mobile\src\screens\admin\GremiosScreen.tsx:36: // Cada cuenta de OH Conecta (arquitecto, promotor, recomendador...) crea
+apps\mobile\src\screens\auth\CuentaNoActivaScreen.tsx:140: : 'Comprobamos que cada cuenta de OH Conecta pertenece a una empresa o profesional del sector. Cuando esté verificada recibirás un aviso y podrás empezar a usar la app.';
+apps\mobile\src\screens\auth\CuentaNoActivaScreen.tsx:233: <Pressable onPress={() => Linking.openURL('mailto:software@ohcasas.es')} className="mb-2 mt-4">
+apps\mobile\src\screens\auth\CuentaNoActivaScreen.tsx:236: <Text className="text-action font-sansSemiBold">software@ohcasas.es</Text>
+apps\mobile\src\screens\auth\LoginScreen.tsx:33: return 'Tu cuenta está suspendida. Escríbenos a software@ohcasas.es.';
+apps\mobile\src\screens\auth\LoginScreen.tsx:101: OH CONECTA
+apps\mobile\src\screens\auth\ProximamenteSreen.tsx:38: Estamos terminando de construir esta parte de OH Conecta. En cuanto esté lista, podrás usarla con esta
+apps\mobile\src\screens\auth\RegistroEmpresaScreen.tsx:40: return 'Ya hay una cuenta registrada con ese CIF/NIF. Si es tuyo, escríbenos a software@ohcasas.es.';
+apps\mobile\src\screens\auth\RegistroEmpresaScreen.tsx:49: return 'No se ha podido crear la cuenta. Si el CIF/NIF ya estuviera registrado, escríbenos a software@ohcasas.es.';
+apps\mobile\src\screens\auth\RegistroEmpresaScreen.tsx:130: emailRedirectTo: 'https://ohcasas.github.io/OhSubcontrata2/confirmado.html',
+apps\mobile\src\screens\auth\RegistroReferidorScreen.tsx:102: emailRedirectTo: 'https://ohcasas.github.io/OhSubcontrata2/confirmado.html',
+apps\mobile\src\screens\auth\RegistroScreen.tsx:145: emailRedirectTo: 'https://ohcasas.github.io/OhSubcontrata2/confirmado.html',
+apps\mobile\src\screens\conecta\DirectorioScreen.tsx:277: Todavía no tienes ficha. Créala para que otras cuentas de OH Conecta te encuentren.
+apps\mobile\src\screens\conecta\TablonScreen.tsx:323: <Text className="text-inkMuted text-[11px]">{pub.profiles?.nombre_completo ?? 'OH Conecta'}</Text>
+apps\mobile\src\screens\perfil\PerfilPorRol.tsx:273: // Los 6 perfiles de OH Conecta: la cuenta es gratuita de momento
+apps\mobile\src\screens\perfil\PerfilPorRol.tsx:280: Tu cuenta es gratuita durante el lanzamiento de OH Conecta.
+apps\mobile\src\screens\perfil\PerfilScreen.tsx:128: // OH Conecta no los usan, así que no se les enseñan.
+apps\mobile\src\services\catalogoRegistro.ts:30: 'Revisa este número: no parece un CIF, NIF o NIE válido. Si es de otro país, escríbenos a software@ohcasas.es.';
+apps\mobile\app.config.ts:7: *  - owner: la cuenta de Expo (expo.dev) de 3B, NO la de OH Casas ("softwareoh").
+apps\mobile\google-services.json:12: "package_name": "es.ohcasas.subcontratas"
+apps\mobile\package.json:5: "description": "App móvil OH Contratas — portal de subcontratas para OH Casas Modulares (Expo SDK 57).",

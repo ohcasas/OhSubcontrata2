@@ -19,6 +19,7 @@ export type AuthStackParamList = {
   ElegirTipoCuenta: undefined;
   Registro: undefined;
   RegistroReferidor: undefined;
+  RegistroParticular: undefined;
   RegistroEmpresa: { rol: RolEmpresaColaboradora };
 };
 
@@ -36,6 +37,16 @@ export type ReferidorTabParamList = {
   Perfil: undefined;
 };
 
+export type ParticularTabParamList = {
+  Peticiones: undefined;
+  Perfil: undefined;
+};
+
+export type TecnicoTabParamList = {
+  Visitas: undefined;
+  Perfil: undefined;
+};
+
 export type AdminTabParamList = {
   ObrasAdmin: undefined;
   PostulacionesAdmin: undefined;
@@ -49,6 +60,8 @@ export type RootStackParamList = {
   Auth: undefined;
   AppSubcontratista: NavigatorScreenParams<SubcontratistaTabParamList> | undefined;
   AppReferidor: NavigatorScreenParams<ReferidorTabParamList> | undefined;
+  AppParticular: NavigatorScreenParams<ParticularTabParamList> | undefined;
+  AppTecnico: NavigatorScreenParams<TecnicoTabParamList> | undefined;
   AppConecta: undefined;
   CuentaNoActiva: undefined;
   Notificaciones: undefined;
@@ -56,4 +69,8 @@ export type RootStackParamList = {
   DetalleObra: { obraId: string };
   GremioDetalle: { empresaId: string };
   AdminObraDetalle: { obraId: string };
+  MisDocumentos: undefined;
+  MisTrabajadores: undefined;
+  TrabajadorDetalle: { trabajadorId: string };
+  TrabajadorForm: { trabajadorId?: string } | undefined;
 };

@@ -31,7 +31,7 @@ const OPCIONES_TRABAJO: OpcionTrabajo[] = [
     tipo: 'referidor',
     icono: 'users',
     titulo: 'Recomienda clientes',
-    subtitulo: 'Eres agente o particular y quieres recomendar clientes.',
+    subtitulo: 'Quieres recomendar clientes y ganar comisión.',
   },
 ];
 
@@ -73,6 +73,10 @@ export default function ElegirTipoCuentaScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
 
+  const irAParticular = () => {
+    navigation.navigate('RegistroParticular');
+  };
+
   const irATrabajo = (tipo: OpcionTrabajo['tipo']) => {
     if (tipo === 'subcontratista') {
       navigation.navigate('Registro');
@@ -98,6 +102,27 @@ export default function ElegirTipoCuentaScreen() {
           <Text className="text-inkMuted text-sm text-center mt-1.5">
             Puedes cambiarlo más adelante contactando con OH.
           </Text>
+        </View>
+
+        <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
+          Necesito una obra o reforma
+        </Text>
+        <View className="gap-2 mb-5">
+          <Pressable
+            onPress={irAParticular}
+            className="bg-surface border border-border rounded-xl p-4 flex-row items-center gap-3"
+          >
+            <View className="w-10 h-10 rounded-lg bg-actionTint items-center justify-center">
+              <Feather name="home" size={18} color={colors.action} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-ink text-sm font-sansBold">Soy particular</Text>
+              <Text className="text-inkMuted text-xs mt-0.5">
+                Cuéntanos qué necesitas en tu casa: lo revisamos y las empresas te envían su oferta.
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.inkSubtle} />
+          </Pressable>
         </View>
 
         <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>

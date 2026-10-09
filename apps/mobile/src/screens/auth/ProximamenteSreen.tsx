@@ -35,7 +35,7 @@ export default function ProximamenteScreen({ rol }: { rol: string }) {
         Tu cuenta de {ETIQUETA_ROL[rol] ?? rol} ya está creada
       </Text>
       <Text className="text-inkMuted text-sm text-center mb-1 leading-relaxed">
-        Estamos terminando de construir esta parte de OH Conecta. En cuanto esté lista, podrás usarla con esta
+        Estamos terminando de construir esta parte de 3B Conecta. En cuanto esté lista, podrás usarla con esta
         misma cuenta, sin tener que registrarte otra vez.
       </Text>
       <Text className="text-inkMuted text-xs text-center mb-8">Gracias por tu paciencia.</Text>
