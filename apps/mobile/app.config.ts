@@ -4,8 +4,8 @@ import type { ExpoConfig } from 'expo/config';
  * 3B Conecta: configuración de la app.
  *
  * Antes de compilar hay que rellenar a mano lo marcado con REEMPLAZAR:
- *  - owner: la cuenta de Expo (expo.dev) de 3B, NO la de OH Casas ("softwareoh").
- *  - extra.eas.projectId: lo escribe solo `npx eas init` al ejecutarlo con la cuenta de 3B.
+ *  - owner: sin poner; Expo usa la cuenta con la que se haya hecho `eas login`.
+ *  - extra.eas.projectId: lo da `eas init` (ver el comentario más abajo).
  *  - El identificador (package / bundleIdentifier) queda fijado para siempre en cuanto se sube
  *    la primera versión a Google Play: confirmarlo antes. Un segmento no puede empezar por un
  *    número, por eso no es "3b".
@@ -15,18 +15,13 @@ import type { ExpoConfig } from 'expo/config';
 const config: ExpoConfig = {
   name: '3B Conecta',
   slug: '3b-conecta',
-  owner: 'REEMPLAZAR',
   scheme: 'tresbeconecta',
   version: '0.0.1',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/branding/icon.png',
-  extra: {
-    eas: {
-      // REEMPLAZAR: lo genera `npx eas init`
-      projectId: 'REEMPLAZAR',
-    },
-  },
+  // extra.eas.projectId: lo escribe `eas init`; si no puede, se pega aquí a mano:
+  // extra: { eas: { projectId: '...' } },
   ios: {
     bundleIdentifier: 'es.tresbe.conecta',
     supportsTablet: false,
@@ -36,7 +31,7 @@ const config: ExpoConfig = {
     googleServicesFile: './google-services.json',
     adaptiveIcon: {
       foregroundImage: './assets/branding/adaptive-icon-foreground.png',
-      // Se ajustará cuando esté el logo definitivo de 3B (ahora, el fondo del icono de OH).
+      // El logo de 3B es blanco sobre negro: el primer plano es blanco y transparente, así que el fondo tiene que ser oscuro.
       backgroundColor: '#000000',
     },
   },
