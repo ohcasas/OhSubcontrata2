@@ -3,9 +3,8 @@ import type { ExpoConfig } from 'expo/config';
 /**
  * 3B Conecta: configuración de la app.
  *
- * Antes de compilar hay que rellenar a mano lo marcado con REEMPLAZAR:
- *  - owner: sin poner; Expo usa la cuenta con la que se haya hecho `eas login`.
- *  - extra.eas.projectId: lo da `eas init` (ver el comentario más abajo).
+ * Antes de compilar, comprobar:
+ *  - owner y extra.eas.projectId: ya puestos (proyecto @oh-casas/3b-conecta en Expo).
  *  - El identificador (package / bundleIdentifier) queda fijado para siempre en cuanto se sube
  *    la primera versión a Google Play: confirmarlo antes. Un segmento no puede empezar por un
  *    número, por eso no es "3b".
@@ -20,8 +19,12 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/branding/icon.png',
-  // extra.eas.projectId: lo escribe `eas init`; si no puede, se pega aquí a mano:
-  // extra: { eas: { projectId: '...' } },
+  owner: 'oh-casas',
+  extra: {
+    eas: {
+      projectId: '48317c0c-1404-41b6-bd47-7ba28b1e551f',
+    },
+  },
   ios: {
     bundleIdentifier: 'es.tresbe.conecta',
     supportsTablet: false,
