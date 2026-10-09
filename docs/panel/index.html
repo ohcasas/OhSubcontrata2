@@ -664,18 +664,16 @@ function ventanaContacto(obra, emp, nombre) {
   };
 }
 function ventanaNuevoTecnico() {
-  abrirVentana(`<h2>Añadir técnico</h2><p class="suave">Crea antes su cuenta en Supabase (Authentication → Add user) o que se registre en la app. Aquí la conviertes en técnico.</p>
+  abrirVentana(`<h2>Añadir técnico</h2><p class="suave">Primero crea su cuenta en Supabase (Authentication → Add user, con "Auto confirm user" marcado). Aquí la conviertes en técnico con ese mismo correo.</p>
     <label class="campo" for="p-email">Correo de la cuenta</label><input type="email" id="p-email" />
+    <label class="campo" for="p-nombre">Nombre</label><input type="text" id="p-nombre" />
     <label style="display:block;margin-top:14px"><input type="checkbox" id="p-ext" /> Es externo (no es de 3B)</label>${pieVentana('Añadir', 'primario')}`);
   $('[data-cerrar]').onclick = cerrarVentana;
   $('#v-ok').onclick = async () => {
-    const email = $('#p-email').value.trim().toLowerCase(); if (!email) return errorVentana('Escribe el correo.');
+    const email = $('#p-email').value.trim(); if (!email) return errorVentana('Escribe el correo.');
     $('#v-ok').disabled = true;
-    try {
-      const { data, error } = await sb.from('profiles').select('id').ilike('email', email).maybeSingle();
-      if (error) throw error; if (!data) throw new Error('No hay ninguna cuenta con ese correo.');
-      await rpc('panel_marcar_tecnico', { p_profile_id: data.id, p_externo: $('#p-ext').checked }); cerrarVentana(); aviso('Técnico añadido.'); enrutar();
-    } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+    try { await rpc('panel_crear_tecnico', { p_email: email, p_nombre: $('#p-nombre').value.trim(), p_externo: $('#p-ext').checked }); cerrarVentana(); aviso('Técnico añadido.'); enrutar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
   };
 }
 async function verFotoVisita(ruta) {
