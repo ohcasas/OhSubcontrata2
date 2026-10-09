@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "534564744922",
-    "project_id": "oh-contratas",
-    "storage_bucket": "oh-contratas.firebasestorage.app"
+    "project_number": "844026142414",
+    "project_id": "b-conecta",
+    "storage_bucket": "b-conecta.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:534564744922:android:71d724579dcf1d442bffe3",
+        "mobilesdk_app_id": "1:844026142414:android:d0839e3f7224d1dd3b3a9f",
         "android_client_info": {
-          "package_name": "es.ohcasas.subcontratas"
+          "package_name": "es.tresbe.conecta"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDagj4jfJiIy_X84SeKiuAyhy4f-68fkrk"
+          "current_key": "AIzaSyA2FbQ5Td1frmf-BkK5yhlKPuv_s2mZaQU"
         }
       ],
       "services": {
