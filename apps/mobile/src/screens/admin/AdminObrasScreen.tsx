@@ -23,7 +23,9 @@ import ScreenHeader from '../../components/ScreenHeader';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { formatearMoneda } from '../../utils/moneda';
 
-type EstadoObra = 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada';
+type EstadoObra =
+  | 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada'
+  | 'en_revision' | 'pendiente_info' | 'rechazada';
 
 type Obra = {
   id: string;
@@ -42,7 +44,13 @@ const ESTILO_ESTADO: Record<EstadoObra, { badge: string; texto: string; etiqueta
   adjudicada: { badge: 'bg-actionTint', texto: 'text-action', etiqueta: 'Adjudicada' },
   en_curso: { badge: 'bg-warningTint', texto: 'text-warning', etiqueta: 'En curso' },
   cancelada: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Cancelada' },
+  en_revision: { badge: 'bg-warningTint', texto: 'text-warning', etiqueta: 'En revisión' },
+  pendiente_info: { badge: 'bg-warningTint', texto: 'text-warning', etiqueta: 'Falta información' },
+  rechazada: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Rechazada' },
 };
+
+const ESTILO_DESCONOCIDO = { badge: 'bg-border', texto: 'text-inkMuted', etiqueta: 'Sin estado' };
+
 
 
 export default function AdminObrasScreen() {
@@ -436,7 +444,7 @@ export default function AdminObrasScreen() {
             ) : null
           }
           renderItem={({ item }) => {
-            const estilo = ESTILO_ESTADO[item.estado];
+            const estilo = ESTILO_ESTADO[item.estado] ?? ESTILO_DESCONOCIDO;
             return (
               <View className="bg-surface rounded-xl border border-border overflow-hidden">
                 <View className="relative">

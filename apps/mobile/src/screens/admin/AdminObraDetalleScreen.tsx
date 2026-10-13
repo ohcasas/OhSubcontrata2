@@ -14,7 +14,9 @@ import { OBRAS_PARA_DESBLOQUEAR_CLUB } from '../../constants/niveles';
 import { formatearFechaHora, msHastaCierre, textoCuentaAtrasLarga } from '../../utils/plazos';
 import { formatearMoneda } from '../../utils/moneda';
 
-type EstadoObra = 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada';
+type EstadoObra =
+  | 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada'
+  | 'en_revision' | 'pendiente_info' | 'rechazada';
 
 type Avance = {
   id: string;
@@ -42,7 +44,13 @@ const ESTILO_ESTADO: Record<EstadoObra, { badge: string; texto: string; etiqueta
   adjudicada: { badge: 'bg-actionTint', texto: 'text-action', etiqueta: 'Adjudicada' },
   en_curso: { badge: 'bg-warningTint', texto: 'text-warning', etiqueta: 'En curso' },
   cancelada: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Cancelada' },
+  en_revision: { badge: 'bg-warningTint', texto: 'text-warning', etiqueta: 'En revisión' },
+  pendiente_info: { badge: 'bg-warningTint', texto: 'text-warning', etiqueta: 'Falta información' },
+  rechazada: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Rechazada' },
 };
+
+const ESTILO_DESCONOCIDO = { badge: 'bg-border', texto: 'text-inkMuted', etiqueta: 'Sin estado' };
+
 
 // Estados que el admin puede elegir a mano. Los tres del medio exigen una
 // postulación aceptada (lo valida también la base de datos).
@@ -282,7 +290,7 @@ export default function AdminObraDetalleScreen() {
     );
   }
 
-  const estilo = ESTILO_ESTADO[obra.estado];
+  const estilo = ESTILO_ESTADO[obra.estado] ?? ESTILO_DESCONOCIDO;
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerStyle={{ paddingBottom: 32 }}>
