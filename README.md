@@ -360,6 +360,11 @@ La tabla `webhooks_config` guarda, para cada evento, una URL de destino y un sec
 | `recomendacion.estado` | La recomendación avanza o se descarta (de qué estado a cuál) |
 | `comision.generada`, `comision.aceptada`, `comision.pagada` | Ciclo de la comisión (porcentaje, base e importe) |
 | `licitacion.creada`, `licitacion.estado` | Una promotora o constructora publica una licitación; cambia de estado |
+| `peticion.creada` | Un particular envía una petición (migración `0043`); solo lleva el id del propietario, no sus datos |
+| `peticion.decidida` | 3B publica, pide información, programa visita o rechaza una petición (`0048`) |
+| `visita.asignada`, `visita.agendada`, `visita.realizada`, `visita.cancelada` | Ciclo de la visita técnica; `visita.realizada` lleva el resultado (apto, ajustar, no apto) (`0048`) |
+| `oferta.pendiente`, `oferta.trasladada`, `oferta.descartada` | Llega una oferta a una petición de particular y 3B la traslada o la descarta (`0048`) |
+| `peticion.adjudicada` | El particular adjudica: hay que compartir sus datos de contacto con la empresa elegida (`0048`) |
 
 Los 11 últimos son de la migración `0039`. **Datos personales**: `recomendacion.creada` lleva nombre, teléfono y correo del cliente recomendado, y `cuenta.*` el nombre y el correo de la persona. Usa solo destinos de la empresa.
 
@@ -478,6 +483,9 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 43 | `0043_revision_previa_particulares_y_tecnicos.sql` | Las peticiones de particulares pasan por revisión de 3B (publicar / pedir información / visita técnica / rechazar, respuesta en 3 días laborables); datos personales aparte; técnicos internos o externos con informe y fotos |
 | 44 | `0044_publicacion_directa_y_filtro_de_ofertas.sql` | Las licitaciones de empresas verificadas se publican directamente; las ofertas a peticiones de particulares las filtra 3B (trasladar / descartar) antes de que el particular las vea |
 | 45 | `0045_alta_de_particulares.sql` | Crea el perfil al registrarse un particular (las funciones de alta anteriores no lo hacían) |
+| 46 | `0046_alta_de_tecnicos_desde_el_panel.sql` | El panel da de alta a un técnico por su correo (crea el perfil si la cuenta se creó a mano en Supabase) |
+| 47 | `0047_arreglo_alta_sin_rol.sql` | Arreglo: crear un usuario sin rol (p. ej. "Add user" de Supabase) ya no falla |
+| 48 | `0048_webhooks_del_flujo_de_peticiones.sql` | Webhooks del flujo de particulares (decisión, visitas, ofertas, adjudicación), sin datos personales |
 
 Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
 
