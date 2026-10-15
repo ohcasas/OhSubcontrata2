@@ -1,440 +1,477 @@
-# OH Conecta
+# 3B Conecta
 
-Plataforma móvil de OH Casas Modulares que conecta a todo el sector de la construcción: **oficios (subcontratas), promotores, constructoras, arquitectos, proveedores, profesionales técnicos, administraciones y personas que recomiendan clientes**. Nació como un portal de subcontratistas y ha ido creciendo hacia un intermediario entre todos ellos.
+Plataforma móvil de **3B GROUP ARQUITECTURA, S.L.U.** que conecta a particulares que quieren hacer una obra o reforma con empresas y profesionales del sector de la construcción, con 3B como intermediario que revisa y filtra cada paso. Además incluye licitaciones entre promotoras, constructoras y oficios, un Tablón, un Directorio y un sistema de recomendación de clientes con comisión.
 
-**Estado**: app publicada en pruebas en Google Play; versiones en revisión. El nombre que se ve dentro de la app es **OH Conecta**, pero la ficha de Play Store sigue llamándose "OH Contratas" (ese texto se edita a mano en Play Console, no cambia con una compilación).
+> Nombres anteriores del proyecto: *Portal de Subcontratas*, *OH Contratas*, *OH Club*, *OH Network*, *OH Conecta*. Si ves alguno en el código, en una migración o en un nombre de archivo, es historia: el nombre actual es **3B Conecta**.
+
+**Estado (octubre de 2026)**: app Android en prueba interna de Google Play; prueba abierta y producción enviadas a revisión de Google (actualiza esta línea cuando se aprueben). iPhone: sin empezar. Web pública y panel de gestión publicados. Cobro de suscripciones (Stripe): sin conectar.
+
+- Empresa: 3B GROUP ARQUITECTURA, S.L.U. · CIF B02601367 · C/ Cervantes 39 · info@3bgrouparquitectura.com · tel. 967 471 148 · representante: Braulio López Núñez (gerente)
+- Soporte técnico: software@ohcasas.es
+
+---
+
+## Índice
+
+1. [Comandos de actualización (lo que más se usa)](#comandos-de-actualización)
+2. [Modelo de negocio](#modelo-de-negocio)
+3. [Stack e identificadores](#stack)
+4. [Tipos de cuenta](#tipos-de-cuenta)
+5. [El flujo de una petición de particular](#el-flujo-de-una-petición-de-particular)
+6. [Qué funciona hoy](#qué-funciona-hoy)
+7. [Panel de gestión (web interna)](#panel-de-gestión-web-interna)
+8. [Webhooks y avisos al correo](#webhooks-y-avisos-al-correo)
+9. [Notificaciones push](#notificaciones-push)
+10. [Migraciones de base de datos](#migraciones-de-base-de-datos)
+11. [Seguridad y pruebas](#seguridad-y-pruebas)
+12. [Web pública y páginas legales](#web-pública-y-páginas-legales)
+13. [Publicación: Google Play y iPhone](#publicación-google-play-y-iphone)
+14. [Configuración y cómo arrancar](#configuración-y-cómo-arrancar)
+15. [Estructura del repo](#estructura-del-repo)
+16. [Suscripciones y Stripe](#suscripciones-y-stripe)
+17. [Email transaccional (Resend)](#email-transaccional-resend)
+18. [Pendiente](#pendiente)
+19. [Límites conocidos](#límites-conocidos-aceptados-por-ahora)
+20. [Trampas conocidas](#trampas-conocidas)
+21. [Para un/a desarrollador/a nuevo/a](#para-unaa-desarrolladora-nuevoa)
+
+---
+
+## Comandos de actualización
+
+Todos los comandos son de **PowerShell**, desde la raíz del repo salvo que se diga otra cosa. Cada uno va en su propio bloque para copiarlo sin errores.
+
+### 1. Subir cambios a GitHub
+
+Ver qué ha cambiado:
+
+```powershell
+git status
+```
+
+Añadir todo:
+
+```powershell
+git add -A
+```
+
+Guardar el cambio con un mensaje que diga qué se hizo:
+
+```powershell
+git commit -m "Descripción corta del cambio"
+```
+
+Subirlo:
+
+```powershell
+git push
+```
+
+Si `git push` dice que el remoto tiene cambios que no tienes, primero:
+
+```powershell
+git pull
+```
+
+y vuelve a hacer `git push`.
+
+### 2. Traer los últimos cambios (otro ordenador o compañera)
+
+```powershell
+git pull
+```
+
+Si cambió `package.json`, instala dependencias (desde `apps\mobile`):
+
+```powershell
+npm install
+```
+
+### 3. Orden correcto cuando el cambio toca la base de datos **y** la app
+
+1. **Primero el SQL**: pega el archivo nuevo de `supabase/migrations/` en Supabase → SQL Editor → New query → Run. Cada archivo en una consulta aparte.
+2. Guarda el archivo en `supabase/migrations/` con el número siguiente (el último es `0049`).
+3. Sube el repo con los comandos del apartado 1.
+4. **Después** compila la app (apartado 4). Si la app nueva pide una columna que aún no existe, todos verán un error de carga.
+
+Una migración que añade un valor a un `enum` (`alter type ... add value`) **va sola** en su consulta: Postgres no deja añadir un valor y usarlo en la misma transacción (ver `0023`, `0025`, `0042`).
+
+### 4. Compilar la app
+
+Desde `apps\mobile`. **EAS compila lo que hay en GitHub**, no lo que hay en tu ordenador: haz `git push` antes.
+
+Para Google Play (genera un `.aab`; el número de versión sube solo):
+
+```powershell
+eas build --platform android --profile production
+```
+
+APK de pruebas, para instalar en un móvil o en el emulador de Android Studio sin pasar por Play (no cambia el número de versión ni toca Play):
+
+```powershell
+eas build --platform android --profile preview
+```
+
+Development build, para desarrollar con recarga en caliente:
+
+```powershell
+eas build --platform android --profile development
+```
+
+Ver el estado de las compilaciones:
+
+```powershell
+eas build:list
+```
+
+Descarga el `.aab` desde la página del build en expo.dev y súbelo en Play Console → Pruebas (Interna / Abierta) o Producción.
+
+**Qué obliga a compilar de nuevo**: cualquier cambio en pantallas o código de la app, en `app.config.ts`, iconos, o una librería nativa nueva. **Qué no**: cambios solo de SQL, del panel o de la web.
+
+### 5. Publicar cambios de la web, las páginas legales o el panel
+
+Copia el HTML nuevo a `docs\` (o `docs\panel\` para el panel), haz `git add -A`, `git commit` y `git push`. GitHub Pages tarda 1-2 minutos. Comprueba la URL en una ventana privada para evitar la caché.
+
+### 6. Desarrollar con la development build
+
+Una sola vez, instala la development build en el móvil (apartado 4). Luego, desde `apps\mobile`:
+
+```powershell
+npx expo start --dev-client -c
+```
+
+y conecta desde esa app (**no** desde Expo Go: no vale, usa notificaciones push).
+
+### 7. Probar en el emulador de Android Studio
+
+Crea un Pixel en Android Studio → Virtual Device Manager, arráncalo, genera el APK `preview` (apartado 4) y arrástralo a la ventana del emulador.
+
+### 8. Ver los errores de la app en un móvil (cuando se cierra al arrancar)
+
+Con la depuración USB activada y el móvil conectado, en **CMD**. Si hay más de un dispositivo (móvil y emulador), añade `-s CODIGO` con el código que muestra `devices`.
+
+```
+"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" devices
+```
+
+```
+"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" -s CODIGO logcat -c
+```
+
+Abre la app, espera a que falle y guarda el registro:
+
+```
+"%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" -s CODIGO logcat -d *:E > "%USERPROFILE%\Desktop\fallo.txt"
+```
+
+Busca en el archivo `AndroidRuntime`, `ReactNativeJS` o `es.tresbe.conecta`.
+
+### 9. Deshacer o consultar
+
+Ver los últimos cambios:
+
+```powershell
+git log --oneline -10
+```
+
+Descartar los cambios sin guardar de un archivo:
+
+```powershell
+git restore ruta\del\archivo
+```
+
+Deshacer un commit ya subido, sin reescribir la historia:
+
+```powershell
+git revert COMMIT
+```
+
+Comprobar cómo está registrado un archivo (mayúsculas):
+
+```powershell
+git ls-files apps/mobile/src | findstr /i NombreArchivo
+```
+
+### 10. Dependencias
+
+Desde `apps\mobile`, comprobar y arreglar versiones de Expo:
+
+```powershell
+npx expo-doctor
+```
+
+```powershell
+npx expo install --check
+```
+
+### 11. Repetir las pruebas de seguridad (tras cada migración importante)
+
+En Supabase → SQL Editor, pega **todo** el contenido y pulsa Run. Ver [Seguridad y pruebas](#seguridad-y-pruebas).
+
+- `seguridad/prueba_seguridad_1_catalogo.sql`
+- `seguridad/prueba_seguridad_2_roles.sql`
+
+### 12. Cambiar un secreto o un destino de webhook (SQL Editor)
+
+Ver los destinos, sin mostrar secretos:
+
+```sql
+select evento, left(url, 45) as url, activo from webhooks_config order by evento;
+```
+
+Cambiar solo la clave de la URL del receptor (Apps Script) de todos los eventos:
+
+```sql
+update webhooks_config set url = regexp_replace(url, 'clave=.*$', 'clave=NUEVA_CLAVE');
+```
+
+Apagar un destino sin borrarlo:
+
+```sql
+update webhooks_config set activo = false where evento = 'peticion.creada';
+```
+
+### 13. Avisos diarios de caducidad (una sola vez)
+
+Activa `pg_cron` (Database → Extensions) y ejecuta:
+
+```sql
+select cron.schedule('avisar-caducidades', '0 7 * * *', $cron$ select avisar_caducidades(); $cron$);
+```
+
+Para probarlo al momento: `select avisar_caducidades();`
+
+### 14. Qué hacer si una clave se expone (chat, repo, captura)
+
+1. **Rota la clave en su origen** (Firebase: nueva clave de servicio y súbela con `eas credentials`; receptor de webhooks: nueva `CLAVE` en el script y en `webhooks_config`; Supabase: la `service_role` nunca debe estar en la app).
+2. Borra la antigua.
+3. No la pegues en chats ni en commits. La clave `anon` de Supabase **sí** va en la app (no es secreta): la protegen las reglas RLS.
+
+---
 
 ## Modelo de negocio
 
 | Quién | Cómo aporta dinero | Estado |
 |---|---|---|
-| **Promotor, Constructora, Arquitecto, Proveedor, Profesional, Administrador** | Suscripción mensual | **Decidido, no cobrado todavía.** De momento todo es gratis (decisión de Dirección: gratis al lanzar, suscripción más adelante). Precios provisionales: **6,90 €/mes** (Arquitecto, Proveedor, Profesional), **19,90 €/mes** (Inmobiliaria/Administrador) y **49,90 €/mes** (Promotor, Constructora), con **precio fundador de 19,90 € durante 12 meses** para las primeras (ver "Suscripciones y Stripe"); sin confirmar si incluyen IVA |
+| **Promotor, Constructora, Arquitecto, Proveedor, Profesional, Administrador (inmobiliarias)** | Suscripción mensual | **Decidido, no cobrado.** De momento todo es gratis. Precios provisionales: 6,90 €/mes (Arquitecto, Proveedor, Profesional), 19,90 €/mes (Inmobiliaria/Administrador), 49,90 €/mes (Promotor, Constructora), con precio fundador de 19,90 € durante 12 meses para las primeras cuentas. Sin confirmar si llevan IVA |
 | **Oficios** (subcontratistas) | Comisión por obra trabajada | Decidido, **no construido** |
-| **Quien recomienda un cliente** | *Cobra* una comisión: **2 %** (Recomendador e Inmobiliaria/Administrador) o **1 %** (Oficios) sobre el precio de venta al cliente final, sin IVA | Construido; el pago real se hace fuera de la app |
+| **Quien recomienda un cliente** | *Cobra* una comisión: 2 % (Recomendador e Inmobiliaria/Administrador) o 1 % (Oficios) sobre el precio de venta sin IVA | Construido; el pago real se hace fuera de la app |
+| **Particulares** | No pagan | Su petición pasa por la revisión de 3B |
+
+---
 
 ## Stack
 
-- **Frontend**: React Native + Expo (SDK 57), NativeWind/Tailwind, React Navigation v7, DM Sans
-- **Backend**: Supabase (Postgres + Auth + Storage), RLS en todas las tablas y la lógica de negocio en funciones `security definer`, no en el cliente
-- **Email transaccional**: Resend (dominio `ohcasas.es` verificado) como SMTP personalizado de Supabase Auth
-- **Notificaciones push**: Expo Push Service (Firebase Cloud Messaging por debajo) + `pg_net` desde la base de datos
-- **Automatización**: webhooks salientes hacia n8n/Odoo (`disparar_webhook()`), listos para conectar
-- **Pagos**: Stripe previsto para las suscripciones; **no conectado** (ver "Suscripciones y Stripe")
-- **Compilación**: EAS Build (cuenta `softwareoh`), perfiles `development` / `preview` / `production`
-- **Monorepo**: `apps/mobile/`, `supabase/`, `packages/shared-types/`
+- **App móvil**: React Native + Expo (SDK 57), NativeWind/Tailwind, React Navigation v7, DM Sans
+- **Backend**: Supabase (Postgres + Auth + Storage). RLS en todas las tablas y la lógica de negocio en funciones `security definer`, no en el cliente
+- **Correo de cuenta**: Resend (dominio `ohcasas.es` verificado) como SMTP de Supabase Auth
+- **Push**: Expo Push Service + Firebase Cloud Messaging V1, enviadas desde la base de datos con `pg_net`
+- **Avisos y automatización**: webhooks de base de datos (`disparar_webhook()`) hacia un script de **Google Apps Script** que escribe en una hoja de cálculo y envía correo. Odoo: preparado, sin conectar
+- **Pagos**: Stripe previsto, **no conectado**
+- **Compilación**: EAS Build, perfiles `development` / `preview` / `production`
+- **Web, legales y panel**: GitHub Pages desde la carpeta `docs/`
 
-## Identificadores del proyecto
+### Identificadores (no cambiar sin leer esto)
 
-- **Nombre de paquete (Android/iOS)**: `es.ohcasas.subcontratas`. **No cambiarlo nunca**: está ligado a la ficha de Play Console y a la keystore de firma. Se intentó pasar a `com.ohcasas.contratas` y hubo que revertirlo; si vuelve a parecer necesario, antes hay que comprobar en Play Console qué paquete tiene de verdad la ficha.
-- **Keystore de firma de Android**: ya existe en EAS (`eas credentials` → Android → production). **Si EAS pregunta "¿generar una keystore nueva?", la respuesta es siempre No**: una nueva obligaría a pedir a Google un restablecimiento de clave de subida.
-- **Proyecto de Firebase**: `oh-contratas`. El `google-services.json` del repo tiene que llevar `"package_name": "es.ohcasas.subcontratas"`; si no coincide con `app.config.ts`, la compilación falla o las push dejan de funcionar.
-- **Cuenta/proyecto EAS**: `softwareoh/oh-casas-subcontratas`
-- **Proyecto de Supabase**: `vvghqtwwrwdtekropavo` (ojo: no confundir con `vvghqtwwwdtekropavo`, una letra de diferencia que costó horas de depuración)
+| Qué | Valor |
+|---|---|
+| Nombre de paquete Android | `es.tresbe.conecta`. **No cambiarlo nunca**: va ligado a la ficha de Play y a la keystore |
+| Proyecto de Firebase | `b-conecta` (`google-services.json` debe llevar `"package_name": "es.tresbe.conecta"` y `"project_id": "b-conecta"`) |
+| Proyecto de Supabase | `vvghqtwwrwdtekropavo` (ojo: no confundir con `vvghqtwwwdtekropavo`, una letra de diferencia que costó horas) |
+| Proyecto EAS | el de `extra.eas.projectId` en `app.config.ts`. Comprobar con `eas project:info`. Si existe otro proyecto de Expo sobrante (`softwareoh`), no es este: se puede borrar desde expo.dev tras comprobarlo |
+| Keystore de firma | ya existe en EAS (`eas credentials` → Android → production). **Si EAS pregunta "¿generar una keystore nueva?", la respuesta es siempre No**: una nueva obligaría a pedir a Google un restablecimiento de clave. Guarda una copia de seguridad |
+| Cuenta de Google Play | la de empresa de **OH Casas** (organización). El nombre de desarrollador visible es el de esa organización; el responsable del tratamiento de datos en los textos legales es 3B GROUP. Conviene explicar la relación en la ficha o en la web |
+
+---
 
 ## Tipos de cuenta
 
-El campo `profiles.role` decide qué ve cada persona. Hay 8 tipos que se registran solos (pantalla "¿Qué quieres hacer?") y 2 de personal de OH que se crean a mano.
+El campo `profiles.role` decide qué ve cada persona.
 
-| Perfil (`role`) | Pestañas | Qué hace |
-|---|---|---|
-| **Oficios** (`subcontratista`) | Obras, Postulaciones, Tablón, Recomienda, Partner, Perfil | Licitaciones (de OH y de promotoras/constructoras), postulaciones, obras con progreso semanal, Club OH Partner. Leen el Tablón. También pueden recomendar clientes |
-| **Recomendador** (`referidor`) | Recomienda, Perfil | Recomienda clientes y sigue su estado; su Perfil resume actividad y comisiones |
-| **Promotor, Constructora** | Licitaciones, Tablón, Directorio, Perfil | **Publican licitaciones** a las que se postulan los oficios, adjudican y siguen la obra; además publican necesidades en el Tablón |
-| **Inmobiliaria / Administrador** (`administrador`) | Tablón, Directorio, Recomienda, Perfil | Publican avisos y oportunidades. **Las inmobiliarias se registran con este tipo**: pagan suscripción y además recomiendan clientes y cobran la comisión (2 %) |
-| **Arquitecto, Proveedor, Profesional** | Tablón, Directorio, Perfil | Crean su ficha en el Directorio para que los encuentren |
-| **Admin / superadmin** (personal de OH) | Obras, Postulaciones, Gremios, Recompensas, Conecta, Perfil | Gestión completa. **No es lo mismo que el perfil "Administrador"** de arriba (instituciones) |
+| Perfil (`role`) | Qué hace |
+|---|---|
+| **Particular** (`particular`) | Envía una petición de obra o reforma, recibe la respuesta de 3B, ve las ofertas que 3B le traslada y adjudica una |
+| **Técnico** (`tecnico`) | Personal de 3B (interno o externo). Realiza la visita técnica a la vivienda y registra el resultado (apto / ajustar / no apto) con fotos. Solo ve las viviendas que tiene asignadas. Lo da de alta el administrador desde el panel |
+| **Oficios** (`subcontratista`) | Licitaciones (de 3B y de promotoras/constructoras), postulaciones, obras con progreso semanal, Club de socios. También puede recomendar clientes |
+| **Promotor, Constructora** | Publican licitaciones, reciben ofertas, adjudican y siguen la obra. Usan el Tablón |
+| **Arquitecto, Proveedor, Profesional** | Crean su ficha en el Directorio y consultan el Tablón |
+| **Inmobiliaria / Administrador** (`administrador`) | Publican avisos y recomiendan clientes (cobran la comisión) |
+| **Recomendador** (`referidor`) | Recomienda clientes y sigue su estado y comisiones |
+| **Admin / superadmin** | Personal de 3B. Gestión completa desde la app y desde el panel. **No es lo mismo que el perfil "Administrador"** (inmobiliarias) |
 
 Notas para quien programe:
 
-- Los 6 perfiles de OH Conecta ven **Tablón y Directorio completos**; lo que cambia es qué pueden *publicar* (ver `TablonScreen` y `DirectorioScreen`). El Administrador (inmobiliarias) tiene además la pestaña Recomienda.
-- El Perfil se adapta al tipo de cuenta: `PerfilScreen` pinta lo común y `PerfilPorRol` lo específico (comisiones del recomendador, publicaciones del Tablón, resumen de la ficha). Las cifras de obras, la homologación y la documentación son solo de Oficios.
-- **Todas las cuentas crean una fila en `empresas_subcontratistas`**, aunque no sean subcontratistas (el nombre de la tabla es histórico). `GremiosScreen` descarta las que pertenecen a otros perfiles; cualquier pantalla nueva que liste "empresas" debería hacer lo mismo.
-- `profile_roles` (varios roles por persona) existe pero **todavía no se usa**: hoy cada persona tiene un único rol.
+- **Todas las cuentas crean una fila en `empresas_subcontratistas`** (el nombre de la tabla es histórico). Cualquier pantalla nueva que liste "empresas" debe descartar las que no son oficios (como hace `GremiosScreen`).
+- `profile_roles` (varios roles por persona) existe pero **no se usa**: hoy cada persona tiene un único rol.
+- **Una cuenta nueva nace pendiente** (verificación). Las excepciones son particulares y técnicos, que tienen su propio circuito.
 
-## Estructura del repo
+---
 
-```
-oh-casas-subcontratas/
-├── apps/mobile/
-│   ├── app.config.ts          # nombre, icono, splash, paquete, EAS projectId, plugins
-│   ├── eas.json                 # perfiles de build + variables de entorno de respaldo
-│   ├── google-services.json    # Firebase, para push en Android
-│   ├── tailwind.config.js      # escala de color y tipografía — fuente única de estilos
-│   ├── src/
-│   │   ├── design-system/tokens.js
-│   │   ├── constants/          # niveles.ts, enlaces.ts (páginas legales), perfiles.ts, stripe.ts
-│   │   ├── utils/              # plazos.ts, moneda.ts (euros sin Intl), texto.ts (búsqueda sin tildes)
-│   │   ├── services/           # supabase.ts, storage.ts, pushNotifications.ts, catalogoRegistro.ts
-│   │   ├── navigation/         # RootNavigator (decide qué ve cada rol), AuthStack,
-│   │   │                       #   SubcontratistaTabs, ReferidorTabs, ConectaTabs, AdminTabs
-│   │   ├── components/         # ScreenHeader, AnimatedTabBar, BuscadorFiltros,
-│   │   │                       #   CamposDinamicos, AvisoDocumentos (formularios por perfil),
-│   │   │                       #   TarjetaComisionFlotante, CampanaNotificaciones...
-│   │   └── screens/
-│   │       ├── auth/           # Login, RecuperarPassword, ElegirTipoCuenta, Registro, RegistroReferidor, RegistroEmpresa
-│   │       ├── obras/ postulaciones/ partner/ notificaciones/
-│   │       ├── recomienda/     # envío y seguimiento de clientes recomendados
-│   │       ├── conecta/        # Tablón y Directorio
-│   │       ├── perfil/         # PerfilScreen + PerfilPorRol
-│   │       └── admin/          # Obras, Postulaciones, Gremios, Recompensas, Conecta (+ Secciones), Referidos, Perfil
-│   └── assets/branding/        # logo, iconos y pantalla de carga (ver "Logo e identidad")
-├── docs/                       # páginas legales públicas (GitHub Pages)
-├── supabase/
-│   ├── migrations/             # 0001 → 0031
-│   └── seed_*.sql
-└── packages/shared-types/
-```
+## El flujo de una petición de particular
+
+1. **Envío.** El particular describe su proyecto. La petición queda en revisión (`en_revision`) y no es visible para las empresas. Sus datos personales viven aparte (`obras_privado`).
+2. **Revisión de 3B** (respuesta en 3 días laborables), desde el panel: **publicar**, **pedir información** (`pendiente_info`), **programar visita técnica** o **rechazar** (`rechazada`).
+3. **Visita técnica.** Un técnico visita, registra el resultado y adjunta fotos. Un resultado "no apto" termina en rechazo.
+4. **Publicación.** La petición pasa a `abierta` y las empresas verificadas la ven.
+5. **Ofertas filtradas.** Las empresas ofertan, pero **3B las filtra**: solo traslada al particular las adecuadas; las descartadas no las ve.
+6. **Adjudicación.** El particular elige. 3B comparte sus datos de contacto **únicamente con la empresa elegida** (`panel_compartir_contacto`).
+7. **Obra.** `adjudicada` → `en_curso` → `cerrada` (o `cancelada`). El estado solo se cambia con `cambiar_estado_obra()`.
+
+Cada paso dispara su webhook (ver [Webhooks](#webhooks-y-avisos-al-correo)). Las licitaciones de empresas verificadas se publican directamente (`abierta`) sin pasar por revisión.
+
+Estados de una obra: `en_revision`, `pendiente_info`, `rechazada`, `abierta`, `adjudicada`, `en_curso`, `cerrada`, `cancelada`.
+
+> **Si añades un estado nuevo**, busca todos los `Record<EstadoObra, …>` y mapas de estilos de la app y añade el estado **o un valor por defecto** (`?? ESTILO_DESCONOCIDO`). Un estado que una pantalla no conoce hace que la app se cierre al abrirla (ya pasó: `Cannot read property 'badge' of undefined` en `AdminObrasScreen`).
+
+---
 
 ## Qué funciona hoy
 
+**Particulares y técnicos**: flujo de petición completo (arriba), con revisión previa, visitas técnicas, filtro de ofertas y adjudicación.
+
 **Oficios**
-
 - Licitaciones (con prioridad si cierran en ≤48 h), guardar oferta con recordatorio, postulación con oferta, teléfono y adjuntos
-- Ciclo de la obra con un único camino de cambio de estado (`cambiar_estado_obra()`): abierta → adjudicada → en curso → finalizada, o cancelada
-- Progreso semanal de obra, visible para la empresa y para el admin
-- Club OH Partner: se desbloquea desde la 1ª obra completada; nivel por puntos totales; recompensas por nivel; canjes gestionados por el admin
+- Ciclo de obra con un único camino de cambio de estado; progreso semanal visible para la empresa y el admin
+- Club de socios: se desbloquea desde la 1ª obra completada; nivel por puntos; recompensas; canjes gestionados por el admin
 
-**OH Recomienda** (lo tienen Oficios, Recomendador e Inmobiliaria/Administrador; a nivel de base de datos cualquier cuenta con sesión podría recomendar)
-
+**Recomienda** (Oficios, Recomendador, Inmobiliaria/Administrador)
 - Botón "Conozco a alguien que quiere construir", con consentimiento obligatorio de la persona referida
-- Pipeline de 7 estados + descartado: `enviado → contactado → visita → presupuesto → reserva → venta → comisión disponible`
-- Al pasar a `venta` (el admin indica el precio de venta sin IVA) se calcula sola la comisión y se avisa por notificación
-- La persona acepta la comisión desde una **tarjeta flotante** que aparece sobre cualquier pantalla (`aceptar_recompensa_referido()`)
-- Los porcentajes viven en la tabla editable `reglas_recompensa_referido`, no en el código
+- Pipeline: `enviado → contactado → visita → presupuesto → reserva → venta → comisión disponible` (+ descartado)
+- Al pasar a `venta` (el admin indica el precio sin IVA) se calcula la comisión y se avisa. La persona la acepta desde una tarjeta flotante
+- Los porcentajes viven en `reglas_recompensa_referido`, no en el código
+- Con comisión generada, no se puede retroceder ni descartar
 
-**OH Conecta**
+**Tablón y Directorio**: necesidades (promotor/constructora) y avisos (administrador); una ficha por proveedor/arquitecto/profesional; buscador sin tildes y filtros.
 
-- **Tablón**: necesidades (promotor/constructora) y avisos (administrador); los autores pueden borrar lo suyo desde su Perfil
-- **Directorio**: una ficha por proveedor/arquitecto/profesional
-- Buscador (sin distinguir mayúsculas ni tildes) y filtros por tipo en ambos
+**Licitaciones de terceros** (promotoras y constructoras): publican, ven postulaciones con datos de la empresa, adjudican o rechazan con motivo y llevan la obra. **No dan puntos del Club ni cuentan como obra completada.**
 
-**Licitaciones de terceros** (promotoras y constructoras, pestaña *Licitaciones*)
-- Publican una licitación (título, presupuesto, especialidad, ubicación, requisitos, días abierta); los oficios la ven en su pestaña *Obras* y se postulan como a las de OH
-- Ven las postulaciones (oferta, teléfono, adjuntos, y de la empresa: especialidad, homologación, valoración, obras en OH), **adjudican o rechazan con motivo**, y llevan la obra: *en curso*, *finalizada* o *cancelada*
-- Les avisan de cada postulación nueva; a las empresas, de si las aceptan, rechazan o cancelan
-- **No dan puntos del Club ni cuentan como obra completada** (evita que alguien se invente obras para generar premios a cargo de OH). Lo de OH funciona exactamente como antes
-- Las funciones del dueño son aparte de las de admin (`aceptar_postulacion`, `cambiar_estado_obra`, sin tocar). El dueño no lee las tablas de postulaciones ni de empresas: ve lo necesario a través de funciones
+**Verificación de cuentas** (todos los perfiles)
+- Una cuenta nueva nace **pendiente** y solo ve "Estamos revisando tu cuenta". **El bloqueo está en la base de datos**, no solo en pantalla: una cuenta pendiente o suspendida no lee licitaciones, Tablón ni Directorio, ni publica, ni se postula, ni recomienda, aunque llame a la API a mano
+- El admin verifica, rechaza, suspende y reactiva (Conecta → Cuentas, o el panel). Suspender cierra sesiones, impide volver a entrar y oculta lo publicado
+- Todo cambio queda en `cuenta_historial` (quién, cuándo, motivo) y la persona recibe aviso
+- Nadie puede aprobarse a sí mismo: los usuarios solo editan 4 columnas de su perfil (`0016`)
+- Aviso a los admin al registrarse una cuenta pendiente (máx. uno cada 15 min por admin) y webhook `cuenta.pendiente`
+- **Alta por perfil**: cada tipo de cuenta tiene su formulario (campos de `campos_registro`, CIF/NIF/NIE validado)
+- **Documentación obligatoria**: tras confirmar el correo se suben los documentos del perfil (`documentos_requeridos`) a un almacén privado (PDF o foto, hasta 10 MB). Verificar exige los documentos aprobados; el admin puede saltárselo con un motivo
+- **Caducidad**: los documentos valen 2 meses; avisos a 15 y 7 días y el día que caduca; renovación desde la app (el documento actual sigue vigente hasta aprobar el nuevo); trabajadores de cada empresa con sus documentos
 
-**Verificación de cuentas** (todos los perfiles, Oficios incluidos)
-- Una cuenta **nueva nace pendiente** y, al iniciar sesión, solo ve una pantalla de "Estamos revisando tu cuenta". Las cuentas que ya existían al aplicar la migración quedaron verificadas
-- **El bloqueo está en la base de datos**, no solo en la pantalla: una cuenta pendiente o suspendida no lee licitaciones (con los presupuestos de OH), Tablón ni Directorio, ni publica, ni se postula, ni recomienda, aunque llame a la API a mano
-- El admin **verifica, rechaza, suspende y reactiva** desde Conecta → Cuentas (los pendientes salen primero, con un contador en la pestaña). Suspender cierra las sesiones, impide volver a entrar (`auth.users.banned_until`) y **oculta lo que esa cuenta había publicado** (Tablón, ficha, licitaciones abiertas); las licitaciones en marcha siguen visibles para las empresas implicadas
-- Todo cambio queda en `cuenta_historial` (quién, cuándo, motivo) y la persona recibe un aviso (notificación y push)
-- Nadie puede aprobarse a sí mismo: los usuarios solo editan 4 columnas de su perfil (`0016`). Un admin no puede cambiar su propia cuenta ni la de otro admin
-- **Aviso a los admin**: al registrarse una cuenta pendiente, cada admin recibe una notificación y un push ("Nueva cuenta por verificar" / "N cuentas por verificar"), como mucho uno cada 15 minutos por admin para que nadie pueda llenar el móvil registrando cuentas falsas. Salta al registrarse, aunque la persona aún no haya confirmado el correo (esas cuentas no pueden ni iniciar sesión). Además se dispara el webhook `cuenta.pendiente` (hacia n8n/Odoo, si hay URL configurada). Si falla el aviso o el webhook, el registro no se bloquea
-- **Indicador de CIF/NIF/NIE** en cada tarjeta del panel (`utils/documentoFiscal.ts`): dice si el número tiene un formato válido (letra o dígito de control correctos). No comprueba que la empresa exista
-- **Bloqueo por tabla**: `avances_obra` y `canjes` rechazan escrituras de cuentas pendientes o suspendidas con un disparador, así que cubre cualquier función que escriba ahí, la de hoy y las futuras. Sin sesión de usuario (backend, n8n, SQL Editor) no se aplica
-- **Alta por perfil**: cada tipo de cuenta tiene su propio formulario (un arquitecto pide nº de colegiado y colegio; una constructora, su inscripción en el REA...). Los campos de cada perfil vienen de la tabla `campos_registro` y la app los pinta sola (`CamposDinamicos`); el CIF/NIF/NIE se valida al registrarse. Los datos se guardan en `datos_registro` y el admin los ve en su tarjeta
-- **Documentación obligatoria**: tras confirmar el correo, la pantalla de "en revisión" pide los documentos de su perfil (`documentos_requeridos`) y deja subir cada uno (PDF o foto, hasta 10 MB) a un almacén **privado**. El admin los abre, y aprueba o rechaza cada uno con motivo (le llega a la persona). **Verificar una cuenta nueva exige tener aprobados los documentos obligatorios**; el admin puede saltárselo escribiendo el motivo, que queda en el historial. Reactivar una cuenta que ya estuvo verificada no los vuelve a pedir
-- **Por qué en dos tiempos**: al registrarse la persona aún no ha confirmado el correo, no tiene sesión y el almacén no admite subidas; por eso los datos se piden en el alta y los documentos al iniciar sesión por primera vez
-- **Borrar la cuenta no deja documentos**: la base de datos no puede borrar archivos del almacén (Supabase lo bloquea desde SQL), así que la app lo hace en orden: `comprobar_eliminacion_cuenta()` (que ejecuta las reglas de borrado y lo deshace todo), borrar los archivos de la persona, y `eliminar_mi_cuenta()`
+**Común a todos**: registro con confirmación de correo, recuperar contraseña, notificaciones dentro de la app y push reales, eliminar cuenta (desde la app y desde la web), importes siempre en euros.
 
-**Admin de OH** — pestaña **Conecta**, con cinco secciones: Recomendaciones (mover el pipeline), **Comisiones** (lo que se debe y marcar como pagado, con aviso a la persona), Cuentas (verificar, rechazar, suspender y reactivar, por estado y por perfil), Tablón y Directorio (ver y quitar lo que no deba estar). Gremios solo lista Oficios.
+### Cambiar lo que se pide a cada perfil (sin recompilar)
 
-**Común a todos**: registro con confirmación de email (Resend), recuperar contraseña por email, notificaciones dentro de la app y push reales, eliminar cuenta (desde la app o desde la web), importes siempre en euros, webhooks hacia n8n/Odoo (vacíos hasta configurar una URL).
-
-### Cambios de estado de una recomendación: confirmación, historial y diagnóstico
-
-Cada cambio de estado **avisa a quien envió la recomendación**, y el único camino que lo hace es `actualizar_estado_referencia()` (solo admin), que solo lanza la pantalla de Recomendaciones del panel al tocar una píldora. No hay tareas programadas ni automatismos que cambien estados.
-
-- **Confirmación**: tocar una píldora pregunta antes ("¿Pasar la recomendación de «X» a «Y»? Se avisará a ..."), para que un roce al desplazar la lista no cambie nada ni mande avisos por error
-- **Historial**: cada cambio queda en `referencias_historial` (de cuál a cuál, quién, cuándo) y cada tarjeta del panel muestra "Último cambio: ... · fecha · quién"
-- **Con comisión generada, no se retrocede**: una recomendación que ya tiene comisión solo puede estar en `venta` o `comision_disponible` (no se puede volver a "Visita" ni descartarla)
-
-Si llegan avisos que parecen ocurrir solos, en el SQL Editor (las horas salen en **UTC**: en octubre, las 13:02 de Madrid son las 11:02):
+Los campos y documentos de cada perfil son **datos, no código** (migración `0036`); se cambian en el SQL Editor y la app los recoge al momento.
 
 ```sql
--- ¿Cuándo se crearon de verdad los avisos? (si es mucho antes de cuando sonaron, el móvil los recibió tarde)
-select created_at, titulo, cuerpo from notificaciones
-where tipo = 'referencia_actualizada' order by created_at desc limit 20;
-
--- ¿Quién cambió cada estado y cuándo? (solo hay datos desde la migración 0037)
-select h.created_at, r.nombre_cliente, h.estado_anterior, h.estado_nuevo, p.nombre_completo, p.email
-from referencias_historial h
-join referencias_comerciales r on r.id = h.referencia_id
-left join profiles p on p.id = h.cambiado_por
-order by h.created_at desc limit 30;
-```
-
-Si los avisos llegan **todos juntos y tarde** en móviles Xiaomi/Redmi/POCO, suele ser el ahorro de batería del fabricante: Ajustes → Aplicaciones → OH Conecta → Ahorro de batería → «Sin restricciones», y activar el inicio automático.
-
-## Qué se pide a cada perfil, y cómo cambiarlo
-
-Los campos del formulario y los documentos de cada perfil son **datos, no código**: se cambian desde el SQL Editor de Supabase y la app los recoge al momento, sin recompilar. Los valores de partida (migración `0036`) son una propuesta y conviene validarlos con una gestoría. Volver a ejecutar la migración **no pisa** lo que hayas editado.
-
-```sql
--- Ver qué se pide hoy a un perfil
 select clave, etiqueta, obligatorio from campos_registro where role = 'arquitecto' order by orden;
 select tipo, etiqueta, obligatorio from documentos_requeridos where role = 'arquitecto' order by orden;
-
--- Hacer obligatorio (o no) un campo o un documento
-update campos_registro set obligatorio = true where role = 'arquitecto' and clave = 'zona';
 update documentos_requeridos set obligatorio = false where role = 'constructora' and tipo = 'seguro_rc';
-
--- Pedir un documento nuevo a un perfil (tipo = nombre corto sin espacios)
-insert into documentos_requeridos (role, tipo, etiqueta, descripcion, obligatorio, orden)
-values ('proveedor', 'seguro_rc', 'Seguro de responsabilidad civil', 'Póliza vigente o justificante de pago.', true, 30);
-
--- Pedir un campo nuevo (tipo 'texto' o 'seleccion'; en 'seleccion', opciones es una lista JSON)
-insert into campos_registro (role, clave, etiqueta, tipo, opciones, obligatorio, orden)
-values ('promotor', 'sector', 'Sector', 'seleccion', '["Residencial","Industrial"]', false, 60);
 ```
 
-Perfiles: `arquitecto`, `profesional`, `promotor`, `constructora`, `proveedor`, `administrador` (inmobiliarias), `subcontratista` (Oficios). `referidor` no pide nada. Las claves `nombre_empresa` y `cif` son especiales: viajan aparte, porque las leen los disparadores de registro de siempre. Cambiar lo que se pide **no afecta a las cuentas ya verificadas**.
+Perfiles: `arquitecto`, `profesional`, `promotor`, `constructora`, `proveedor`, `administrador`, `subcontratista`. Cambiarlo no afecta a las cuentas ya verificadas. La lista inicial es una propuesta: conviene validarla con una gestoría.
 
-## Panel de documentación (web interna)
+---
 
-Web para que el equipo gestione los documentos de las empresas y de sus trabajadores. Es **un solo archivo** (`docs/panel/index.html`) que usa el mismo Supabase que la app; se publica con GitHub Pages igual que el resto de `docs/`, en `https://ohcasas.github.io/OhSubcontrata2/panel/`. No guarda datos propios: lo que protege la información son las reglas de la base de datos (solo entran los usuarios con rol `admin` o `superadmin`).
+## Panel de gestión (web interna)
 
-**Qué hace**
+Un solo archivo, `docs/panel/index.html`, que usa el mismo Supabase que la app. URL: `https://ohcasas.github.io/OhSubcontrata2/panel/`. No guarda datos propios: lo que protege la información son las reglas de la base de datos (solo entran cuentas `admin` o `superadmin`; todas las funciones `panel_*` llaman a `panel_exigir_admin()`).
 
 | Pantalla | Para qué |
 |---|---|
-| Panel | Contadores (por revisar, caducados, caducan en 15 días, cuentas en orden/pendientes/con incidencias) y las cuentas que requieren atención |
-| Por revisar | Cola de documentos subidos (de empresas y de trabajadores), los más antiguos primero: ver, aprobar, rechazar con motivo |
-| Empresas | Todas las cuentas con semáforo, buscador y filtros. La **ficha** tiene sus documentos, sus trabajadores y su actividad; permite subir un documento en su nombre (cuando lo mandan por correo), cambiar la caducidad, ver el historial de archivos y verificar o suspender la cuenta |
-| Trabajadores | Alta, baja y ficha de cada trabajador con sus documentos (DNI, alta en la Seguridad Social, formación PRL, aptitud médica, EPIs) |
+| Panel | Contadores (por revisar, caducados, caducan en 15 días, cuentas) y las que requieren atención |
+| Por revisar | Cola de documentos subidos, los más antiguos primero: ver, aprobar, rechazar con motivo |
+| Peticiones | Cola de peticiones de particulares: publicar, pedir información, visita técnica o rechazar; historial de cada una |
+| Ofertas | Ofertas a peticiones de particulares: trasladar o descartar; compartir contacto al adjudicar |
+| Técnicos | Alta de técnicos por correo (**Añadir técnico**), marcar interno/externo, asignar visitas |
+| Empresas | Cuentas con semáforo, buscador y filtros; ficha con documentos, trabajadores y actividad; verificar o suspender |
+| Trabajadores | Alta, baja y ficha de cada trabajador con sus documentos |
 | Actividad | Quién subió, aprobó o rechazó qué documento y cuándo |
-| Documentos que se piden | Qué se pide a cada perfil y a los trabajadores, si es obligatorio y cuántos meses vale |
+| Documentos que se piden | Qué se pide a cada perfil, si es obligatorio y cuántos meses vale |
 
-**Caducidad.** Todos los documentos valen **2 meses** (se cambia por documento en "Documentos que se piden"). Al aprobar un documento la fecha de caducidad se calcula sola (o se indica a mano). Pasada la fecha, el documento figura como **caducado**. No se suspende ninguna cuenta automáticamente: se avisa y se ve en el panel. `avisar_caducidades()` avisa a la cuenta a los 15 y a los 7 días y el día que caduca, y dispara el webhook `documento.caduca` (hacia n8n/Odoo, como los demás).
+**Puesta en marcha**: ejecutar las migraciones, copiar `docs/panel/index.html` a `docs/panel/` y subir con Git. La primera vez la página pide la URL y la clave `anon` de Supabase y las guarda solo en ese navegador. Entrar con una cuenta admin.
 
-**Puesta en marcha (una sola vez)**
-1. Ejecutar `supabase/migrations/0040_panel_documentos_caducidad_y_trabajadores.sql` en el SQL Editor.
-2. Activar los avisos diarios: Supabase → Database → Extensions → activar `pg_cron`; luego ejecutar `select cron.schedule('avisar-caducidades', '0 7 * * *', $cron$ select avisar_caducidades(); $cron$);`. Para probarlo al momento: `select avisar_caducidades();`.
-3. Copiar `docs/panel/index.html` a `docs/panel/` y subir con Git. La primera vez la página pide la URL y la clave `anon` de Supabase y las guarda solo en ese navegador (o se escriben en las dos constantes del principio del archivo).
-4. Entrar con el correo y la contraseña de una cuenta admin.
+**Dar de alta un técnico**: crear la cuenta en Supabase (Authentication → Add user) o que se registre, y en el panel → Técnicos → Añadir técnico con su correo (la función `panel_crear_tecnico` crea el perfil si hace falta). Una cuenta con rol admin no puede ser técnico: usa un alias (`tucorreo+tecnico@gmail.com`).
 
-**Desde la app (migración 0041)**
-- **Mis documentos** (Perfil → Mis documentos): la cuenta ve el estado y la caducidad de cada documento y lo sube o renueva. Si le quedan 15 días o menos, el archivo nuevo se guarda como **renovación** y el documento actual **sigue vigente** hasta que el equipo apruebe el nuevo; entonces el anterior pasa al historial y la caducidad se recalcula. Si se rechaza, el actual sigue vigente y la cuenta recibe el motivo. Si el documento está rechazado, caducado o pendiente, el archivo nuevo lo sustituye.
-- **Mis trabajadores** (Perfil → Mis trabajadores): la empresa da de alta a su gente y sube la documentación de cada persona. Solo ve y toca los suyos.
-- En el panel, las renovaciones salen en "Por revisar" y en la ficha ("Aprobar renovación" / "Rechazar renovación").
-- Orden de puesta en marcha: ejecutar la `0041` y publicar el `docs/panel/index.html` nuevo antes de compilar la app.
+---
 
-**Lo que NO hace todavía**
-- **Requisitos por cliente u obra** (por ejemplo, que un cliente exija un seguro mayor): hoy los requisitos son por tipo de cuenta.
-- **Abrir el documento al tocar el aviso de caducidad**: el aviso llega, pero la app todavía no navega directamente a la pantalla del documento.
-- Los archivos de trabajadores se guardan en la carpeta de la cuenta (`<id de la cuenta>/trab-…`), así que al eliminar la cuenta se borran con el resto.
+## Webhooks y avisos al correo
 
-## Logo e identidad
+La tabla `webhooks_config(evento, url, secreto, activo)` guarda el destino de cada evento. Cuando ocurre, `disparar_webhook()` envía a cada URL activa un POST con el cuerpo `{"evento": "...", "fecha": "...", "datos": {...}}` y la cabecera `X-Webhook-Secret`. **Si no hay filas, no se envía nada. Si un envío falla, nunca tumba la operación real.** Los resultados se pueden ver en `net._http_response`.
 
-El logo es **OH** en blanco sobre negro: una **O en forma de anillo**, una **H** de barras redondeadas y una **línea gruesa** que sale de dentro del hueco de la O, atraviesa el aro y llega a la H, donde es a la vez su travesaño (la dirección pidió el enlace "entre la O y la H, por el medio, sobre la línea de la H"). La línea tiene la misma altura que el travesaño y termina redondeada dentro de la O. La pantalla de carga y el gráfico de Play llevan de fondo el dibujo arquitectónico de la dirección.
+### Receptor actual: Google Apps Script
 
-**Archivos** (están en `branding/`; los de la app van en `apps/mobile/assets/branding/`, con **estos mismos nombres**, sustituyendo a los antiguos):
+Un script publicado como aplicación web (ejecutar como *yo*, acceso *Cualquier usuario*) con una `CLAVE` que viaja en la URL (`...?clave=...`). Recibe el POST, añade una fila a la hoja de cálculo (fecha, evento, referencia, detalle) y envía un correo a `info@3bgrouparquitectura.com` para los eventos importantes (`peticion.creada`, `oferta.pendiente`, `visita.realizada`, `peticion.adjudicada`).
 
-| Archivo | Para qué sirve | Dónde va |
-|---|---|---|
-| `icon.png` (1024×1024) | Icono de la app | `apps/mobile/assets/branding/` |
-| `adaptive-icon-foreground.png` (1024×1024, transparente) | Icono adaptable de Android (el fondo es negro, en `app.config.ts`) | ídem |
-| `splash-nativo.png` (1024×1024, transparente) | Pantalla de carga nativa de Android | ídem |
-| `splash-conecta.png` (1080×2340) | Pantalla de carga que dibuja la app (logo + dibujo arquitectónico) | ídem |
-| `oh-casas-logo.jpg` (512×512) | Logo de las pantallas de entrar y registrarse (el nombre se mantiene porque el código lo carga así) | ídem |
-| `icono_play_store_512.png` (512×512) | Icono de la ficha de Play Console | se sube a mano a Play Console |
-| `grafico_funciones_1024x500.png` | Gráfico de funciones de Play Console | se sube a mano a Play Console |
-| `logo-oh-simbolo-blanco.svg` / `-negro.svg` | El símbolo OH en vector, para cualquier uso | solo como archivo fuente |
-| `logo-oh-conecta-blanco.svg` / `-negro.svg` | Símbolo + palabra CONECTA en vector | ídem |
-| `logo-oh-conecta-blanco.png` / `-negro.png` (2048 px, transparentes) | Para documentos, presentaciones y correos | ídem |
+- Tras editar el script, hay que **crear una versión nueva de la implementación** (Implementar → Administrar implementaciones → Editar → Nueva versión).
+- Para cambiar la clave: nueva `CLAVE` en el script, nueva versión, y el `update webhooks_config` del apartado de comandos.
+- Probar un envío a mano: `select disparar_webhook('peticion.creada', '{"referencia":"PRUEBA"}'::jsonb);` y mirar `net._http_response`. Borra después la fila de prueba de la hoja.
 
-La web (`docs/index.html`) lleva el símbolo **en vector** dentro del propio archivo y un icono de pestaña propio.
-
-**Construcción del símbolo** (medidas sobre un lienzo de 1024, un único eje horizontal en y = 503,6; todo son círculos y barras redondeadas, sin curvas libres):
-
-| Elemento | Medida |
-|---|---|
-| La O: círculo exterior / hueco | radio 135,8 / 66,5, centro en x = 382,4 (grosor del anillo: 69,3) |
-| Línea de enlace | barra de **65,2 de alto** (igual que el travesaño), de x = 426,4 (dentro del hueco, extremo redondeado) hasta la barra derecha de la H; cruza el aro sin separación |
-| Barras de la H | 72,8 de ancho, 263,2 de alto, extremos semicirculares, de x = 535,8 a 771,9 |
-| Travesaño de la H | 65,2 de alto, con empalmes redondeados de radio 9,7 |
-
-**El grosor de la línea es un solo número** (65,2 px, igual que el travesaño): si se cambia, cambia también el travesaño de la H. Dónde empieza dentro de la O: a un tercio del radio del hueco desde el centro (x = 426,4).
-
-**Cómo se hizo y qué conviene saber:**
-- Se partió de las imágenes de la dirección y se **reconstruyó en vector con formas exactas** (círculos y barras redondeadas). Un trazado automático de la imagen copiaba las irregularidades del original y salía rugoso al ampliar.
-- **La palabra CONECTA se ha rehecho con la tipografía Nunito ExtraBold** (libre, licencia OFL), la más parecida a la del original, porque las letras de la imagen tenían los bordes irregulares. Está convertida a contornos (no depende de ninguna fuente) y centrada bajo el símbolo. **Si el diseñador tiene la tipografía original, lo ideal es sustituirla.**
-- **Icono de Android**: el símbolo ocupa como mucho 298 px desde el centro, dentro de la zona segura de 313 px; no se recorta con ninguna forma de máscara.
-- **Tamaños pequeños**: el único detalle interior es la punta de la línea dentro de la O; se lee bien: a 16 px ya se distingue "OH", a 24 y 32 queda claro y a 48 o más es nítido.
-- Cambiar el logo en la app **exige compilar de nuevo** (los iconos y la pantalla de carga van dentro de la compilación). La ficha de Play Store se actualiza a mano en Play Console.
-
-## Suscripciones y Stripe
-
-Preparado, **no conectado**:
-
-- Cada cuenta de los 6 perfiles de pago nace con una fila en `suscripciones` en estado `pendiente_pago` y **sin precio** (se calcula al activar el cobro). **No bloquea nada**: bloquear antes de poder cobrar dejaría a la gente sin forma de pagar ni de entrar.
-- El precio mensual de cada rol vive en `precios_suscripcion` (provisional, ver arriba).
-- **Precio fundador**: las primeras *N* cuentas de promotor/constructora, **por orden de registro**, pagan `precio_fundador` durante `meses` meses **contados desde que empiece el cobro** (no desde el registro, para que el periodo gratuito no se lo coma). Vive en `programa_fundador`, y `precio_aplicable(profile_id)` calcula qué le toca a cada cuenta. El número de plazas está **vacío a propósito** (programa inactivo = todos a precio estándar): **hay que fijarlo antes de activar el cobro** con `update programa_fundador set plazas = N;`. Si una cuenta se da de baja antes de cobrar, la siguiente sube un puesto.
-- La clave pública de Stripe está en `constants/stripe.ts` (no es secreta). **La clave secreta nunca va en la app ni en el repo**: cuando toque conectar, se pone como variable de una Edge Function de Supabase.
-- Falta: al activar una suscripción, guardar el resultado de `precio_aplicable()` en `suscripciones.precio_mensual` y la fecha de fin del precio fundador (inicio del cobro + `meses`); la Edge Function que hable con Stripe, el webhook de eventos de suscripción, el SDK `@stripe/stripe-react-native` (librería nativa → exige compilar de nuevo) y la pantalla de pago.
-
-## Páginas legales públicas
-
-Publicadas con GitHub Pages desde este mismo repo (es público), carpeta `docs/`:
-
-| Página | URL |
-|---|---|
-| **Portada de la app** (informativa) | `https://ohcasas.github.io/OhSubcontrata2/` (es `docs/index.html`) |
-| Política de privacidad | `https://ohcasas.github.io/OhSubcontrata2/privacidad.html` |
-| Eliminar cuenta (sin la app instalada) | `https://ohcasas.github.io/OhSubcontrata2/eliminar-cuenta.html` |
-| Aviso legal | `https://ohcasas.github.io/OhSubcontrata2/aviso-legal.html` |
-| Términos y condiciones | `https://ohcasas.github.io/OhSubcontrata2/terminos.html` |
-| Confirmación de registro (destino del email de Supabase) | `https://ohcasas.github.io/OhSubcontrata2/confirmado.html` |
-| Nueva contraseña (destino del enlace de recuperar contraseña) | `https://ohcasas.github.io/OhSubcontrata2/nueva-contrasena.html` |
-
-Las dos primeras están puestas en Play Console. Privacidad, aviso legal y términos se enlazan desde dentro de la app (Login, las tres pantallas de registro y Perfil); "Eliminar cuenta" es un botón del Perfil. Tras editar un HTML de `docs/` hay que hacer `git push`; GitHub Pages tarda 1-2 minutos.
-
-Los cuatro textos legales se actualizaron en octubre de 2026 para OH Conecta (perfiles nuevos, Tablón y Directorio públicos, clientes recomendados, comisiones, precio del servicio). Son un **borrador redactado sin asesoría legal**: ver "Pendiente". `nueva-contrasena.html` no es un texto legal: es la página donde se escribe la contraseña nueva (habla directamente con Supabase, sin librerías).
-
-### La portada (`docs/index.html`)
-
-Una sola página informativa, **un único archivo** sin nada externo: la fuente (DM Sans, la de la app) y el logo van incrustados, no hay cookies ni analítica ni peticiones a terceros, así que no necesita aviso de cookies. Enlaza a las páginas legales de esta misma carpeta con rutas relativas (`privacidad.html`...), así que **no cambies sus nombres**.
-
-- **Enlace de Google Play**: al final del archivo, en `ENLACE_GOOGLE_PLAY`, entre las comillas. Mientras esté vacío los botones dicen "Próximamente en Google Play"; al pegarlo, pasan solos a "Descargar en Google Play".
-- **Textos**: están en el cuerpo, en lenguaje normal. Tres afirmaciones hay que mantenerlas al día a mano: "de momento, solo para Android" (la nota de la portada y una pregunta frecuente), "durante el lanzamiento es gratis" (tiene que coincidir con el apartado 7 de los términos) y la lista de lo que hace cada perfil (tiene que coincidir con la app).
-- **No lleva precios ni porcentajes de comisión**, a propósito, hasta que estén decididos.
-- **Estilo "liquid glass"** (cristal translúcido, como iOS): la barra flotante, las etiquetas del plano, los paneles de perfiles y preguntas, los botones y los avisos. El cristal solo luce sobre un fondo con color, por eso la portada y las secciones llevan resplandores azules detrás. Se controla con las variables del principio del CSS (`--filtro`, `--c-claro`, `--c-oscuro`, `--c-nav`...). Si el navegador no lo soporta, o la persona pide menos transparencia en su móvil, **todo pasa solo a fondos sólidos** igual de legibles.
-- **No subas el desenfoque de la barra flotante por encima de unos 20 px** (`--filtro-nav`): en Chrome, un radio grande en una caja fina refleja los bordes y deja ver *más* lo que hay detrás, no menos. El tinte de la barra (`--c-nav`) tampoco conviene aclararlo: sobre las secciones claras, por debajo de ~0,8 el texto blanco pierde contraste.
-- **Contenido de la portada** (en este orden): qué es OH Conecta y las seis herramientas de la app; ocho fichas de perfil (qué puede hacer, qué ve al entrar y qué se le pide para registrarse); cómo empezar; una licitación paso a paso; una recomendación paso a paso; los avisos de ejemplo; privacidad de los documentos; once preguntas frecuentes. **Cada nodo del dibujo de la portada lleva a la ficha de su perfil** (`#promotor`, `#constructora`, `#arquitecto`, `#profesional`, `#proveedor`, `#oficios`, `#inmobiliaria`, `#recomendador`), y también funcionan enlaces directos como `…/#inmobiliaria`.
-- **Qué hay que mantener al día a mano**: las fichas ("Qué te pedimos para entrar") copian lo que pide la app al registrarse, que vive en las tablas `campos_registro` y `documentos_requeridos` de Supabase (migración `0036`): si cambias allí lo que se pide, cámbialo aquí. Igual con los pasos de licitación (migración `0033`), los estados de una recomendación (`0024`, `0032`) y los avisos de ejemplo (`0032`, `0033`, `0034`).
-- **Animaciones**: señales que viajan por las líneas del dibujo, ondas en los puntos, resplandores que se desplazan, bloques que aparecen al bajar, avisos que llegan uno a uno, línea de la licitación que se dibuja, estados de la recomendación que se encienden y el menú que marca en qué sección estás. Todo se desactiva solo si la persona tiene activado "reducir movimiento" (la clase `anim` de `<html>` la pone el script del principio). Las clases son: `rev` (un bloque aparece al entrar en pantalla), `esc` (cada hijo aparece cuando entra él), `seq` (los hijos aparecen en orden al entrar el bloque) y `av` (los avisos).
-- **Dos trampas que ya nos hemos encontrado** (no las repitas): (1) las animaciones de entrada se aplican **por elemento** y no por lista: si una ficha esperaba a que le tocara su turno, quien llegaba a ella con un enlace aterrizaba en un hueco vacío; ahora llegar a un destino lo muestra al instante. (2) **No pongas `filter` (ni `opacity` fija) en un bloque que tenga cristal dentro**: el desenfoque de lo de dentro deja de ver lo que hay detrás.
-- **Sección "Te avisamos en cada paso"**: los cuatro avisos son los textos reales de la app (verificación, nueva postulación, postulación aceptada, recomendación) con nombres inventados. Si cambias uno en la app (migraciones `0033`, `0034`, `0032`), cámbialo también aquí.
-- **El dibujo de la portada** (los perfiles como nodos unidos al logo) es SVG a mano dentro del mismo archivo; si cambian los perfiles hay que tocarlo.
-- Si algún día se añade analítica o un formulario de contacto, hay que actualizar la política de privacidad y añadir aviso de cookies.
-
-## Para un/a desarrollador/a nuevo/a
-
-> Ainhoa y su compañera usan el **mismo email** para todo (GitHub, Supabase, Play Console...): comparten ya el mismo acceso, sin invitaciones. Los pasos de invitación solo aplican si se incorpora alguien con un email **distinto**.
-
-1. **Código**: pide acceso (si hace falta) a `github.com/ohcasas/OhSubcontrata2` y `git clone`.
-2. **Herramientas**: Node.js 20+, Git, `npm install -g eas-cli`, y la app de desarrollo instalada en el móvil (ver "Cómo arrancar").
-3. **Pide a Ainhoa**: `apps/mobile/.env`, `apps/mobile/google-services.json` y un usuario de prueba de cada tipo de cuenta que vayas a tocar.
-4. **Accesos extra** (solo con email distinto): Supabase → Project Settings → Team; EAS → expo.dev → Settings → Members + `eas login`; Firebase → proyecto `oh-contratas` → Usuarios y permisos; Play Console → Usuarios y permisos.
-
-## Configuración
-
-`apps/mobile/.env` (no está en el repo):
-```
-EXPO_PUBLIC_SUPABASE_URL=https://vvghqtwwrwdtekropavo.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key del proyecto>
-```
-
-Para compilar con EAS, esas dos variables están en **dos sitios**: como respaldo en `eas.json` y como fuente real en el panel de Expo (Project → Environment variables, por entorno). Si cambian, actualiza los dos: **EAS Build usa el panel**, no `eas.json`.
-
-## Cómo arrancar
-
-**Expo Go no vale para este proyecto** (usa notificaciones push, que necesitan código nativo). Hace falta una *development build* instalada en el móvil una sola vez:
-```bash
-eas build --profile development --platform android
-```
-Luego, para desarrollar:
-```bash
-cd apps/mobile
-npm install
-npx expo start --dev-client -c
-```
-y conectar desde esa app (no desde Expo Go).
-
-**Compilar para Google Play** (desde `apps/mobile`):
-```bash
-eas build --profile production --platform android
-```
-Descarga el `.aab` desde la página del build en expo.dev y súbelo a Play Console → Pruebas (Interna / Abierta) o Producción. `eas build --profile preview` genera un `.apk` instalable directamente, útil para probar sin Play.
-
-Qué obliga a compilar de nuevo: cambios en `app.config.ts`, librerías nativas nuevas, o querer probar en una build sin servidor de desarrollo. Cambiar solo pantallas o SQL **no** obliga a nada nuevo en la development build.
-
-## Webhooks (hacia n8n y Odoo)
-
-La tabla `webhooks_config` guarda, para cada evento, una URL de destino y un secreto. Cuando ocurre el evento, `disparar_webhook()` envía un mensaje a cada URL activa de ese evento, con la cabecera `X-Webhook-Secret` (para que n8n compruebe que viene de Supabase) y este cuerpo: `{"evento": "...", "fecha": "...", "datos": {...}}`. **Mientras no haya filas en `webhooks_config`, no se envía nada a ningún sitio.** Si un envío falla, nunca tumba la operación real.
+### Eventos
 
 | Evento | Cuándo se dispara |
 |---|---|
+| `peticion.creada` | Un particular envía una petición (`0043`). Solo lleva el id del propietario |
+| `peticion.decidida` | 3B publica, pide información, programa visita o rechaza (`0048`) |
+| `visita.asignada`, `visita.agendada`, `visita.realizada`, `visita.cancelada` | Ciclo de la visita técnica; `visita.realizada` lleva el resultado (`0048`) |
+| `oferta.pendiente`, `oferta.trasladada`, `oferta.descartada` | Llega una oferta a una petición de particular y 3B la traslada o descarta (`0048`) |
+| `peticion.adjudicada` | El particular adjudica: hay que compartir su contacto con la empresa elegida (`0048`) |
 | `obra.adjudicada`, `obra.en_curso`, `obra.finalizada`, `obra.cancelada` | Cambia el estado de una obra |
-| `postulacion.creada`, `postulacion.aceptada`, `postulacion.rechazada` | Una empresa se postula; se acepta o se rechaza |
+| `postulacion.creada`, `postulacion.aceptada`, `postulacion.rechazada` | Ciclo de postulaciones |
 | `avance.registrado` | Un oficio registra el avance de una obra |
 | `canje.solicitado`, `canje.completado`, `canje.cancelado` | Canjes de puntos del Club |
 | `empresa.registrada` | Se da de alta una empresa |
 | `cuenta.pendiente` | Se registra una cuenta que espera verificación |
-| `cuenta.verificada`, `cuenta.suspendida`, `cuenta.en_revision` | El admin cambia el estado de una cuenta (`verificada` también al reactivarla); lleva nombre, correo, perfil y motivo |
+| `cuenta.verificada`, `cuenta.suspendida`, `cuenta.en_revision` | El admin cambia el estado de una cuenta |
 | `documentacion.completa` | Una cuenta pendiente ha subido todos sus documentos obligatorios |
-| `documento.caduca` | Un documento caduca (aviso a los 15 y 7 días y el día que caduca); lo dispara `avisar_caducidades()` (migración `0040`) |
-| `recomendacion.creada` | Alguien recomienda a un cliente; lleva los datos de contacto del cliente y de quien lo recomienda (es un posible cliente para Odoo) |
-| `recomendacion.estado` | La recomendación avanza o se descarta (de qué estado a cuál) |
-| `comision.generada`, `comision.aceptada`, `comision.pagada` | Ciclo de la comisión (porcentaje, base e importe) |
+| `documento.caduca` | Un documento caduca (avisos a 15 y 7 días y el día); lo dispara `avisar_caducidades()` |
+| `recomendacion.creada`, `recomendacion.estado` | Alguien recomienda un cliente; avanza o se descarta |
+| `comision.generada`, `comision.aceptada`, `comision.pagada` | Ciclo de la comisión |
 | `licitacion.creada`, `licitacion.estado` | Una promotora o constructora publica una licitación; cambia de estado |
-| `peticion.creada` | Un particular envía una petición (migración `0043`); solo lleva el id del propietario, no sus datos |
-| `peticion.decidida` | 3B publica, pide información, programa visita o rechaza una petición (`0048`) |
-| `visita.asignada`, `visita.agendada`, `visita.realizada`, `visita.cancelada` | Ciclo de la visita técnica; `visita.realizada` lleva el resultado (apto, ajustar, no apto) (`0048`) |
-| `oferta.pendiente`, `oferta.trasladada`, `oferta.descartada` | Llega una oferta a una petición de particular y 3B la traslada o la descarta (`0048`) |
-| `peticion.adjudicada` | El particular adjudica: hay que compartir sus datos de contacto con la empresa elegida (`0048`) |
 
-Los 11 últimos son de la migración `0039`. **Datos personales**: `recomendacion.creada` lleva nombre, teléfono y correo del cliente recomendado, y `cuenta.*` el nombre y el correo de la persona. Usa solo destinos de la empresa.
+**Datos personales**: `recomendacion.creada` lleva nombre, teléfono y correo del cliente recomendado, y `cuenta.*` el nombre y correo de la persona. Los eventos del flujo de particulares (`peticion.*`, `visita.*`, `oferta.*`) **no llevan datos personales**, solo identificadores y estados. Usa solo destinos de la empresa.
 
 ```sql
--- Añadir un destino (el secreto es opcional; llega en la cabecera X-Webhook-Secret)
 insert into webhooks_config (evento, url, secreto) values
-  ('recomendacion.creada', 'https://TU-N8N/webhook/xxxx', 'un-secreto-largo'),
-  ('documentacion.completa', 'https://TU-N8N/webhook/yyyy', 'un-secreto-largo');
-
--- Ver lo que hay configurado, y apagar uno sin borrarlo
-select evento, url, activo from webhooks_config order by evento;
-update webhooks_config set activo = false where evento = 'documentacion.completa';
+  ('peticion.creada', 'https://script.google.com/macros/s/ID/exec?clave=CLAVE', null);
 ```
 
-**Lo que falta, además de Stripe:**
-- **Entrante, Stripe** (pendiente): `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.paid` e `invoice.payment_failed`, para que una Edge Function actualice la tabla `suscripciones`. Necesita la clave secreta de Stripe y una dirección pública.
-- **Entrante, opcional**: Resend (rebotes y quejas, para saber cuándo un correo de confirmación no llega) y los recibos de Expo (errores de entrega que aparecen *después* de que Expo acepte el push).
-- **Saliente, opcional y no añadido**: nuevas publicaciones del Tablón y fichas del Directorio (para moderar). Tampoco `cuenta.eliminada`: `eliminar_mi_cuenta()` también se ejecuta en modo "comprobar" y deshace todo, y antes de añadir un aviso ahí hay que confirmar que `pg_net` descarta lo encolado en una transacción deshecha.
+Pendiente, además de Stripe: webhooks **entrantes** (Stripe → suscripciones; Resend → rebotes; recibos de Expo) y la conexión con **Odoo**, que se haría desde Apps Script con `UrlFetchApp` (hace falta conocer la versión y la API de Odoo).
+
+---
 
 ## Notificaciones push
 
-- Firebase `oh-contratas` con la app Android registrada bajo `es.ohcasas.subcontratas`; si existe otra registrada con un paquete distinto, no se usa.
-- Clave de servicio de Firebase (FCM V1) subida a EAS (`eas credentials` → Android → Push Notifications).
-- `registrarPush()` guarda el token del dispositivo al iniciar sesión; `crear_notificacion()` en Supabase manda el push a través del servicio de Expo.
-- La pantalla de Notificaciones está registrada para todos los perfiles que muestran la campana.
-- **Un móvil, un usuario** (migración `0038`): un token de push pertenece siempre a **un solo** usuario; al guardarse, la base de datos lo borra de cualquier otro. Antes se quedaba para siempre en todas las cuentas con las que se hubiera entrado en ese móvil, así que los avisos de cualquiera de ellas llegaban aunque hubiera otra sesión abierta (o ninguna), y un evento para una empresa con varias cuentas sonaba varias veces en el mismo móvil. Además, **cerrar sesión borra el token de esa cuenta** (`services/sesion.ts`, `cerrarSesion()`): usa siempre esa función, no `supabase.auth.signOut()` a secas, salvo tras borrar la cuenta.
-- Si algo suena repetido o en el móvil equivocado, en el SQL Editor:
+- Firebase `b-conecta` con la app Android `es.tresbe.conecta`. Clave de servicio **FCM V1** subida a EAS (`eas credentials` → Android → Push Notifications).
+- `registrarPush()` guarda el token al iniciar sesión; `crear_notificacion()` envía el push a través de Expo.
+- **Un móvil, un usuario** (`0038`): un token pertenece a un solo usuario. **Cerrar sesión borra el token** (`services/sesion.ts`, `cerrarSesion()`): usa siempre esa función, no `supabase.auth.signOut()` a secas.
+- Con un móvil y dos cuentas, **solo la última cuenta recibe push**; para probar el circuito entero hacen falta dos dispositivos.
+
+### Si el push no llega (pero el aviso sí sale dentro de la app)
 
 ```sql
--- ¿Hay móviles repartidos entre varias cuentas? (tras la 0038 no debería salir nada)
-select right(t.token, 8) as token_termina_en, count(*) as cuentas, string_agg(p.email, ', ') as cuentas_con_este_movil
-from push_tokens t join profiles p on p.id = t.user_id
-group by t.token having count(*) > 1;
-
--- ¿Cuántos móviles tiene registrados cada cuenta? (más de uno es normal: móvil y tablet, o una reinstalación que dejó uno viejo)
-select p.email, count(*) as moviles, max(t.updated_at) as ultimo_uso
-from push_tokens t join profiles p on p.id = t.user_id
-group by p.email order by moviles desc;
-```
-
-### Si el push no llega al móvil (pero el aviso sí sale dentro de la app)
-
-La campana de la app lee la base de datos, y el push es un envío aparte, así que pueden fallar por separado. En el SQL Editor, por este orden:
-
-```sql
--- 1) ¿A qué cuenta pertenece cada móvil? (un móvil solo recibe los avisos de la ÚLTIMA cuenta con la que se entró en él)
+-- 1) ¿A qué cuenta pertenece cada móvil?
 select p.email, right(t.token, 10) as token, t.plataforma, t.updated_at
 from push_tokens t join profiles p on p.id = t.user_id order by t.updated_at desc;
 
--- 2) Envío directo a la cuenta con la que has iniciado sesión en el móvil (cambia el correo)
+-- 2) Envío directo (cambia el correo)
 select enviar_push((select id from profiles where email = 'TU_CORREO'), 'Prueba', 'Si ves esto, el push funciona', '{}'::jsonb);
 
--- 3) Qué respondió Expo a los últimos envíos (se conservan unas horas)
+-- 3) Qué respondió Expo a los últimos envíos
 select created, status_code, left(content, 400) as respuesta from net._http_response order by created desc limit 5;
 ```
 
 | Lo que ves | Qué significa |
 |---|---|
-| El paso 1 muestra solo una cuenta para tu móvil | Es lo normal: **con un móvil y dos cuentas (por ejemplo, admin y una de prueba), solo la última recibe push**; la otra solo ve el aviso en la campana. Para probar el circuito entero hacen falta dos dispositivos |
-| El paso 2 llega al móvil | La tubería funciona; el problema era el de arriba |
+| El paso 2 llega al móvil | La tubería funciona; el problema era el paso 1 |
 | El paso 3 no devuelve filas | `pg_net` no está activada (Database → Extensions) |
-| `"status":"ok"` pero no llega | Mira en el móvil: Ajustes → Aplicaciones → OH Conecta → Notificaciones permitidas; en Xiaomi, ahorro de batería «Sin restricciones» e inicio automático |
-| `DeviceNotRegistered` | El token está obsoleto: cierra sesión y vuelve a entrar en la app |
-| `InvalidCredentials` o `MismatchSenderId` | Las credenciales de Firebase no coinciden: paquete `es.ohcasas.subcontratas`, `google-services.json` y la clave FCM V1 subida a EAS |
+| `"status":"ok"` pero no llega | Permisos de notificación del móvil; en Xiaomi, ahorro de batería «Sin restricciones» e inicio automático |
+| `DeviceNotRegistered` | Token obsoleto: cierra sesión y vuelve a entrar |
+| `InvalidCredentials` / `MismatchSenderId` | Credenciales de Firebase: paquete `es.tresbe.conecta`, `google-services.json` y clave FCM V1 en EAS |
 
-`registrarPush()` **falla en silencio** (sin permiso, sin red o sin proyecto EAS simplemente no guarda nada), así que si el paso 1 no muestra tu móvil, hay que revisar el permiso de notificaciones.
+---
 
 ## Migraciones de base de datos
 
-Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consulta aparte**:
+Ejecutar **en orden**, desde el SQL Editor de Supabase, **cada archivo en una consulta aparte**. `0042` va sola, antes de la `0043`.
 
 | # | Archivo | Qué añade |
 |---|---|---|
@@ -442,124 +479,285 @@ Ejecutar en orden desde el SQL Editor de Supabase, **cada archivo en una consult
 | 2 | `0002_add_imagen_obras.sql` | Columna de imagen en obras |
 | 3 | `0003_canje_rpc.sql` | `solicitar_canje()` |
 | 4 | `0004_registro_trigger.sql` | Alta automática de empresa + perfil al registrarse |
-| 5 | `0005_aceptar_postulacion_rpc.sql` | Versión original de `aceptar_postulacion()` (superada por `0014`/`0015`, se mantiene por historial) |
+| 5 | `0005_aceptar_postulacion_rpc.sql` | Versión original de `aceptar_postulacion()` (superada por 0014/0015; por historial) |
 | 6 | `0006_obras_fotos_storage.sql` | Bucket público `obras-fotos` |
 | 7 | `0007_profiles_email.sql` | Email accesible en `profiles` |
 | 8 | `0008_fix_obras_fotos_public.sql` | Corrige que el bucket no quedara público |
 | 9 | `0009_profiles_bio.sql` | Bio editable |
 | 10 | `0010_avatares_storage.sql` | Bucket público `avatares` |
-| 11 | `0011_documentos_storage.sql` | Adjuntos de postulación + documentos de homologación (buckets privados) |
-| 12 | `0012_estado_en_curso.sql` | Estado intermedio `en_curso` en las obras |
-| 13 | `0013_postulaciones_telefono_contacto.sql` | Teléfono de contacto informativo por postulación |
-| 14 | `0014_fix_aceptar_postulacion.sql` | Recrea `aceptar_postulacion()`, que nunca llegó a existir en el proyecto real |
-| 15 | `0015_cambiar_estado_obra.sql` | `cambiar_estado_obra()`: único camino para cambiar el estado de una obra, con puntos idempotentes |
-| 16 | `0016_fase_a_notificaciones_puntos_seguridad.sql` | Notificaciones, ofertas guardadas, motivo de rechazo, nivel por puntos totales, recompensas por nivel, canjes, **4 agujeros de seguridad cerrados** |
+| 11 | `0011_documentos_storage.sql` | Adjuntos de postulación y documentos de homologación (buckets privados) |
+| 12 | `0012_estado_en_curso.sql` | Estado `en_curso` |
+| 13 | `0013_postulaciones_telefono_contacto.sql` | Teléfono de contacto por postulación |
+| 14 | `0014_fix_aceptar_postulacion.sql` | Recrea `aceptar_postulacion()` |
+| 15 | `0015_cambiar_estado_obra.sql` | `cambiar_estado_obra()`: único camino para cambiar el estado, con puntos idempotentes |
+| 16 | `0016_fase_a_notificaciones_puntos_seguridad.sql` | Notificaciones, ofertas guardadas, niveles, recompensas, canjes, 4 agujeros de seguridad cerrados |
 | 17 | `0017_cron_recordatorios.sql` | Recordatorios horarios (`pg_cron`) |
-| 18 | `0018_webhooks_n8n.sql` | Webhooks salientes hacia n8n/Odoo |
+| 18 | `0018_webhooks_n8n.sql` | Webhooks salientes (`webhooks_config`, `disparar_webhook`) |
 | 19 | `0019_avances_obra.sql` | Progreso semanal de obra |
-| 20 | `0020_push_tokens.sql` | Token por dispositivo + envío real de push |
+| 20 | `0020_push_tokens.sql` | Token por dispositivo + envío de push |
 | 21 | `0021_puntos_desde_primera_obra_y_borrado_cuenta.sql` | Puntos desde la 1ª obra; `eliminar_mi_cuenta()` |
-| 22 | `0022_fix_seguridad_funciones_admin.sql` | **Fallo grave corregido**: la comprobación de admin se saltaba con un NULL (sin sesión). Revoca permisos a `anon`; elimina `finalizar_obra()` |
-| 23 | `0023_add_rol_referidor.sql` | Rol `referidor`. **Va solo**: Postgres no deja añadir un valor de enum y usarlo en la misma transacción |
-| 24 | `0024_referidos_pipeline.sql` | Pipeline de recomendaciones, comisiones por porcentaje, `profile_roles`, funciones de recomendar / avanzar / aceptar, registro de referidor |
-| 25 | `0025_add_roles_oh_conecta.sql` | Los 6 roles de OH Conecta. **Va solo**, por lo mismo que el 23 |
-| 26 | `0026_oh_conecta_suscripciones.sql` | `suscripciones`, `precios_suscripcion` y el registro de los 6 perfiles |
-| 27 | `0027_oh_conecta_tablon_directorio.sql` | `publicaciones_tablon` y `fichas_directorio` |
-| 28 | `0028_eliminar_cuenta_todos_los_perfiles.sql` | `eliminar_mi_cuenta()` para los 8 tipos de cuenta; las recomendaciones y comisiones se conservan al borrarse quien las hizo |
-| 29 | `0029_seguridad_tablas_nuevas_y_pago_comisiones.sql` | Pase de seguridad de las tablas nuevas (2 fallos menores cerrados) y `marcar_recompensa_pagada()` |
-| 30 | `0030_precios_suscripcion.sql` | Precios mensuales provisionales en `precios_suscripcion` y comisión del 2 % para el perfil Administrador (inmobiliarias) |
-| 31 | `0031_precio_fundador.sql` | Precio fundador de promotor/constructora: `programa_fundador`, `precio_aplicable()`; el registro deja de copiar el precio |
-| 32 | `0032_fix_avisos_repetidos_recomendaciones.sql` | `actualizar_estado_referencia()` solo avisa si el estado cambia de verdad; textos legibles |
-| 33 | `0033_licitaciones_de_terceros.sql` | Licitaciones de promotoras y constructoras: `crear_licitacion()`, `mis_licitaciones()`, `postulaciones_de_mi_licitacion()`, `aceptar_/rechazar_postulacion_propietario()`, `cambiar_estado_licitacion()`; no se postula a la propia; el dueño ve adjuntos y progreso de lo suyo |
-| 34 | `0034_verificacion_de_cuentas.sql` | **Verificación de cuentas**: `profiles.estado_cuenta` (pendiente / verificada / suspendida), `cambiar_estado_cuenta()`, `cuenta_historial`, y el bloqueo de lectura/escritura para cuentas sin verificar |
-| 35 | `0035_avisos_de_cuentas_y_cierre_de_limites.sql` | Aviso (notificación y push) a los admin cuando llega una cuenta pendiente, y bloqueo por tabla (`avances_obra`, `canjes`) para cuentas pendientes o suspendidas |
-| 36 | `0036_alta_por_perfil_y_documentacion.sql` | Alta por perfil: `campos_registro` y `documentos_requeridos` (editables), `datos_registro`, `documentos_cuenta` y su almacén privado; verificar una cuenta nueva exige los documentos aprobados (`cambiar_estado_cuenta` gana `p_forzar`); `comprobar_eliminacion_cuenta()` |
-| 37 | `0037_historial_y_bloqueo_de_recomendaciones.sql` | `referencias_historial` (quién cambió cada estado, de cuál a cuál y cuándo; solo lo leen los admin) y bloqueo para no retroceder ni descartar una recomendación que ya tiene comisión |
-| 38 | `0038_un_movil_un_usuario.sql` | Un token de push pertenece a un único usuario (disparador en `push_tokens`) y limpia los duplicados que había: los avisos de una cuenta ya no suenan en móviles donde se usó otra |
-| 39 | `0039_webhooks_de_recomendaciones_cuentas_y_licitaciones.sql` | 11 webhooks nuevos (recomendaciones, comisiones, cuentas, documentación, licitaciones); no cambian el comportamiento de la app |
-| 40 | `0040_panel_documentos_caducidad_y_trabajadores.sql` | Panel de documentación: caducidad a 2 meses, trabajadores y sus documentos, historial de archivos, registro de actividad y aviso `documento.caduca`; no cambia el comportamiento de la app |
-| 41 | `0041_renovaciones_y_trabajadores_desde_la_app.sql` | Renovar documentos y gestionar trabajadores desde la app (el documento antiguo sigue vigente hasta aprobar la renovación); el panel ve y resuelve las renovaciones |
-| 42 | `0042_roles_y_estados_para_peticiones.sql` | Roles `particular` y `tecnico` y estados de obra `en_revision`, `pendiente_info`, `rechazada`. **Ejecutar sola**, antes de la 0043 |
-| 43 | `0043_revision_previa_particulares_y_tecnicos.sql` | Las peticiones de particulares pasan por revisión de 3B (publicar / pedir información / visita técnica / rechazar, respuesta en 3 días laborables); datos personales aparte; técnicos internos o externos con informe y fotos |
-| 44 | `0044_publicacion_directa_y_filtro_de_ofertas.sql` | Las licitaciones de empresas verificadas se publican directamente; las ofertas a peticiones de particulares las filtra 3B (trasladar / descartar) antes de que el particular las vea |
-| 45 | `0045_alta_de_particulares.sql` | Crea el perfil al registrarse un particular (las funciones de alta anteriores no lo hacían) |
-| 46 | `0046_alta_de_tecnicos_desde_el_panel.sql` | El panel da de alta a un técnico por su correo (crea el perfil si la cuenta se creó a mano en Supabase) |
-| 47 | `0047_arreglo_alta_sin_rol.sql` | Arreglo: crear un usuario sin rol (p. ej. "Add user" de Supabase) ya no falla |
-| 48 | `0048_webhooks_del_flujo_de_peticiones.sql` | Webhooks del flujo de particulares (decisión, visitas, ofertas, adjudicación), sin datos personales |
+| 22 | `0022_fix_seguridad_funciones_admin.sql` | **Fallo grave corregido**: la comprobación de admin se saltaba sin sesión (NULL). Revoca permisos a `anon` |
+| 23 | `0023_add_rol_referidor.sql` | Rol `referidor`. **Va solo** |
+| 24 | `0024_referidos_pipeline.sql` | Pipeline de recomendaciones y comisiones |
+| 25 | `0025_add_roles_oh_conecta.sql` | Los 6 roles de empresa. **Va solo** |
+| 26 | `0026_oh_conecta_suscripciones.sql` | `suscripciones`, `precios_suscripcion`, registro de los 6 perfiles |
+| 27 | `0027_oh_conecta_tablon_directorio.sql` | Tablón y Directorio |
+| 28 | `0028_eliminar_cuenta_todos_los_perfiles.sql` | `eliminar_mi_cuenta()` para todos los tipos de cuenta |
+| 29 | `0029_seguridad_tablas_nuevas_y_pago_comisiones.sql` | Pase de seguridad (2 fallos menores) y `marcar_recompensa_pagada()` |
+| 30 | `0030_precios_suscripcion.sql` | Precios provisionales; comisión del 2 % para el perfil Administrador |
+| 31 | `0031_precio_fundador.sql` | `programa_fundador`, `precio_aplicable()` |
+| 32 | `0032_fix_avisos_repetidos_recomendaciones.sql` | Solo avisa si el estado cambia de verdad |
+| 33 | `0033_licitaciones_de_terceros.sql` | Licitaciones de promotoras y constructoras |
+| 34 | `0034_verificacion_de_cuentas.sql` | `profiles.estado_cuenta`, `cambiar_estado_cuenta()`, `cuenta_historial`, bloqueo de cuentas sin verificar |
+| 35 | `0035_avisos_de_cuentas_y_cierre_de_limites.sql` | Aviso a los admin de cuentas pendientes; bloqueo por tabla |
+| 36 | `0036_alta_por_perfil_y_documentacion.sql` | Campos y documentos por perfil (editables), `documentos_cuenta`, almacén privado |
+| 37 | `0037_historial_y_bloqueo_de_recomendaciones.sql` | `referencias_historial` y bloqueo de retrocesos |
+| 38 | `0038_un_movil_un_usuario.sql` | Un token de push, un usuario |
+| 39 | `0039_webhooks_de_recomendaciones_cuentas_y_licitaciones.sql` | 11 webhooks nuevos |
+| 40 | `0040_panel_documentos_caducidad_y_trabajadores.sql` | Panel de documentación, caducidad, trabajadores, `avisar_caducidades()` |
+| 41 | `0041_renovaciones_y_trabajadores_desde_la_app.sql` | Renovar documentos y gestionar trabajadores desde la app |
+| 42 | `0042_roles_y_estados_para_peticiones.sql` | Roles `particular` y `tecnico`; estados `en_revision`, `pendiente_info`, `rechazada`. **Va sola** |
+| 43 | `0043_revision_previa_particulares_y_tecnicos.sql` | Revisión previa de peticiones, datos personales aparte, técnicos, visitas, informe y fotos |
+| 44 | `0044_publicacion_directa_y_filtro_de_ofertas.sql` | Licitaciones de empresas verificadas, publicación directa; filtro de ofertas de particulares |
+| 45 | `0045_alta_de_particulares.sql` | Crea el perfil al registrarse un particular |
+| 46 | `0046_alta_de_tecnicos_desde_el_panel.sql` | `panel_crear_tecnico()` |
+| 47 | `0047_arreglo_alta_sin_rol.sql` | Crear un usuario sin rol (p. ej. "Add user" de Supabase) ya no falla |
+| 48 | `0048_webhooks_del_flujo_de_peticiones.sql` | Webhooks del flujo de particulares, sin datos personales |
+| 49 | `0049_endurecer_funciones_auxiliares.sql` | Revoca a `anon` las funciones auxiliares de permisos y fija su `search_path` (resultado de la prueba de seguridad) |
 
-Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, activarlas y repetir solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
+Si `0017` o `0018` fallan por `pg_cron`/`pg_net`: Database → Extensions, actívalas y repite solo ese archivo. Los `seed_*.sql` son datos de prueba opcionales.
+
+---
+
+## Seguridad y pruebas
+
+**Principio**: la seguridad está en la base de datos (RLS y funciones `security definer`), no en la pantalla. Nunca se pone la `service_role key` en la app ni en el repo.
+
+### Pruebas automáticas (`seguridad/`)
+
+Se ejecutan en Supabase → SQL Editor pegando **todo** el archivo. Ninguna cambia datos.
+
+| Archivo | Qué hace |
+|---|---|
+| `prueba_seguridad_1_catalogo.sql` | Audita el catálogo: tablas sin RLS, funciones ejecutables sin sesión, políticas abiertas, buckets públicos, funciones sin `search_path` fijo, destinos de webhook |
+| `prueba_seguridad_2_roles.sql` | Simula cada rol (sin sesión, particular, subcontratista, técnico, promotor/constructora, administrador) e intenta lo que no debería poder: leer datos ajenos, subirse el rol, verificarse a sí mismo, leer webhooks, usar funciones `panel_*`, ver archivos de otros. Acaba en `rollback` |
+
+Lectura de resultados: **OK** = bloqueado como debe · **FALLO** = pudo hacer algo que no debía · **REVISAR** = mira si es intencionado · **INCONCLUSO** = la tabla o columna no existe con ese nombre · **CONTROL ROTO** = la prueba de control falló (resultados no fiables). Necesita una cuenta por rol; si falta alguna, esas pruebas se omiten.
+
+**Repítelas tras cada migración importante y antes de un lanzamiento grande.**
+
+### Resultado (13 de octubre de 2026)
+
+- 152 comprobaciones por rol: 147 correctas, **0 fallos reales**, 3 avisos explicados (falso positivo), 1 inconcluso, 1 informativa.
+- Sin sesión, no se puede leer ni escribir nada sensible. Particular, subcontratista y técnico no pueden subirse el rol, verificarse a sí mismos, ver datos de otros, leer webhooks ni usar funciones del panel.
+- **Corregido** (`0049`): cuatro funciones auxiliares (`auth_role`, `auth_empresa_id`, `cuenta_verificada`, `rls_auto_enable`) eran ejecutables sin sesión; `auth_role` y `auth_empresa_id` no fijaban `search_path`. Verificado tras la corrección.
+- **Falso positivo**: `panel_estado_doc()` figura como "se ejecutó sin ser admin"; es una función auxiliar que solo traduce un estado y no devuelve datos.
+- **Informativo / intencionado**: buckets públicos `avatares` y `obras-fotos` (**nunca guardar datos personales ahí**); `campos_registro` y `documentos_requeridos` legibles sin sesión (necesario para el formulario de registro).
+- **Mejora futura**: limitar a usuarios con sesión las políticas de almacenamiento definidas para el rol `public`.
+- **Pendiente de completar**: probar el rol promotor/constructora (no había cuenta); ajustar la prueba de comisiones (el nombre de la tabla es otro).
+- **Límites**: son pruebas internas de permisos y datos. No sustituyen un test de intrusión externo ni cubren la infraestructura de terceros, la disponibilidad ni el abuso por volumen.
+
+### Revisiones anteriores
+
+RLS activo en todas las tablas; políticas antiguas siempre eliminadas antes de recrearse; ninguna traza de `service_role`. La corrección más importante histórica es la `0022`. Siguen siendo decisiones de producto, no fallos: los datos de contacto del Tablón y el Directorio los ve cualquier cuenta registrada (y registrarse es libre).
+
+---
+
+## Web pública y páginas legales
+
+Publicadas con GitHub Pages desde la carpeta `docs/` de este repo (público): `https://ohcasas.github.io/OhSubcontrata2/`.
+
+| Página | Archivo |
+|---|---|
+| Portada de la app | `docs/index.html` |
+| Política de privacidad | `docs/privacidad.html` |
+| Eliminar cuenta (sin la app instalada) | `docs/eliminar-cuenta.html` |
+| Aviso legal | `docs/aviso-legal.html` |
+| Términos y condiciones | `docs/terminos.html` |
+| Confirmación de registro (destino del correo de Supabase) | `docs/confirmado.html` |
+| Nueva contraseña (destino del enlace de recuperación) | `docs/nueva-contrasena.html` |
+| Panel de gestión | `docs/panel/index.html` |
+
+- Los textos legales llevan los datos de 3B GROUP. Son un **borrador redactado sin asesoría legal**: hay que hacerlos revisar por un abogado.
+- Privacidad y eliminar cuenta se enlazan en Play Console; privacidad, aviso legal y términos, desde dentro de la app (`constants/enlaces.ts`). "Eliminar cuenta" es también un botón del Perfil.
+- Tras editar un HTML de `docs/`, `git push`; GitHub Pages tarda 1-2 minutos.
+- **No cambies los nombres de estos archivos**: la portada y la app los enlazan con rutas relativas.
+
+### La portada (`docs/index.html`)
+
+Un único archivo, sin nada externo (fuente y logo incrustados), sin cookies ni analítica ni peticiones a terceros, así que no necesita aviso de cookies. Si algún día se añade analítica o un formulario de contacto, hay que actualizar la política de privacidad y añadir aviso de cookies.
+
+- **Enlace de Google Play**: al final del archivo, en `ENLACE_GOOGLE_PLAY`. Mientras esté vacío, los botones dicen "Próximamente en Google Play"; al pegarlo, pasan solos a "Descargar en Google Play".
+- Mantén al día a mano: "de momento, solo para Android", "durante el lanzamiento es gratis" (debe coincidir con el apartado de los términos), las fichas de cada perfil (lo que se pide al registrarse, de `campos_registro` y `documentos_requeridos`) y los textos de los avisos de ejemplo.
+- No lleva precios ni porcentajes de comisión, a propósito.
+- Estilo "cristal translúcido": se controla con variables CSS al principio. No subas el desenfoque de la barra flotante por encima de ~20 px, y no pongas `filter` ni `opacity` fija en un bloque con cristal dentro. Todo pasa a fondos sólidos si el navegador no lo soporta o la persona reduce la transparencia/movimiento.
+- Cada nodo del dibujo lleva a la ficha de su perfil (`#promotor`, `#constructora`, `#arquitecto`, `#profesional`, `#proveedor`, `#oficios`, `#inmobiliaria`, `#recomendador`).
+
+---
+
+## Publicación: Google Play y iPhone
+
+### Google Play (cuenta de organización de OH Casas)
+
+- Estado: prueba interna disponible; prueba abierta y producción en revisión de Google.
+- Antes de publicar, en Play Console → Panel → "Configurar tu aplicación": política de privacidad, acceso a la app, anuncios (no), clasificación de contenido, público objetivo, seguridad de los datos, eliminación de cuenta (URL de `eliminar-cuenta.html`) y ficha principal (textos de `textos_ficha_play_store.txt`).
+- **Acceso a la app**: da las credenciales de una cuenta de revisor **ya verificada** (si el equipo de Google se registra por su cuenta, queda en "pendiente" y no puede probar nada).
+- Para pasar a producción con la misma versión: Producción → Crear versión → "Añadir desde la biblioteca" → elegir el build aprobado. Recomendado: **publicación manual** y **lanzamiento progresivo** (10-20 %).
+- Cuando se publique: pegar el enlace en `ENLACE_GOOGLE_PLAY` (portada).
+- Quitar una app antigua: si nunca se publicó, Configuración avanzada → Eliminar aplicación; si ya se publicó, solo se puede **anular su publicación**.
+
+### iPhone / App Store (pendiente)
+
+Se puede compilar sin Mac (`eas build --platform ios`), pero hace falta:
+- Cuenta de **Apple Developer** (99 $/año; para empresa, número D-U-N-S).
+- Clave **APNs** para las notificaciones (`eas credentials`) y `ios.bundleIdentifier` en `app.config.ts`.
+- **Borrado de cuenta desde dentro de la app** (Apple lo exige; hoy existe en el Perfil).
+- **Pagos**: si se cobran suscripciones digitales por usar funciones de la app, Apple suele exigir su sistema de compras integradas (con comisión). Decidirlo antes de activar Stripe.
+- Cuenta de revisor, y TestFlight para probar en un iPhone real.
+
+---
+
+## Configuración y cómo arrancar
+
+`apps/mobile/.env` (no está en el repo):
+
+```
+EXPO_PUBLIC_SUPABASE_URL=https://vvghqtwwrwdtekropavo.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key del proyecto>
+```
+
+Para compilar con EAS, esas dos variables están en **dos sitios**: como respaldo en `eas.json` y como fuente real en el panel de Expo (Project → Environment variables). Si cambian, actualiza los dos. La clave `anon` no es secreta; la `service_role` no debe estar en ninguno.
+
+Para desarrollar: ver los apartados 4, 6 y 7 de [Comandos de actualización](#comandos-de-actualización).
+
+---
+
+## Estructura del repo
+
+```
+OhSubcontrata2/
+├── apps/mobile/
+│   ├── app.config.ts            # nombre, icono, splash, paquete, EAS projectId, plugins
+│   ├── eas.json                 # perfiles de build + variables de respaldo
+│   ├── google-services.json     # Firebase (b-conecta), para push en Android
+│   ├── tailwind.config.js       # escala de color y tipografía: fuente única de estilos
+│   ├── src/
+│   │   ├── design-system/tokens.js
+│   │   ├── constants/           # niveles, enlaces (páginas legales), perfiles, stripe
+│   │   ├── utils/               # plazos, moneda (euros sin Intl), texto (sin tildes), documentoFiscal
+│   │   ├── services/            # supabase, storage, pushNotifications, sesion, catalogoRegistro
+│   │   ├── navigation/          # RootNavigator (decide qué ve cada rol) y las pestañas de cada rol
+│   │   ├── components/          # ScreenHeader, AnimatedTabBar, CamposDinamicos, TarjetaComisionFlotante...
+│   │   └── screens/             # auth, obras, postulaciones, partner, notificaciones, recomienda, conecta, perfil, admin
+│   └── assets/branding/         # logo, iconos y pantalla de carga
+├── docs/                        # web pública, páginas legales y panel (GitHub Pages)
+│   └── panel/index.html
+├── seguridad/                   # pruebas de seguridad (SQL)
+├── supabase/
+│   ├── migrations/              # 0001 → 0049
+│   └── seed_*.sql
+└── packages/shared-types/
+```
+
+---
+
+## Suscripciones y Stripe
+
+Preparado, **no conectado**:
+
+- Cada cuenta de los 6 perfiles de pago nace con una fila en `suscripciones` en estado `pendiente_pago` y sin precio (se calcula al activar el cobro). **No bloquea nada**: bloquear antes de poder cobrar dejaría a la gente sin forma de pagar ni de entrar.
+- El precio mensual de cada rol vive en `precios_suscripcion` (provisional).
+- **Precio fundador**: las primeras *N* cuentas de promotor/constructora por orden de registro pagan `precio_fundador` durante `meses` meses **contados desde que empiece el cobro**. Vive en `programa_fundador` y `precio_aplicable(profile_id)` calcula qué le toca a cada cuenta. El número de plazas está **vacío a propósito**: **hay que fijarlo antes de activar el cobro** con `update programa_fundador set plazas = N;`
+- La clave pública de Stripe está en `constants/stripe.ts` (no es secreta). **La clave secreta nunca va en la app ni en el repo**: se pone como variable de una Edge Function de Supabase.
+- Falta: guardar `precio_aplicable()` en `suscripciones.precio_mensual` al activar; la Edge Function que hable con Stripe; el webhook de eventos de suscripción; el SDK `@stripe/stripe-react-native` (librería nativa: exige compilar de nuevo); y la pantalla de pago. En iPhone, valorar las normas de pago de Apple.
+
+---
 
 ## Email transaccional (Resend)
 
-- Dominio `ohcasas.es` verificado en Resend (DNS en Hostinger: 1 TXT de DKIM + 2 CNAME). Remitente: `software@ohcasas.es`. Supabase → Authentication → SMTP Settings → *Sender name* debe decir **OH Conecta**.
-- El enlace de confirmación usa `emailRedirectTo` apuntando a `docs/confirmado.html`, y el de recuperar contraseña a `docs/nueva-contrasena.html`. **Las dos URLs tienen que estar en la lista blanca de Supabase** (Authentication → URL Configuration → Redirect URLs); si falta una, Supabase ignora la redirección y manda a la página por defecto. La antigua `portal-subcontratas-reset` solo sabía recuperar contraseñas y se quedaba colgada.
-- **Al probar**: registrar un email que ya existe devuelve "200, todo bien" pero **no envía nada ni crea cuenta** (Supabase lo hace a propósito para no revelar qué emails están registrados). Para probar cada perfil, usa alias: `tunombre+arquitecto@gmail.com` llega a la misma bandeja y cuenta como email distinto.
+- Dominio `ohcasas.es` verificado en Resend (DNS en Hostinger: 1 TXT de DKIM + 2 CNAME). Remitente: `software@ohcasas.es`. Supabase → Authentication → SMTP Settings → *Sender name* debe decir **3B Conecta**.
+- La confirmación usa `emailRedirectTo` → `docs/confirmado.html`; recuperar contraseña → `docs/nueva-contrasena.html`. **Las dos URLs tienen que estar en Redirect URLs de Supabase** (Authentication → URL Configuration); si falta una, Supabase ignora la redirección.
+- **Al probar**: registrar un correo que ya existe devuelve "200, todo bien" pero no envía nada ni crea cuenta (Supabase lo hace a propósito). Para probar cada perfil usa alias: `tunombre+arquitecto@gmail.com` llega a la misma bandeja y cuenta como correo distinto.
 
-## Seguridad
-
-Revisión hecha sobre las 15 tablas originales: RLS activo en todas, políticas antiguas siempre eliminadas antes de recrearse, buckets con la visibilidad correcta, y ninguna traza de la `service_role key` en la app. La corrección más importante es la `0022`.
-
-Las tablas de OH Conecta (`0024`-`0027`) pasaron su propio pase de seguridad en octubre de 2026. Estaban bien: RLS activo, todo exige sesión, y las tablas de recomendaciones, comisiones y suscripciones solo se escriben desde funciones `security definer` o por admin. Se cerraron dos fallos menores en `0029` (un proveedor podía guardar su ficha como "arquitecto"; un promotor podía convertir su necesidad en un "aviso"). Siguen siendo decisiones de producto, no fallos: los datos de contacto del Tablón y el Directorio los ve cualquier cuenta registrada (y registrarse es libre), y no hay límite de recomendaciones por día.
+---
 
 ## Pendiente
 
-**Depende de decisiones o de terceros**
+**Decisiones o terceros**
 
-1. **Revisión legal de los textos** (privacidad, términos, aviso legal). Lo más delicado: la base legal para tratar datos de **clientes recomendados** (hoy se apoya en que quien recomienda confirma el consentimiento, que es débil) y el aviso a esa persona en el primer contacto.
-2. **Suscripciones con Stripe** (ver arriba). Faltan por decidir: **cuántas plazas fundador** (yo pondría entre 10 y 20), si los importes llevan IVA y el precio de Oficios si finalmente paga suscripción.
-3. **Comisión por obra de Oficios**: falta decidir el porcentaje y sobre qué importe.
-4. **Cómo se pagan las comisiones** de recomendación a personas particulares (factura, retención de IRPF...): decisión fiscal de OH. La app solo registra el acuerdo y, desde `0029`, que ya se ha pagado.
-5. **OH Score**, **OH Wallet** e **invitaciones entre profesionales**: descritos en el documento de Dirección, sin decidir ni construir.
+1. **Revisión legal** de privacidad, términos y aviso legal. Lo más delicado: la base legal para tratar datos de **clientes recomendados** y la relación entre OH Casas (cuenta de Play) y 3B GROUP (responsable de datos).
+2. **Suscripciones con Stripe**: plazas fundador, IVA, precio de Oficios, y cómo encaja con Apple en iPhone.
+3. **Comisión por obra de Oficios**: porcentaje e importe base.
+4. **Cómo se pagan las comisiones** de recomendación a particulares (factura, retención de IRPF…): decisión fiscal.
+5. **Versión iPhone** (ver arriba).
+6. **Conexión con Odoo** desde Apps Script.
+7. **Dominio propio** para la web y los enlaces legales, en lugar de `ohcasas.github.io`.
 
 **Tareas manuales**
 
-6. Añadir `https://ohcasas.github.io/OhSubcontrata2/nueva-contrasena.html` a Redirect URLs de Supabase, si no está.
-7. Cambiar el nombre de la ficha en Play Console ("OH Contratas" → "OH Conecta") y el *Sender name* del email en Supabase.
-8. **Play Console → Contenido de la app → Acceso a la app**: dar las credenciales de una cuenta de prueba **ya verificada** (si el equipo de revisión de Google se registra por su cuenta, se queda en "pendiente" y no puede probar nada).
-9. Opcional: el aviso al móvil del admin ya funciona solo; si además se quiere correo, se puede configurar en n8n el webhook `cuenta.pendiente`.
-10. **Configurar los webhooks que quieras** (apartado "Webhooks"): lo más útil, `recomendacion.creada` hacia Odoo y `cuenta.pendiente` / `documentacion.completa` hacia un correo o un mensaje al equipo.
-11. **Validar con una gestoría la lista de documentos de cada perfil** (`documentos_requeridos`) y los campos (`campos_registro`): son una propuesta de partida. Y ajustar las consultas del apartado anterior si cambia algo.
-12. Si OH **rechaza o elimina una cuenta desde el panel de Supabase** (no desde la app), sus archivos quedan en el almacén `documentos-verificacion`: hay que borrarlos a mano desde Storage (Supabase no deja hacerlo desde SQL).
+8. Esperar la aprobación de Play, publicar y pegar el enlace en `ENLACE_GOOGLE_PLAY`.
+9. Probar el flujo completo en producción con cuentas de prueba (particular → petición → revisión → visita → oferta → adjudicación) comprobando avisos y panel.
+10. Crear una cuenta de promotor/constructora y repetir la prueba de seguridad por roles.
+11. Añadir `nueva-contrasena.html` y `confirmado.html` a Redirect URLs de Supabase, si no están; cambiar el *Sender name* a "3B Conecta".
+12. Validar con una gestoría la lista de documentos de cada perfil.
+13. Si una cuenta se rechaza o elimina desde el panel de Supabase (no desde la app), sus archivos quedan en el almacén `documentos-verificacion`: bórralos a mano desde Storage.
+14. Guardar una copia de la keystore de firma. Borrar el proyecto de Expo sobrante, si lo hay.
+15. Limitar a usuarios con sesión las políticas de almacenamiento definidas para el rol `public`; valorar doble verificación para cuentas admin.
 
-**Mantenimiento**
+**Mantenimiento**: dependencias que `npx expo-doctor` marque desactualizadas.
 
-8. Dependencias que `npx expo doctor` marca como ligeramente desactualizadas.
+---
 
 ## Límites conocidos, aceptados por ahora
 
-- Cada persona tiene **un solo rol** (`profile_roles` está preparado pero sin usar).
-- **Licitaciones de terceros**: máximo 10 abiertas por cuenta; sin moderación previa (el admin las ve en *Obras* y puede cancelarlas); los oficios no saben aún, en la lista, quién las publica; no hay valoración de la empresa por el dueño ni aviso a los oficios cuando se publica una nueva; el borrado de cuenta se bloquea mientras haya una abierta o en marcha.
-- Los oficios todavía no tienen ficha en el Directorio ni lo ven.
-- **Verificación**: es manual (nadie comprueba el CIF automáticamente) y vale también para los Oficios nuevos, que antes entraban sin revisión. El token de una cuenta suspendida sigue siendo válido hasta 1 hora, pero todas las lecturas y escrituras están bloqueadas en la base de datos desde el primer segundo. Una cuenta suspendida con una licitación abierta no puede borrarse hasta que alguien la cancele (el admin puede desde Obras).
-- **Tokens de push viejos**: al reinstalar la app queda un token antiguo en `push_tokens` (Expo lo rechaza como `DeviceNotRegistered`, pero nada lo borra todavía): no molesta, solo hace envíos inútiles
-- **Documentos**: un archivo por tipo de documento (si hay que subir varias páginas, una sola foto o PDF); solo PDF, JPG, PNG y WebP, hasta 10 MB. Al sustituir un documento, el archivo anterior queda en el almacén (el borrado de cuenta lo elimina junto a los demás). Los documentos de una cuenta rechazada se conservan hasta que alguien pida borrarlos
-- Sin límite de recomendaciones por usuario y día, y los datos de contacto del Tablón y el Directorio son visibles para cualquier cuenta registrada.
-- El buscador del Tablón y el Directorio filtra en el móvil sobre lo ya cargado; con cientos de entradas habría que pasarlo al servidor.
-- **Eliminar cuenta** está bloqueado para admin/superadmin (se dan de baja a mano) y para quien tenga una comisión pendiente o aceptada sin cobrar (el mensaje le dirige a `software@ohcasas.es`).
-- Si dos personas inician sesión en el mismo móvil, el token de push queda asociado a ambas.
-- Al eliminar una obra, sus archivos de Storage quedan huérfanos en el bucket.
+- Cada persona tiene **un solo rol**.
+- **Licitaciones de terceros**: máximo 10 abiertas por cuenta; sin moderación previa (el admin las ve y puede cancelarlas); sin valoración de la empresa por el dueño; el borrado de cuenta se bloquea mientras haya una abierta o en marcha.
+- Los oficios todavía no tienen ficha en el Directorio.
+- **Verificación manual**: nadie comprueba el CIF automáticamente. El token de una cuenta suspendida sigue siendo válido hasta 1 hora, pero las lecturas y escrituras están bloqueadas en la base de datos desde el primer segundo.
+- **Tokens de push viejos**: al reinstalar queda uno antiguo (Expo lo rechaza como `DeviceNotRegistered`; no molesta, solo hace envíos inútiles).
+- **Documentos**: un archivo por tipo (varias páginas, en un solo PDF o foto); PDF, JPG, PNG y WebP hasta 10 MB; al sustituir uno, el anterior queda en el almacén hasta borrar la cuenta.
+- Sin límite de recomendaciones por usuario y día.
+- El buscador del Tablón y el Directorio filtra en el móvil sobre lo cargado; con cientos de entradas habría que pasarlo al servidor.
+- **Eliminar cuenta** está bloqueado para admin/superadmin (se dan de baja a mano) y para quien tenga una comisión pendiente o aceptada sin cobrar.
+- Al eliminar una obra, sus archivos de Storage quedan huérfanos.
 - La pantalla de carga de Android solo puede mostrar un icono sobre un color de fondo (limitación del sistema desde Android 12).
-- `Intl.NumberFormat` con moneda no es fiable en Hermes/Android (puede mostrar "$" en vez de "€"): por eso `utils/moneda.ts` formatea a mano. Por la misma razón `utils/texto.ts` quita las tildes con una tabla en vez de `normalize()`.
+- `Intl.NumberFormat` con moneda no es fiable en Hermes/Android: por eso `utils/moneda.ts` formatea a mano. Por la misma razón `utils/texto.ts` quita las tildes con una tabla en vez de `normalize()`.
+
+---
 
 ## Trampas conocidas
 
-Cosas que ya han costado tiempo y conviene no repetir:
+Cosas que ya han costado tiempo:
 
-1. **Mayúsculas en los nombres de archivo**: Windows no distingue, pero EAS compila en Linux y sí. Renombrar solo la capitalización desde el Explorador no basta: Git no lo ve. Usa `git mv` y comprueba cómo está registrado con `git ls-files apps/mobile/src | findstr /i NombreArchivo`.
-2. **EAS compila lo que hay en GitHub**, no lo que hay en tu ordenador. Haz `git push` antes de `eas build`.
-3. **No debe existir un `app.json` junto a `app.config.ts`**: `eas credentials` y otros comandos leen solo el primero.
+1. **Mayúsculas en nombres de archivo**: Windows no distingue, EAS compila en Linux y sí. Renombrar solo la capitalización desde el Explorador no basta: usa `git mv` y comprueba con `git ls-files`.
+2. **EAS compila lo que hay en GitHub**, no lo que hay en tu ordenador: `git push` antes de `eas build`.
+3. **No debe existir un `app.json` junto a `app.config.ts`**: algunos comandos de EAS leen solo el primero.
 4. **El paquete, la keystore y `google-services.json` van juntos** (ver Identificadores).
-5. **Nombres de funciones SQL y llamadas de la app**: si renombras una función en una migración, busca sus llamadas (`supabase.rpc('...')`) en la app. Ya falló una vez (`aceptar_comision_referido` → `aceptar_recompensa_referido`).
-6. **Play Store sirve la versión con el número más alto** entre todas las pistas de prueba en las que esté la misma cuenta. Si una prueba abierta tiene un número mayor que la interna, instalará la abierta.
-7. **En PL/pgSQL, un `IF` con condición NULL cuenta como falso**: `if auth_role() not in (...) then raise exception` no salta si no hay sesión. Comprueba `auth.uid() is null` antes.
+5. **Nombres de funciones SQL y llamadas de la app**: si renombras una función en una migración, busca sus llamadas (`supabase.rpc('...')`) en la app.
+6. **Play sirve la versión con el número más alto** entre todas las pistas en las que esté la misma cuenta.
+7. **En PL/pgSQL, un `IF` con condición NULL cuenta como falso**: `if auth_role() not in (...) then raise exception` no salta sin sesión. Comprueba `auth.uid() is null` antes.
+8. **`profiles` solo deja editar 4 columnas** (`grant update (nombre_completo, telefono, bio, avatar_url)`, `0016`). Nunca hagas un `grant update on profiles` a secas: abriría `role` y `estado_cuenta` (un usuario podría ascenderse a admin).
+9. **Orden al desplegar**: primero el SQL, luego la versión nueva de la app.
+10. **Un estado nuevo en un `enum` exige revisar la app**: todo `Record<Estado, …>` necesita el estado nuevo o un valor por defecto, o la pantalla se rompe y la app se cierra al arrancar.
+11. **Las funciones auxiliares de permisos (`auth_role`, `auth_empresa_id`, `cuenta_verificada`) no son ejecutables por `anon`** desde `0049`. Al crear una función auxiliar nueva, revoca `execute` a `public` y `anon` y fija `set search_path = public`.
+12. **Pruebas de seguridad con tablas simplificadas** dan falsos avisos (sin RLS real): ejecútalas siempre sobre el Supabase real.
+13. **Una URL de Apps Script con acceso restringido da 403** a Supabase: la implementación debe ser "ejecutar como yo" y acceso "Cualquier usuario". Y la URL no debe duplicarse (`.../s/https://...`).
+14. **Con más de un dispositivo conectado, `adb` exige `-s CODIGO`**.
+15. **Claves por chat, nunca**: si pasa, rótala (ver comandos, apartado 14).
 
-8. **Las columnas de `profiles` que edita el usuario están limitadas con `grant update (nombre_completo, telefono, bio, avatar_url)` (0016).** Por eso `role` y `estado_cuenta` no se pueden cambiar a mano. No hagas nunca un `grant update on profiles` a secas: abriría esas dos columnas (un usuario podría ascenderse a admin o aprobarse a sí mismo).
-9. **Orden al desplegar un cambio de base de datos que la app ya consulta**: primero el SQL, después la versión nueva. Si la app pide una columna que aún no existe, todos verán un error de carga.
+---
 
-## Usuarios de prueba
+## Para un/a desarrollador/a nuevo/a
 
-- Oficios: perfil vinculado a "Empresa de Prueba SL"
-- Admin: perfil con `role='admin'`, sin `empresa_id`
-- Para el resto de perfiles, crea cuentas con alias de email (ver Email transaccional)
+1. **Código**: acceso a `github.com/ohcasas/OhSubcontrata2` y `git clone`.
+2. **Herramientas**: Node.js 20+, Git, `npm install -g eas-cli`, y la development build en el móvil.
+3. **Pide a Ainhoa**: `apps/mobile/.env`, `apps/mobile/google-services.json` y un usuario de prueba de cada tipo de cuenta que vayas a tocar.
+4. **Accesos extra** (si el correo es distinto): Supabase → Project Settings → Team; EAS → expo.dev → Settings → Members + `eas login`; Firebase → proyecto `b-conecta` → Usuarios y permisos; Play Console → Usuarios y permisos.
+5. Lee [Trampas conocidas](#trampas-conocidas) antes de tocar nada.
 
-(Credenciales compartidas por canal separado.)
+### Usuarios de prueba
+
+- Admin: perfil con `role='admin'`, sin `empresa_id`.
+- Técnico: alias `tucorreo+tecnico@...` dado de alta desde el panel.
+- Particular y subcontratista de prueba: cuentas con alias de correo.
+- (Credenciales compartidas por canal separado. No las pongas aquí.)
