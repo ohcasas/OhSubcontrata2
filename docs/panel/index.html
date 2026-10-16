@@ -117,6 +117,7 @@
   .panel > header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--linea); gap:12px; }
   .panel .cuerpo { padding:14px; }
   .dos { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:16px; }
+  .nota { border-top:1px solid var(--linea2); padding:10px 0; } .nota p { margin:0 0 4px; white-space:normal; }
   .ficha { display:grid; grid-template-columns:290px minmax(0,1fr); gap:16px; align-items:start; }
   @media (max-width:980px) { .dos, .ficha { grid-template-columns:1fr; } }
   dl.datos { margin:0; } dl.datos div { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--linea2); }
@@ -261,7 +262,7 @@ const ETIQ_ROL = { arquitecto:'Arquitecto', profesional:'Profesional', promotor:
 const DOC_ESTADO = { vigente:['ok','Vigente'], por_caducar:['aviso','Caduca pronto'], caducado:['mal','Caducado'], pendiente:['aviso','Pendiente de revisión'], rechazado:['mal','Rechazado'], faltante:['falta','Sin subir'] };
 const SEM = { verde:['ok','Al día'], ambar:['aviso','Pendiente'], rojo:['mal','Incidencia'] };
 const CUENTA = { verificada:['ok','Verificada'], pendiente:['aviso','Por verificar'], suspendida:['mal','Suspendida'] };
-const ACCION = { documento_subido:'Subió', documento_aprobado:'Aprobó', documento_rechazado:'Rechazó' };
+const ACCION = { documento_subido:'Subió', documento_aprobado:'Aprobó', documento_rechazado:'Rechazó', 'cuenta.editada':'Editó la cuenta', 'cuenta.eliminada':'Eliminó la cuenta' };
 const marca = (par) => par ? `<span class="e ${par[0]}">${esc(par[1])}</span>` : '';
 const estadoDoc = (k) => marca(DOC_ESTADO[k] || ['neutro', k]);
 const semaforo = (k) => marca(SEM[k] || ['neutro', '—']);
@@ -319,7 +320,14 @@ document.addEventListener('click', (e) => {
 // ───────────────────────── Datos ─────────────────────────
 let sb = null; let yo = null; let cacheEmpresas = null;
 async function rpc(nombre, args) { const { data, error } = await sb.rpc(nombre, args || {}); if (error) throw error; return data; }
-async function empresas(forzar) { if (forzar || !cacheEmpresas) cacheEmpresas = await rpc('panel_empresas'); return cacheEmpresas; }
+async function empresas(forzar) {
+  if (forzar || !cacheEmpresas) {
+    const [lista, extra] = await Promise.all([rpc('panel_empresas'), rpc('panel_cuentas_extra').catch(() => [])]);
+    const m = new Map((extra || []).map((x) => [x.profile_id, x]));
+    cacheEmpresas = lista.map((e) => Object.assign({ especialidad: null, zona: null, alta: null, notas: 0 }, e, m.get(e.profile_id) || {}));
+  }
+  return cacheEmpresas;
+}
 function invalidar() { cacheEmpresas = null; actualizarContador(); }
 async function actualizarContador() {
   try { const r = await rpc('panel_resumen'); const c = $('#cnt-revision'); c.textContent = r.por_revisar; c.classList.toggle('hidden', !r.por_revisar); } catch (e) {}
@@ -422,7 +430,9 @@ const colEmpresa = [
   { t: 'Al día', f: (e) => `${e.aprobados} de ${e.requeridos}`, s: (e) => e.requeridos ? e.aprobados / e.requeridos : 1, cls: 'der' },
   { t: 'Incidencias', f: incidencias },
   { t: 'Trabajadores', f: (e) => e.trabajadores, s: (e) => e.trabajadores, cls: 'der' },
-  { t: 'Próxima caducidad', f: (e) => caduca(e.proxima_caducidad), s: (e) => e.proxima_caducidad }
+  { t: 'Próxima caducidad', f: (e) => caduca(e.proxima_caducidad), s: (e) => e.proxima_caducidad },
+  { t: 'Especialidad', f: (e) => esc(e.especialidad || '—'), s: (e) => String(e.especialidad || '').toLowerCase() },
+  { t: 'Zona', f: (e) => esc(e.zona || '—'), s: (e) => String(e.zona || '').toLowerCase() }
 ];
 const colTrabajador = (conCuenta) => [
   { t: 'Estado', f: (t) => t.activo ? semaforo(t.semaforo) : '<span class="e neutro">Baja</span>', s: (t) => t.activo ? ordSem[t.semaforo] : 3 },
@@ -520,25 +530,42 @@ async function vistaRevision(v) {
     } }], cola, 'No hay documentos pendientes de revisión.')}</div>`;
 }
 
+let visibles = [];
+function descargarCSV(nombre, cabecera, filas) {
+  const celda = (x) => { let t = x == null ? '' : String(x); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+  const txt = '\ufeff' + [cabecera, ...filas].map((f) => f.map(celda).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+  a.download = nombre + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  aviso('Archivo descargado. Ábrelo con Excel o impórtalo en Notion.');
+}
 async function vistaEmpresas(v) {
   const todas = await empresas(true);
   const q = new URLSearchParams((location.hash.split('?')[1]) || '');
   const roles = [...new Set(todas.map((e) => e.role))];
-  v.innerHTML = `<div class="cab"><div><h1>Empresas</h1><p class="suave">Todas las cuentas y el estado de su documentación.</p></div></div>
+  const unicos = (k) => [...new Set(todas.map((e) => e[k]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+  const espec = unicos('especialidad'), zonas = unicos('zona');
+  v.innerHTML = `<div class="cab"><div><h1>Empresas</h1><p class="suave">Todas las cuentas y el estado de su documentación.</p></div><button class="btn" id="exportar-emp">Exportar a CSV</button></div>
   <div class="herramientas"><input type="search" id="f-texto" placeholder="Buscar por nombre, empresa, CIF o correo" aria-label="Buscar" />
     <select id="f-sem" aria-label="Estado"><option value="">Todos los estados</option><option value="rojo">Con incidencias</option><option value="ambar">Pendientes</option><option value="verde">Al día</option><option value="pendiente">Cuenta por verificar</option></select>
-    <select id="f-rol" aria-label="Perfil"><option value="">Todos los perfiles</option>${roles.map((r) => `<option value="${esc(r)}">${esc(ETIQ_ROL[r] || r)}</option>`).join('')}</select></div>
+    <select id="f-rol" aria-label="Perfil"><option value="">Todos los perfiles</option>${roles.map((r) => `<option value="${esc(r)}">${esc(ETIQ_ROL[r] || r)}</option>`).join('')}</select>
+    <select id="f-esp" aria-label="Especialidad"><option value="">Todas las especialidades</option>${espec.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select>
+    <select id="f-zona" aria-label="Zona"><option value="">Todas las zonas</option>${zonas.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('')}</select></div>
   <div class="panel" id="lista"></div>`;
   if (q.get('f')) $('#f-sem').value = q.get('f');
   if (!ORDEN.empresas) ORDEN.empresas = { i: 0, dir: 'asc' };
   const pintar = () => {
-    const t = $('#f-texto').value.trim().toLowerCase(), s = $('#f-sem').value, r = $('#f-rol').value;
+    const t = $('#f-texto').value.trim().toLowerCase(), s = $('#f-sem').value, r = $('#f-rol').value, sp = $('#f-esp').value, zn = $('#f-zona').value;
     const lista = todas.filter((e) => (!t || [e.nombre_completo, e.empresa, e.cif, e.email].some((x) => String(x || '').toLowerCase().includes(t))) &&
-      (!s || (s === 'pendiente' ? e.estado_cuenta === 'pendiente' : e.semaforo === s)) && (!r || e.role === r));
+      (!s || (s === 'pendiente' ? e.estado_cuenta === 'pendiente' : e.semaforo === s)) && (!r || e.role === r) && (!sp || e.especialidad === sp) && (!zn || e.zona === zn));
+    visibles = lista;
     $('#lista').innerHTML = htmlTabla('empresas', colEmpresa, lista, 'Ninguna cuenta coincide con los filtros.', (e) => '#/empresa/' + e.profile_id);
   };
-  ['f-texto', 'f-sem', 'f-rol'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
-  $('#lista').addEventListener('click', () => setTimeout(() => {}, 0));
+  ['f-texto', 'f-sem', 'f-rol', 'f-esp', 'f-zona'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+  $('#exportar-emp').onclick = () => descargarCSV('cuentas-3b-conecta', ['Empresa', 'Contacto', 'Perfil', 'Correo', 'Teléfono', 'CIF', 'Especialidad', 'Zona', 'Cuenta', 'Documentación', 'Documentos al día', 'Trabajadores', 'Próxima caducidad', 'Alta'],
+    visibles.map((e) => [e.empresa, e.nombre_completo, ETIQ_ROL[e.role] || e.role, e.email, e.telefono, e.cif, e.especialidad, e.zona, (CUENTA[e.estado_cuenta] || [])[1] || e.estado_cuenta,
+      { verde: 'Al día', ambar: 'Pendiente', rojo: 'Con incidencias' }[e.semaforo] || '', e.aprobados + ' de ' + e.requeridos, e.trabajadores, e.proxima_caducidad || '', e.alta ? String(e.alta).slice(0, 10) : '']));
 }
 
 async function vistaEmpresa(v, id, pestana) {
@@ -550,12 +577,16 @@ async function vistaEmpresa(v, id, pestana) {
   const ctx = { origen: 'cuenta', profile: id };
   v.innerHTML = `<div class="miga"><a href="#/empresas">Empresas</a> / ${esc(e.empresa || e.nombre_completo)}</div>
   <div class="cab"><div><h1>${esc(e.empresa || e.nombre_completo)}</h1><p>${semaforo(e.semaforo)} &nbsp; ${marca(CUENTA[e.estado_cuenta])}</p></div>
-    <div>${e.estado_cuenta !== 'verificada' ? `<button class="btn primario" data-act="estado-cuenta" data-id="${esc(id)}" data-nuevo="verificada">Verificar cuenta</button> ` : ''}
-    ${e.estado_cuenta !== 'suspendida' ? `<button class="btn mal" data-act="estado-cuenta" data-id="${esc(id)}" data-nuevo="suspendida">Suspender</button>` : ''}</div></div>
-  <div class="ficha">
+    <div><button class="btn" data-act="editar-cuenta" data-id="${esc(id)}">Editar datos</button>
+    ${e.estado_cuenta !== 'verificada' ? `<button class="btn primario" data-act="estado-cuenta" data-id="${esc(id)}" data-nuevo="verificada"${e.estado_cuenta === 'suspendida' ? ' data-reac="1"' : ''}>${e.estado_cuenta === 'suspendida' ? 'Reactivar cuenta' : 'Verificar cuenta'}</button> ` : ''}
+    ${e.estado_cuenta !== 'suspendida' ? `<button class="btn mal" data-act="estado-cuenta" data-id="${esc(id)}" data-nuevo="suspendida">Suspender</button> ` : ''}
+    <button class="btn" data-act="eliminar-cuenta" data-id="${esc(id)}" data-nombre="${esc(e.empresa || e.nombre_completo)}">Eliminar cuenta</button></div></div>
+  <div class="ficha"><div>
     <div class="panel"><header><h2>Datos</h2></header><div class="cuerpo">${listaDatos([
       ['Contacto', esc(e.nombre_completo || '—')], ['Correo', esc(e.email || '—')], ['Teléfono', esc(e.telefono || '—')], ['CIF', esc(e.cif || '—')],
-      ['Perfil', esc(ETIQ_ROL[e.role] || e.role)], ['Al día', `${e.aprobados} de ${e.requeridos} obligatorios`], ['Próxima caducidad', fecha(e.proxima_caducidad)]])}</div></div>
+      ['Perfil', esc(ETIQ_ROL[e.role] || e.role)], ['Especialidad', esc(e.especialidad || '—')], ['Zona', esc(e.zona || '—')], ['Alta', fecha(e.alta)],
+      ['Al día', `${e.aprobados} de ${e.requeridos} obligatorios`], ['Próxima caducidad', fecha(e.proxima_caducidad)]])}</div></div>
+    <div class="panel" style="margin-top:16px"><header><h2>Notas internas</h2></header><div class="cuerpo" id="notas"></div></div></div>
     <div class="panel"><div class="pestanas">${[['documentos', 'Documentos'], ['trabajadores', `Trabajadores (${trabs.length})`], ['actividad', 'Actividad']].map(([k, t]) => `<button class="${k === pestana ? 'activa' : ''}" data-pest="${k}">${t}</button>`).join('')}</div>
       <div id="pestana"></div></div></div>`;
   const pintar = (p) => {
@@ -566,6 +597,7 @@ async function vistaEmpresa(v, id, pestana) {
       : tablaActividad('act', act, false);
   };
   document.querySelectorAll('.pestanas button').forEach((b) => b.addEventListener('click', () => pintar(b.dataset.pest))); pintar(pestana);
+  pintarNotas(id);
 }
 
 async function vistaTrabajadores(v) {
@@ -781,7 +813,9 @@ document.addEventListener('click', async (e) => {
     if (act === 'caducidad') return ventanaCaducidad(b.dataset.doc, ctx, b.dataset.fecha);
     if (act === 'historial') return ventanaHistorial(ctx, b.dataset.tipo);
     if (act === 'subir') return ventanaSubir(ctx, b.dataset.tipo, b.dataset.etiqueta);
-    if (act === 'estado-cuenta') return ventanaEstadoCuenta(b.dataset.id, b.dataset.nuevo);
+    if (act === 'estado-cuenta') return ventanaEstadoCuenta(b.dataset.id, b.dataset.nuevo, !!b.dataset.reac);
+    if (act === 'editar-cuenta') return ventanaEditarCuenta(b.dataset.id);
+    if (act === 'eliminar-cuenta') return ventanaEliminarCuenta(b.dataset.id, b.dataset.nombre);
     if (act === 'nuevo-trabajador') return ventanaTrabajador(null, b.dataset.id);
     if (act === 'editar-trabajador') return ventanaTrabajador(window.__trab, window.__trab.profile_id);
     if (act === 'editar-requisito') return ventanaRequisito(b.dataset.tabla, JSON.parse(b.dataset.clave));
@@ -855,15 +889,74 @@ function ventanaSubir(ctx, tipo, etiqueta) {
     } catch (err) { $('#v-ok').disabled = false; $('#v-ok').textContent = 'Subir'; errorVentana(err); }
   };
 }
-function ventanaEstadoCuenta(id, nuevo) {
+function ventanaEstadoCuenta(id, nuevo, reac) {
   const verif = nuevo === 'verificada';
-  abrirVentana(`<h2>${verif ? 'Verificar la cuenta' : 'Suspender la cuenta'}</h2>
-    <p class="suave">${verif ? 'La persona podrá usar la app con normalidad.' : 'La persona dejará de poder usar la app y recibirá el motivo.'}</p>
-    ${verif ? '' : '<label class="campo" for="v-motivo">Motivo</label><textarea id="v-motivo"></textarea>'}${pieVentana(verif ? 'Verificar' : 'Suspender', verif ? 'primario' : 'mal')}`);
+  abrirVentana(`<h2>${verif ? (reac ? 'Reactivar la cuenta' : 'Verificar la cuenta') : 'Suspender la cuenta'}</h2>
+    <p class="suave">${verif ? (reac ? 'La persona volverá a poder usar la app y recibirá un aviso.' : 'La persona podrá usar la app con normalidad.') : 'La persona dejará de poder usar la app y recibirá el motivo.'}</p>
+    ${verif ? '' : '<label class="campo" for="v-motivo">Motivo</label><textarea id="v-motivo"></textarea>'}${pieVentana(verif ? (reac ? 'Reactivar' : 'Verificar') : 'Suspender', verif ? 'primario' : 'mal')}`);
   $('[data-cerrar]').onclick = cerrarVentana;
   $('#v-ok').onclick = async () => {
     $('#v-ok').disabled = true;
     try { await rpc('cambiar_estado_cuenta', { p_profile_id: id, p_nuevo_estado: nuevo, p_motivo: verif ? null : ($('#v-motivo').value.trim() || null) }); cerrarVentana(); aviso('Cuenta actualizada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+async function ventanaEditarCuenta(id) {
+  const e = (await empresas()).find((x) => x.profile_id === id);
+  if (!e) return;
+  const v = (k) => esc(e[k] || '');
+  abrirVentana(`<h2>Editar datos</h2>
+    <div class="form-rejilla"><div><label class="campo" for="e-empresa">Empresa</label><input type="text" id="e-empresa" value="${v('empresa')}" /></div>
+    <div><label class="campo" for="e-cif">CIF</label><input type="text" id="e-cif" value="${v('cif')}" /></div>
+    <div><label class="campo" for="e-nombre">Persona de contacto</label><input type="text" id="e-nombre" value="${v('nombre_completo')}" /></div>
+    <div><label class="campo" for="e-tel">Teléfono</label><input type="text" id="e-tel" value="${v('telefono')}" /></div>
+    <div><label class="campo" for="e-esp">Especialidad</label><input type="text" id="e-esp" value="${v('especialidad')}" /></div>
+    <div><label class="campo" for="e-zona">Zona</label><input type="text" id="e-zona" value="${v('zona')}" /></div></div>
+    <p class="suave">El correo no se puede cambiar desde aquí: es el que la persona usa para entrar en la app (${esc(e.email || '—')}).</p>${pieVentana('Guardar cambios', 'primario')}`, 640);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try {
+      await rpc('panel_editar_cuenta', { p_profile_id: id, p_nombre_completo: $('#e-nombre').value, p_telefono: $('#e-tel').value, p_empresa: $('#e-empresa').value,
+        p_cif: $('#e-cif').value, p_especialidad: $('#e-esp').value, p_zona: $('#e-zona').value });
+      cerrarVentana(); aviso('Datos guardados.'); recargar();
+    } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+async function pintarNotas(id) {
+  const caja = $('#notas'); if (!caja) return;
+  let notas = [];
+  try { const r = await sb.from('notas_cuenta').select('id, texto, autor_nombre, created_at').eq('profile_id', id).order('created_at', { ascending: false }); if (r.error) throw r.error; notas = r.data || []; }
+  catch (err) { caja.innerHTML = '<p class="suave">Las notas se activan al ejecutar la migración 0052 en Supabase.</p>'; return; }
+  caja.innerHTML = `<textarea id="nota-texto" placeholder="Escribe una nota que solo verá el personal de 3B" aria-label="Nueva nota" maxlength="2000"></textarea>
+    <div style="margin:8px 0 14px"><button class="btn primario" id="nota-add">Añadir nota</button></div>
+    ${notas.length ? notas.map((n) => `<div class="nota"><p>${esc(n.texto).replace(/\n/g, '<br>')}</p><span class="suave">${esc(n.autor_nombre || 'Administración')} · ${fechaHora(n.created_at)} · <a href="#" data-nota-borrar="${esc(n.id)}">Borrar</a></span></div>`).join('') : '<p class="suave">Todavía no hay notas.</p>'}`;
+  $('#nota-add').onclick = async () => {
+    const t = $('#nota-texto').value.trim(); if (!t) return;
+    $('#nota-add').disabled = true;
+    const r = await sb.from('notas_cuenta').insert({ profile_id: id, autor_id: yo.id, autor_nombre: yo.nombre_completo || yo.email, texto: t });
+    if (r.error) { aviso(mensajeError(r.error), true); $('#nota-add').disabled = false; return; }
+    invalidar(); pintarNotas(id);
+  };
+  caja.querySelectorAll('[data-nota-borrar]').forEach((a) => a.addEventListener('click', async (ev) => {
+    ev.preventDefault();
+    if (!confirm('¿Borrar esta nota?')) return;
+    const r = await sb.from('notas_cuenta').delete().eq('id', a.dataset.notaBorrar);
+    if (r.error) { aviso(mensajeError(r.error), true); return; }
+    pintarNotas(id);
+  }));
+}
+function ventanaEliminarCuenta(id, nombre) {
+  abrirVentana(`<h2>Eliminar la cuenta</h2>
+    <p>Vas a eliminar <b>${esc(nombre)}</b>: se borran su acceso a la app, sus avisos y, si nadie más la usa, su ficha de empresa con postulaciones, canjes, documentos y puntos.</p>
+    <p class="suave">No se puede deshacer. Si solo quieres que deje de usar la app, suspéndela. Se conservan las recomendaciones y comisiones cobradas, y en Actividad queda anotado quién la eliminó.</p>
+    <label class="campo" for="v-conf">Escribe ELIMINAR para confirmar</label><input type="text" id="v-conf" autocomplete="off" />${pieVentana('Eliminar cuenta', 'mal')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').disabled = true;
+  $('#v-conf').addEventListener('input', () => { $('#v-ok').disabled = $('#v-conf').value.trim().toUpperCase() !== 'ELIMINAR'; });
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_eliminar_cuenta', { p_profile_id: id }); cerrarVentana(); aviso('Cuenta eliminada.'); location.hash = '#/empresas'; }
     catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
   };
 }
