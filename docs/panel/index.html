@@ -4,14 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Documentación</title>
+<title>Panel · 3B Conecta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
   :root {
-    --fondo:#EEF0F3; --papel:#fff; --tinta:#16202C; --suave:#5B6775; --linea:#D5DAE0; --linea2:#E7EBEF; --cab:#F7F8FA;
+    --fondo:#F4F6F9; --papel:#fff; --tinta:#16202C; --suave:#5B6775; --linea:#D5DAE0; --linea2:#E7EBEF; --cab:#F7F8FA;
     --barra:#111B2B; --barra-texto:#B4C0D0; --azul:#1747C4; --azul-hover:#10389F;
     --ok:#18794E; --aviso:#935700; --mal:#B42318;
   }
@@ -27,7 +27,7 @@
 
   /* Acceso */
   .centro { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
-  .acceso { width:100%; max-width:360px; background:var(--papel); border:1px solid var(--linea); border-radius:6px; padding:28px; }
+  .acceso { width:100%; max-width:380px; background:var(--papel); border:1px solid var(--linea); border-radius:12px; padding:28px; }
   .acceso h1 { font-size:19px; } .acceso p { margin:4px 0 0; }
   label.campo { display:block; font-weight:500; margin:16px 0 5px; }
   input[type=text],input[type=email],input[type=password],input[type=date],input[type=search],input[type=number],select,textarea {
@@ -35,7 +35,7 @@
   textarea { min-height:84px; resize:vertical; }
 
   /* Botones */
-  .btn { display:inline-flex; align-items:center; justify-content:center; padding:6px 12px; border:1px solid #B5BDC8; border-radius:4px; background:#fff; cursor:pointer; font-weight:500; white-space:nowrap; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; padding:6px 12px; border:1px solid #B5BDC8; border-radius:6px; background:#fff; cursor:pointer; font-weight:500; white-space:nowrap; }
   .btn:hover { background:#F1F4F8; }
   .btn.primario { background:var(--azul); border-color:var(--azul); color:#fff; } .btn.primario:hover { background:var(--azul-hover); }
   .btn.mal { color:var(--mal); border-color:#E0B4B0; } .btn.mal:hover { background:#FDF1F0; }
@@ -43,30 +43,77 @@
   .btn:disabled { opacity:.5; cursor:not-allowed; }
   .ancho { width:100%; margin-top:20px; padding:9px 12px; }
 
-  /* Barra superior */
-  .barra { background:var(--barra); color:#fff; display:flex; align-items:stretch; gap:28px; padding:0 24px; height:48px; position:sticky; top:0; z-index:20; }
-  .marca { display:flex; align-items:center; font-weight:600; white-space:nowrap; color:#fff; text-decoration:none; }
-  .marca:hover span { color:#fff; }
-  /* Barras de desplazamiento discretas; la del menú superior se oculta (se sigue pudiendo deslizar) */
+  /* Menú lateral */
   * { scrollbar-width:thin; scrollbar-color:#C3CCD8 transparent; }
-  .barra nav { scrollbar-width:none; } .barra nav::-webkit-scrollbar { display:none; }
   ::-webkit-scrollbar { height:8px; width:8px; } ::-webkit-scrollbar-thumb { background:#C3CCD8; border-radius:4px; } ::-webkit-scrollbar-track { background:transparent; }
-  .marca span { font-weight:400; color:var(--barra-texto); margin-left:12px; padding-left:12px; border-left:1px solid #38485F; }
-  .barra nav { display:flex; gap:22px; overflow-x:auto; flex:1; }
-  .barra nav a { color:var(--barra-texto); text-decoration:none; display:flex; align-items:center; gap:7px; border-bottom:2px solid transparent; padding-top:2px; white-space:nowrap; }
-  .barra nav a:hover { color:#fff; } .barra nav a.activo { color:#fff; border-bottom-color:#fff; }
-  .n { background:var(--mal); color:#fff; font-size:11.5px; font-weight:600; border-radius:3px; padding:0 6px; line-height:18px; }
-  .usuario { display:flex; align-items:center; gap:12px; color:var(--barra-texto); white-space:nowrap; font-size:13px; }
-  .usuario button { background:transparent; border:1px solid #38485F; color:#fff; border-radius:4px; padding:3px 10px; cursor:pointer; }
-  #vista { max-width:1280px; margin:0 auto; padding:24px 24px 64px; }
-  @media (max-width:1050px) { .barra { gap:18px; padding:0 16px; } .barra nav { gap:16px; } .usuario .nombre { display:none; } }
-  @media (max-width:760px) { .barra { padding:0 12px; gap:14px; height:auto; flex-wrap:wrap; } .marca, .usuario { height:48px; } .usuario { margin-left:auto; } .barra nav { order:3; flex:0 0 100%; height:40px; border-top:1px solid #243247; gap:18px; } .marca span, .usuario .nombre { display:none; } #vista { padding:16px 12px 56px; } }
+  #app { display:flex; min-height:100vh; }
+  #lateral { width:252px; flex-shrink:0; background:#fff; border-right:1px solid var(--linea); position:sticky; top:0; height:100vh; display:flex; flex-direction:column; padding:14px 12px 12px; overflow-y:auto; z-index:40; }
+  .logo-caja { display:block; flex-shrink:0; background:#000; border-radius:12px; overflow:hidden; margin-bottom:10px; }
+  .logo-caja img { display:block; width:100%; height:84px; object-fit:cover; object-position:center 55%; }
+  #lateral nav { flex:1 0 auto; }
+  .grupo-nav { font-size:12px; font-weight:600; color:#8693A3; margin:12px 10px 4px; }
+  .grupo-nav:first-child { margin-top:0; }
+  #lateral nav a { display:flex; align-items:center; gap:11px; padding:6px 10px; border-radius:8px; color:#3B4756; text-decoration:none; font-weight:500; margin-bottom:1px; }
+  #lateral nav a svg { width:18px; height:18px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  #lateral nav a:hover { background:#F1F4F8; color:var(--tinta); }
+  #lateral nav a.activo { background:var(--barra); color:#fff; }
+  #lateral nav a .n { margin-left:auto; }
+  .yo { border-top:1px solid var(--linea2); padding-top:10px; margin-top:10px; flex-shrink:0; display:flex; align-items:center; gap:10px; }
+  .yo .quien { flex:1; min-width:0; } .yo .quien b { display:block; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .yo .quien span { color:var(--suave); font-size:12.5px; }
+  .contenido { flex:1; min-width:0; }
+  .barra-movil { display:none; }
+  #vista { max-width:1320px; margin:0 auto; padding:28px 32px 72px; }
+  @media (max-width:900px) {
+    #lateral { position:fixed; left:0; top:0; transform:translateX(-100%); transition:transform .2s; box-shadow:0 0 40px rgba(16,24,40,.25); }
+    body.menu-abierto #lateral { transform:none; }
+    body.menu-abierto::after { content:''; position:fixed; inset:0; background:rgba(17,27,43,.4); z-index:35; }
+    .barra-movil { display:flex; align-items:center; gap:12px; background:#fff; border-bottom:1px solid var(--linea); padding:8px 14px; position:sticky; top:0; z-index:20; }
+    .barra-movil button { background:none; border:1px solid var(--linea); border-radius:8px; padding:6px 9px; cursor:pointer; }
+    .barra-movil img { height:34px; border-radius:6px; }
+    #vista { padding:20px 16px 56px; }
+  }
+  .n { background:var(--mal); color:#fff; font-size:11.5px; font-weight:600; border-radius:10px; padding:0 7px; line-height:18px; }
 
+  /* Tarjetas de cifras, acciones rápidas, obras */
+  .sec { font-size:16px; margin:34px 0 12px; }
+  .acciones-rapidas { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+  .acciones-rapidas a, .acciones-rapidas button { display:flex; flex-direction:column; gap:6px; background:#fff; border:1px solid var(--linea); border-radius:10px; padding:14px 16px; text-decoration:none; color:inherit; cursor:pointer; text-align:left; }
+  .acciones-rapidas a:hover, .acciones-rapidas button:hover { border-color:#9DB0D8; box-shadow:0 2px 10px rgba(16,24,40,.07); }
+  .acciones-rapidas b { font-weight:600; } .acciones-rapidas span { color:var(--suave); font-size:12.5px; }
+  .acciones-rapidas svg { width:22px; height:22px; fill:none; stroke:var(--azul); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .grupo-btn { display:inline-flex; border:1px solid #B5BDC8; border-radius:6px; overflow:hidden; }
+  .grupo-btn button { background:#fff; border:none; padding:6px 12px; cursor:pointer; font-weight:500; } .grupo-btn button + button { border-left:1px solid #B5BDC8; }
+  .grupo-btn button.activa { background:var(--barra); color:#fff; }
+  .rejilla-obras { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+  .obra-card { --c:#98A2B3; display:flex; flex-direction:column; background:#fff; border:1px solid var(--linea); border-top:3px solid var(--c); border-radius:10px; overflow:hidden; text-decoration:none; color:inherit; }
+  .obra-card:hover { box-shadow:0 6px 18px rgba(16,24,40,.1); }
+  .c-ok { --c:var(--ok); } .c-aviso { --c:#D99A1E; } .c-mal { --c:var(--mal); } .c-azul { --c:var(--azul); } .c-neutro { --c:#98A2B3; }
+  .obra-foto { height:150px; background:#000; } .obra-foto img { width:100%; height:100%; object-fit:cover; display:block; }
+  .obra-cuerpo { padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px; flex:1; }
+  .obra-cuerpo h3 { margin:2px 0 0; font-size:15px; line-height:1.3; font-weight:600; }
+  .obra-fila, .obra-pie { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .obra-pie { margin-top:auto; padding-top:8px; border-top:1px solid var(--linea2); }
+  .e.azul { color:var(--azul); }
+  .obra-detalle { display:grid; grid-template-columns:340px minmax(0,1fr); gap:16px; align-items:start; }
+  @media (max-width:980px) { .obra-detalle { grid-template-columns:1fr; } }
+  .obra-detalle .obra-foto { height:210px; border-radius:10px 10px 0 0; overflow:hidden; }
+  .botones-estado { display:flex; flex-wrap:wrap; gap:8px; }
+  .btn.actual, .btn.actual:disabled { background:var(--barra); border-color:var(--barra); color:#fff; cursor:default; opacity:1; }
+  #velo { padding-top:5vh !important; padding-bottom:5vh !important; }
+  .obra-detalle .cuerpo > .btn { margin-bottom:10px; }
+  .zona-mal { border-color:#E8C4C0; }
+  .sec-panel { padding:14px; border-top:1px solid var(--linea2); } .sec-panel:first-child { border-top:none; }
+  .sec-panel h3 { margin:0 0 8px; font-size:13.5px; }
+  .fila-form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; } .fila-form input[type=number] { width:110px; }
+  .logo-acceso { display:block; width:100%; height:92px; object-fit:cover; border-radius:10px; background:#000; margin-bottom:18px; }
+
+  .estrellas button { background:none; border:none; font-size:26px; line-height:1; cursor:pointer; color:#C3CCD8; padding:0 2px; } .estrellas button.on { color:#D99A1E; } .estrellas button:hover { color:#E6B74F; }
+  .cuerpo .sub { display:block; color:var(--suave); font-size:12.5px; }
   /* Estructura de página */
   .cab { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
   .cab p { margin:3px 0 0; }
   .miga { font-size:12.5px; margin-bottom:8px; } .miga a { text-decoration:none; }
-  .panel { background:var(--papel); border:1px solid var(--linea); border-radius:4px; }
+  .panel { background:var(--papel); border:1px solid var(--linea); border-radius:10px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
   .panel > header { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--linea); gap:12px; }
   .panel .cuerpo { padding:14px; }
   .dos { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:16px; }
@@ -76,9 +123,9 @@
   dl.datos div:last-child { border-bottom:none; } dl.datos dt { color:var(--suave); } dl.datos dd { margin:0; text-align:right; word-break:break-word; }
   .herramientas { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:center; }
   .herramientas input[type=search] { flex:1 1 240px; max-width:380px; } .herramientas select { width:auto; }
-  .resumen { display:flex; background:var(--papel); border:1px solid var(--linea); border-radius:4px; overflow-x:auto; }
-  .resumen a { flex:1 0 140px; padding:12px 16px; text-decoration:none; color:inherit; border-right:1px solid var(--linea2); }
-  .resumen a:last-child { border-right:none; } .resumen a:hover { background:#F7F9FD; }
+  .resumen { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+  .resumen a { padding:14px 16px; text-decoration:none; color:inherit; background:var(--papel); border:1px solid var(--linea); border-radius:10px; }
+  .resumen a:hover { border-color:#9DB0D8; box-shadow:0 2px 10px rgba(16,24,40,.07); }
   .resumen b { display:block; font-size:24px; font-weight:600; line-height:1.2; } .resumen span { color:var(--suave); font-size:12.5px; }
   .resumen b.mal { color:var(--mal); }
   .reparto { display:flex; height:10px; border-radius:2px; overflow:hidden; background:var(--linea2); margin:12px 0 10px; }
@@ -120,7 +167,7 @@
   a.btn { text-decoration:none; color:var(--tinta); } a.btn.primario { color:#fff; }
   /* Ventana y avisos */
   #velo { position:fixed; inset:0; background:rgba(17,27,43,.5); z-index:50; display:flex; align-items:flex-start; justify-content:center; padding:8vh 16px; overflow-y:auto; }
-  #ventana { background:#fff; border-radius:6px; width:100%; max-width:500px; padding:22px; border:1px solid var(--linea); }
+  #ventana { background:#fff; border-radius:12px; width:100%; max-width:500px; padding:22px; border:1px solid var(--linea); }
   #ventana h2 { font-size:17px; margin-bottom:6px; } .pie-modal { display:flex; gap:8px; justify-content:flex-end; margin-top:20px; flex-wrap:wrap; }
   .form-rejilla { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; } @media (max-width:520px) { .form-rejilla { grid-template-columns:1fr; } }
   .error-caja { border:1px solid #E0B4B0; background:#FDF1F0; color:var(--mal); padding:9px 12px; border-radius:4px; margin-top:14px; }
@@ -145,8 +192,9 @@
 
 <div id="entrar" class="centro hidden">
   <form class="acceso" id="form-entrar">
-    <h1 id="titulo-entrar">Documentación</h1>
-    <p class="suave">Acceso del equipo.</p>
+    <img class="logo-acceso" src="logo-3b-conecta.png" alt="3B Conecta" />
+    <h1 id="titulo-entrar">Panel de administración</h1>
+    <p class="suave">Acceso de administración.</p>
     <div id="error-entrar" class="error-caja hidden"></div>
     <label class="campo" for="ent-email">Correo</label>
     <input type="email" id="ent-email" autocomplete="username" required />
@@ -157,20 +205,36 @@
 </div>
 
 <div id="app" class="hidden">
-  <div class="barra">
-    <a class="marca" href="#/panel" aria-label="3B Conecta, ir al resumen"><b id="nombre-marca">3B Conecta</b></a>
+  <aside id="lateral">
+    <a class="logo-caja" href="#/panel" aria-label="3B Conecta, ir al inicio"><img src="logo-3b-conecta.png" alt="3B Conecta" /></a>
     <nav>
-      <a href="#/panel" data-nav="panel">Resumen</a>
-      <a href="#/revision" data-nav="revision">Por revisar <span class="n hidden" id="cnt-revision">0</span></a>
-      <a href="#/peticiones" data-nav="peticiones">Peticiones <span class="n hidden" id="cnt-peticiones">0</span></a>
-      <a href="#/empresas" data-nav="empresas">Empresas</a>
-      <a href="#/trabajadores" data-nav="trabajadores">Trabajadores</a>
-      <a href="#/actividad" data-nav="actividad">Actividad</a>
-      <a href="#/ajustes" data-nav="ajustes">Requisitos</a>
+      <div class="grupo-nav">Principal</div>
+      <a href="#/panel" data-nav="panel"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg>Inicio</a>
+      <a href="#/obras" data-nav="obras"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>Obras</a>
+      <a href="#/postulaciones" data-nav="postulaciones"><svg viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Postulaciones <span class="n hidden" id="cnt-postulaciones">0</span></a>
+      <a href="#/peticiones" data-nav="peticiones"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Peticiones <span class="n hidden" id="cnt-peticiones">0</span></a>
+      <div class="grupo-nav">Oficios y Club Partner</div>
+      <a href="#/gremios" data-nav="gremios"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8 5.8 21.2l1.4-7L2 9.4l7-.9z"/></svg>Gremios</a>
+      <a href="#/recompensas" data-nav="recompensas"><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>Recompensas <span class="n hidden" id="cnt-canjes">0</span></a>
+      <div class="grupo-nav">Red 3B Conecta</div>
+      <a href="#/tablon" data-nav="tablon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Tablón</a>
+      <a href="#/directorio" data-nav="directorio"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5z"/></svg>Directorio</a>
+      <a href="#/referidos" data-nav="referidos"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"/></svg>Referidos</a>
+      <a href="#/comisiones" data-nav="comisiones"><svg viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Comisiones</a>
+      <div class="grupo-nav">Cuentas y documentación</div>
+      <a href="#/revision" data-nav="revision"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3"/></svg>Por revisar <span class="n hidden" id="cnt-revision">0</span></a>
+      <a href="#/empresas" data-nav="empresas"><svg viewBox="0 0 24 24"><path d="M3 7h18v13H3zM8 7V4h8v3"/></svg>Empresas</a>
+      <a href="#/trabajadores" data-nav="trabajadores"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Trabajadores</a>
+      <div class="grupo-nav">Seguimiento</div>
+      <a href="#/actividad" data-nav="actividad"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Actividad</a>
+      <a href="#/ajustes" data-nav="ajustes"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Requisitos</a>
     </nav>
-    <div class="usuario"><span class="nombre" id="usuario"></span><button id="btn-salir">Salir</button></div>
+    <div class="yo"><div class="quien"><b id="usuario"></b><span>Administración</span></div><button class="btn peq" id="btn-salir">Salir</button></div>
+  </aside>
+  <div class="contenido">
+    <div class="barra-movil"><button id="btn-menu" aria-label="Abrir el menú">☰</button><img src="logo-3b-conecta.png" alt="3B Conecta" /></div>
+    <main id="vista"></main>
   </div>
-  <main id="vista"></main>
 </div>
 
 <div id="velo" class="hidden"><div id="ventana" role="dialog" aria-modal="true"></div></div>
@@ -213,7 +277,7 @@ function aviso(texto, error) {
   const a = $('#aviso'); a.textContent = texto; a.className = error ? 'error' : ''; clearTimeout(temporizadorAviso);
   temporizadorAviso = setTimeout(() => a.classList.add('hidden'), error ? 6000 : 3000);
 }
-function abrirVentana(html) { $('#ventana').innerHTML = html; $('#velo').classList.remove('hidden'); const p = $('#ventana input, #ventana textarea, #ventana select'); if (p) p.focus(); }
+function abrirVentana(html, ancho) { $('#ventana').style.maxWidth = ancho ? ancho + 'px' : ''; $('#ventana').innerHTML = html; $('#velo').classList.remove('hidden'); const p = $('#ventana input, #ventana textarea, #ventana select'); if (p) p.focus(); }
 function cerrarVentana() { $('#velo').classList.add('hidden'); $('#ventana').innerHTML = ''; }
 function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -274,7 +338,7 @@ function claves() {
   const u = leerLocal('panel_url'), k = leerLocal('panel_key'); return u && k ? { url: u, key: k } : null;
 }
 async function arrancar() {
-  document.title = 'Documentación · ' + NOMBRE_MARCA; $('#nombre-marca').textContent = NOMBRE_MARCA;
+  document.title = 'Panel · ' + NOMBRE_MARCA;
   const c = claves(); if (!c) { mostrarSolo('config'); return; }
   sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
   const { data } = await sb.auth.getSession();
@@ -287,7 +351,7 @@ async function entrarComo(user) {
     const e = $('#error-entrar'); e.textContent = 'Este usuario no tiene acceso a la documentación.'; e.classList.remove('hidden'); return;
   }
   yo = data; $('#usuario').textContent = data.nombre_completo || data.email || '';
-  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); enrutar();
+  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); actualizarContadoresRed(); enrutar();
 }
 $('#form-config').addEventListener('submit', (e) => {
   e.preventDefault(); const u = $('#cfg-url').value.trim(), k = $('#cfg-key').value.trim();
@@ -310,11 +374,21 @@ async function enrutar() {
   if (!yo) return;
   const partes = (location.hash || '#/panel').replace(/^#\//, '').split('?')[0].split('/');
   const ruta = partes[0] || 'panel', id = partes[1];
-  const activa = ruta === 'empresa' ? 'empresas' : ruta === 'trabajador' ? 'trabajadores' : ruta;
+  const activa = ruta === 'empresa' ? 'empresas' : ruta === 'trabajador' ? 'trabajadores' : ruta === 'obra' ? 'obras' : ruta === 'gremio' ? 'gremios' : ruta;
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('activo', a.dataset.nav === activa));
   const v = $('#vista'); v.innerHTML = '<div class="cargando">Cargando…</div>'; window.scrollTo(0, 0);
   try {
-    if (ruta === 'panel') await vistaResumen(v);
+    if (ruta === 'panel') await vistaInicio(v);
+    else if (ruta === 'obras') await vistaObras(v);
+    else if (ruta === 'obra') await vistaObra(v, id);
+    else if (ruta === 'postulaciones') await vistaPostulaciones(v);
+    else if (ruta === 'gremios') await vistaGremios(v);
+    else if (ruta === 'gremio') await vistaGremio(v, id);
+    else if (ruta === 'recompensas') await vistaRecompensas(v);
+    else if (ruta === 'tablon') await vistaTablon(v);
+    else if (ruta === 'directorio') await vistaDirectorio(v);
+    else if (ruta === 'comisiones') await vistaComisiones(v);
+    else if (ruta === 'referidos') await vistaReferidos(v);
     else if (ruta === 'revision') await vistaRevision(v);
     else if (ruta === 'peticiones') await vistaPeticiones(v);
     else if (ruta === 'empresas') await vistaEmpresas(v);
@@ -397,13 +471,13 @@ function tablaActividad(id, act, conCuenta) {
 function listaDatos(items) { return `<dl class="datos">${items.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join('')}</dl>`; }
 
 // ───────────────────────── Vistas ─────────────────────────
-async function vistaResumen(v) {
+async function vistaResumen(v, enInicio) {
   const [r, lista, cola] = await Promise.all([rpc('panel_resumen'), empresas(true), rpc('panel_cola_revision')]);
   actualizarContador();
   const proximas = lista.filter((e) => e.proxima_caducidad && dias(e.proxima_caducidad) <= 30).sort((a, b) => a.proxima_caducidad < b.proxima_caducidad ? -1 : 1).slice(0, 8);
   const incid = lista.filter((e) => e.semaforo === 'rojo').slice(0, 10);
   const pct = (n) => r.cuentas ? (n * 100 / r.cuentas) : 0;
-  v.innerHTML = `<div class="cab"><div><h1>Resumen</h1><p class="suave">Estado de la documentación de las empresas y de sus trabajadores.</p></div></div>
+  v.innerHTML = `${enInicio ? '<h2 class="sec">Documentación de las empresas</h2>' : '<div class="cab"><div><h1>Resumen</h1><p class="suave">Estado de la documentación de las empresas y de sus trabajadores.</p></div></div>'}
   <div class="resumen">
     <a href="#/revision"><b>${r.por_revisar}</b><span>Por revisar</span></a>
     <a href="#/empresas?f=rojo"><b class="${r.caducados ? 'mal' : ''}">${r.caducados}</b><span>Documentos caducados</span></a>
@@ -835,6 +909,671 @@ function ventanaRequisito(tabla, clave) {
     cerrarVentana(); aviso('Cambios guardados.'); recargar();
   };
 }
+
+// ───────────────────────── Obras ─────────────────────────
+const LOGO = 'logo-3b-conecta.png';
+const BUCKET_OBRAS = 'obras-fotos';
+const OBRAS_PARA_DESBLOQUEAR_CLUB = 1;   // igual que en la app (constants/niveles.ts)
+const OBRA_EST = {
+  abierta: ['ok', 'Abierta'], adjudicada: ['azul', 'Adjudicada'], en_curso: ['aviso', 'En curso'], cerrada: ['neutro', 'Finalizada'],
+  cancelada: ['mal', 'Cancelada'], en_revision: ['aviso', 'En revisión'], pendiente_info: ['aviso', 'Falta información'], rechazada: ['mal', 'Rechazada']
+};
+const OPC_ESTADO = [
+  { estado: 'abierta', etiqueta: 'Abierta', adj: false }, { estado: 'adjudicada', etiqueta: 'Adjudicada', adj: true },
+  { estado: 'en_curso', etiqueta: 'En curso', adj: true }, { estado: 'cerrada', etiqueta: 'Finalizada', adj: true }, { estado: 'cancelada', etiqueta: 'Cancelada', adj: false }
+];
+const POST_EST = { enviada: ['aviso', 'Enviada'], en_revision: ['aviso', 'En revisión'], aceptada: ['ok', 'Aceptada'], rechazada: ['mal', 'Rechazada'] };
+const ESTADOS_PETICION = ['en_revision', 'pendiente_info', 'rechazada'];
+const obraEst = (k) => marca(OBRA_EST[k] || ['neutro', 'Sin estado']);
+const clsCol = (k) => 'c-' + (OBRA_EST[k] || ['neutro'])[0];
+const euros = (n, m) => (n == null || n === '' || isNaN(Number(n))) ? '—' : new Intl.NumberFormat('es-ES', { style: 'currency', currency: m || 'EUR', maximumFractionDigits: 0 }).format(Number(n));
+const plazoTxt = (o) => !o.plazo_cierre ? 'Sin plazo para ofertas' : (new Date(o.plazo_cierre) < new Date() ? 'Plazo cerrado el ' : 'Cierra el ') + fechaHora(o.plazo_cierre);
+const fotoObra = (o) => `<img src="${esc(o.imagen_url || LOGO)}" alt="" loading="lazy">`;
+const nOfertas = (o) => (o.postulaciones && o.postulaciones[0] && o.postulaciones[0].count) || 0;
+const COLS_OBRA = 'id, referencia, titulo, ubicacion, presupuesto, moneda, estado, imagen_url, plazo_cierre, especialidad_requerida, created_at';
+
+async function consultarObras() {
+  let r = await sb.from('obras').select(COLS_OBRA + ', postulaciones(count)').order('created_at', { ascending: false });
+  if (r.error) r = await sb.from('obras').select(COLS_OBRA).order('created_at', { ascending: false });
+  if (r.error) throw r.error;
+  return r.data || [];
+}
+
+function reducirImagen(file, max = 1600, calidad = 0.8) {
+  return new Promise((ok, mal) => {
+    const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob((b) => b ? ok(b) : mal(new Error('No se ha podido preparar la foto.')), 'image/jpeg', calidad);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); mal(new Error('No se ha podido leer la imagen. Prueba con un JPG o PNG.')); };
+    img.src = url;
+  });
+}
+async function subirFotoObra(file) {
+  const blob = await reducirImagen(file);
+  const ruta = `obras/${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
+  const { error } = await sb.storage.from(BUCKET_OBRAS).upload(ruta, blob, { contentType: 'image/jpeg', upsert: false });
+  if (error) throw error;
+  return sb.storage.from(BUCKET_OBRAS).getPublicUrl(ruta).data.publicUrl;
+}
+
+async function vistaObras(v) {
+  const todas = await consultarObras();
+  const q = new URLSearchParams(location.hash.split('?')[1] || '');
+  const cuenta = (e) => todas.filter((o) => o.estado === e).length;
+  const abierto = todas.filter((o) => o.estado === 'abierta').reduce((s, o) => s + Number(o.presupuesto || 0), 0);
+  v.innerHTML = `<div class="cab"><div><h1>Obras</h1><p class="suave">Las licitaciones que ven las empresas. Crea, edita y sigue cada obra desde aquí.</p></div><button class="btn primario" data-act="ob-nueva">+ Nueva obra</button></div>
+  <div class="resumen">
+    <a href="#/obras?e=abierta"><b>${cuenta('abierta')}</b><span>Abiertas a ofertas</span></a>
+    <a href="#/obras?e=adjudicada"><b>${cuenta('adjudicada')}</b><span>Adjudicadas</span></a>
+    <a href="#/obras?e=en_curso"><b>${cuenta('en_curso')}</b><span>En curso</span></a>
+    <a href="#/obras?e=cerrada"><b>${cuenta('cerrada')}</b><span>Finalizadas</span></a>
+    <a href="#/obras"><b>${euros(abierto)}</b><span>Presupuesto abierto</span></a>
+  </div>
+  <div class="herramientas" style="margin-top:16px"><input type="search" id="o-texto" placeholder="Buscar por título, referencia o ubicación" aria-label="Buscar" />
+    <select id="o-estado" aria-label="Estado"><option value="">Todos los estados</option>${Object.entries(OBRA_EST).map(([k, x]) => `<option value="${k}">${esc(x[1])}</option>`).join('')}</select>
+    <div class="grupo-btn" id="o-vista"><button data-act="ob-vista" data-v="rejilla">Tarjetas</button><button data-act="ob-vista" data-v="lista">Lista</button></div></div>
+  <div id="obras-lista"></div>`;
+  if (q.get('e')) $('#o-estado').value = q.get('e');
+  const pintar = () => {
+    const t = $('#o-texto').value.trim().toLowerCase(), e = $('#o-estado').value, modo = leerLocal('obras_vista') === 'lista' ? 'lista' : 'rejilla';
+    document.querySelectorAll('#o-vista button').forEach((b) => b.classList.toggle('activa', b.dataset.v === modo));
+    const lista = todas.filter((o) => (!e || o.estado === e) && (!t || [o.titulo, o.referencia, o.ubicacion, o.especialidad_requerida].some((x) => String(x || '').toLowerCase().includes(t))));
+    if (!lista.length) { $('#obras-lista').innerHTML = `<div class="panel"><div class="vacio">${todas.length ? 'Ninguna obra coincide con los filtros.' : 'Todavía no hay obras. Crea la primera con «Nueva obra».'}</div></div>`; return; }
+    if (modo === 'lista') {
+      $('#obras-lista').innerHTML = `<div class="panel">${htmlTabla('obras', [
+        { t: 'Estado', f: (o) => obraEst(o.estado), s: (o) => o.estado },
+        { t: 'Obra', f: (o) => `<b>${esc(o.titulo)}</b><span class="sub">${esc(o.referencia)}${o.ubicacion ? ' · ' + esc(o.ubicacion) : ''}</span>`, s: (o) => String(o.titulo).toLowerCase() },
+        { t: 'Presupuesto', cls: 'der', f: (o) => euros(o.presupuesto, o.moneda), s: (o) => Number(o.presupuesto) },
+        { t: 'Ofertas', cls: 'der', f: (o) => nOfertas(o), s: (o) => nOfertas(o) },
+        { t: 'Plazo', f: (o) => o.estado === 'abierta' ? esc(plazoTxt(o)) : '<span class="suave">—</span>' },
+        { t: 'Creada', f: (o) => fecha(o.created_at), s: (o) => o.created_at }], lista, '', (o) => '#/obra/' + o.id)}</div>`;
+    } else {
+      $('#obras-lista').innerHTML = `<div class="rejilla-obras">${lista.map((o) => `<a class="obra-card ${clsCol(o.estado)}" href="#/obra/${esc(o.id)}">
+        <div class="obra-foto">${fotoObra(o)}</div>
+        <div class="obra-cuerpo"><div class="obra-fila">${obraEst(o.estado)}<span class="suave peq">${esc(o.referencia)}</span></div>
+          <h3>${esc(o.titulo)}</h3>
+          <p class="suave peq" style="margin:0">${esc(o.ubicacion || 'Sin ubicación')}${o.especialidad_requerida ? ' · ' + esc(o.especialidad_requerida) : ''}</p>
+          ${o.estado === 'abierta' ? `<p class="suave peq" style="margin:0">${esc(plazoTxt(o))}</p>` : ''}
+          <div class="obra-pie"><b>${euros(o.presupuesto, o.moneda)}</b><span class="suave peq">${nOfertas(o)} oferta${nOfertas(o) === 1 ? '' : 's'}</span></div></div></a>`).join('')}</div>`;
+    }
+  };
+  window.__pintarObras = pintar;
+  ['o-texto', 'o-estado'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+  if (q.get('nueva')) { history.replaceState(null, '', '#/obras'); ventanaObra(null); }
+}
+
+function ventanaObra(o) {
+  const n = !o; o = o || {};
+  abrirVentana(`<h2>${n ? 'Nueva obra' : 'Editar datos de la obra'}</h2><p class="suave">${n ? 'Se publica al momento y las empresas podrán enviar ofertas.' : 'Los cambios se ven enseguida en la app.'}</p>
+  <div class="form-rejilla">
+    <div style="grid-column:1/-1"><label class="campo" for="ob-titulo">Título *</label><input type="text" id="ob-titulo" value="${esc(o.titulo || '')}" /></div>
+    <div><label class="campo" for="ob-ref">Referencia *</label><input type="text" id="ob-ref" value="${esc(o.referencia || '')}" placeholder="LIC-2026-110" ${n ? '' : 'disabled'} /></div>
+    <div><label class="campo" for="ob-pres">Presupuesto (€) *</label><input type="text" inputmode="decimal" id="ob-pres" value="${esc(o.presupuesto ?? '')}" /></div>
+    <div><label class="campo" for="ob-esp">Especialidad</label><input type="text" id="ob-esp" value="${esc(o.especialidad_requerida || '')}" /></div>
+    <div><label class="campo" for="ob-ubi">Ubicación</label><input type="text" id="ob-ubi" value="${esc(o.ubicacion || '')}" /></div>
+    ${n ? `<div><label class="campo" for="ob-pts">Puntos bonus</label><input type="text" inputmode="numeric" id="ob-pts" placeholder="0" /></div>` : ''}
+    <div><label class="campo" for="ob-dur">Duración (días)</label><input type="text" inputmode="numeric" id="ob-dur" value="${esc(o.duracion_dias ?? '')}" /></div>
+    ${n ? `<div><label class="campo" for="ob-plazo">Plazo para ofertas (días desde hoy)</label><input type="text" inputmode="decimal" id="ob-plazo" placeholder="Vacío = sin plazo" /></div>` : ''}
+    <div style="grid-column:1/-1"><label class="campo" for="ob-desc">Descripción</label><textarea id="ob-desc">${esc(o.descripcion || '')}</textarea></div>
+    <div style="grid-column:1/-1"><label class="campo" for="ob-req">Requisitos</label><textarea id="ob-req" style="min-height:60px">${esc(o.requisitos || '')}</textarea></div>
+    ${n ? `<div style="grid-column:1/-1"><label class="campo" for="ob-foto">Foto de la obra</label><input type="file" id="ob-foto" accept="image/*" /></div>` : ''}
+  </div>${pieVentana(n ? 'Publicar obra' : 'Guardar cambios', 'primario')}`, 640);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const num = (id) => { const t = $(id).value.trim(); if (t === '') return null; const x = Number(t.replace(',', '.')); return isNaN(x) || x < 0 ? 'mal' : x; };
+    const titulo = $('#ob-titulo').value.trim(); const pres = Number($('#ob-pres').value.trim().replace(',', '.'));
+    if (!titulo || (n && !$('#ob-ref').value.trim())) return errorVentana('El título y la referencia son obligatorios.');
+    if ($('#ob-pres').value.trim() === '' || isNaN(pres) || pres <= 0) return errorVentana('Escribe un presupuesto válido.');
+    const dur = num('#ob-dur'), pts = n ? num('#ob-pts') : null, plazo = n ? num('#ob-plazo') : null;
+    if ([dur, pts, plazo].includes('mal')) return errorVentana('Puntos, duración y plazo deben ser números válidos (o dejarse vacíos).');
+    $('#v-ok').disabled = true; $('#v-ok').textContent = 'Guardando…';
+    try {
+      if (n) {
+        let imagen = null; const f = $('#ob-foto').files[0];
+        if (f) { try { imagen = await subirFotoObra(f); } catch (e) { throw new Error('No se ha podido subir la foto. Puedes publicar sin foto y añadirla después.'); } }
+        const { data, error } = await sb.from('obras').insert({
+          titulo, referencia: $('#ob-ref').value.trim(), presupuesto: pres, moneda: 'EUR', especialidad_requerida: $('#ob-esp').value.trim() || null,
+          ubicacion: $('#ob-ubi').value.trim() || null, puntos_bonus: pts !== null ? Math.round(pts) : 0, duracion_dias: dur !== null ? Math.round(dur) : null,
+          plazo_cierre: plazo !== null && plazo > 0 ? new Date(Date.now() + plazo * 86400000).toISOString() : null,
+          descripcion: $('#ob-desc').value.trim() || null, requisitos: $('#ob-req').value.trim() || null, estado: 'abierta', imagen_url: imagen
+        }).select('id').single();
+        if (error) throw new Error(/duplicate|unique/i.test(error.message) ? 'Ya existe una obra con esa referencia.' : 'No se ha podido publicar la obra: ' + error.message);
+        cerrarVentana(); aviso('Obra publicada.'); location.hash = '#/obra/' + data.id;
+      } else {
+        const { error } = await sb.from('obras').update({
+          titulo, presupuesto: pres, especialidad_requerida: $('#ob-esp').value.trim() || null, ubicacion: $('#ob-ubi').value.trim() || null,
+          duracion_dias: dur !== null ? Math.round(dur) : null, descripcion: $('#ob-desc').value.trim() || null, requisitos: $('#ob-req').value.trim() || null
+        }).eq('id', o.id);
+        if (error) throw error;
+        cerrarVentana(); aviso('Cambios guardados.'); enrutar();
+      }
+    } catch (e) { $('#v-ok').disabled = false; $('#v-ok').textContent = n ? 'Publicar obra' : 'Guardar cambios'; errorVentana(e); }
+  };
+}
+
+async function vistaObra(v, id) {
+  const { data: o, error } = await sb.from('obras').select('*').eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!o) { v.innerHTML = '<div class="miga"><a href="#/obras">← Obras</a></div><div class="error-caja">No se ha encontrado esta obra. Puede que se haya eliminado.</div>'; return; }
+  const esPeticion = ESTADOS_PETICION.includes(o.estado);
+  const [rp, ra] = await Promise.all([
+    sb.from('postulaciones').select('id, estado, oferta_economica, motivacion, disponibilidad_equipo, motivo_rechazo, created_at, empresas_subcontratistas(nombre, obras_completadas)').eq('obra_id', id).order('created_at', { ascending: false }),
+    sb.from('avances_obra').select('id, descripcion, porcentaje_avance, created_at').eq('obra_id', id).order('created_at', { ascending: false })
+  ]);
+  const posts = rp.data || [], avances = ra.data || [];
+  const adj = posts.find((p) => p.estado === 'aceptada');
+  const empAdj = adj && adj.empresas_subcontratistas ? adj.empresas_subcontratistas : null;
+  window.__obra = o; window.__empAdj = adj ? { nombre: (empAdj && empAdj.nombre) || 'la empresa adjudicataria', completadas: (empAdj && empAdj.obras_completadas) || 0 } : null;
+  const pct = avances.length && avances[0].porcentaje_avance != null ? avances[0].porcentaje_avance : null;
+  v.innerHTML = `<div class="miga"><a href="#/obras">← Obras</a></div>
+  <div class="cab"><div><h1>${esc(o.titulo)}</h1><p>${obraEst(o.estado)} &nbsp; <span class="suave">${esc(o.referencia)}</span></p></div>
+    <div><button class="btn" data-act="ob-editar">Editar datos</button></div></div>
+  <div class="obra-detalle">
+    <div>
+      <div class="panel" style="overflow:hidden"><div class="obra-foto">${fotoObra(o)}</div>
+        <div class="cuerpo"><button class="btn peq" data-act="ob-foto">${o.imagen_url ? 'Cambiar foto' : 'Añadir foto'}</button><input type="file" id="ob-foto-nueva" accept="image/*" class="hidden" />
+        ${listaDatos([['Presupuesto', euros(o.presupuesto, o.moneda)], ['Ubicación', esc(o.ubicacion || '—')], ['Especialidad', esc(o.especialidad_requerida || '—')],
+          ['Duración', o.duracion_dias ? o.duracion_dias + ' días' : '—'], ['Puntos bonus', esc(o.puntos_bonus ?? 0)], ['Plazo de ofertas', esc(o.plazo_cierre ? fechaHora(o.plazo_cierre) : 'Sin plazo')],
+          ['Empresa adjudicataria', empAdj ? esc(empAdj.nombre) : '—'], ['Creada', fecha(o.created_at)]])}</div></div>
+      ${o.descripcion || o.requisitos ? `<div class="panel" style="margin-top:16px"><header><h2>Descripción</h2></header><div class="cuerpo">${o.descripcion ? `<p style="margin:0;white-space:pre-wrap">${esc(o.descripcion)}</p>` : ''}${o.requisitos ? `<p class="suave" style="white-space:pre-wrap;margin:10px 0 0"><b>Requisitos:</b> ${esc(o.requisitos)}</p>` : ''}</div></div>` : ''}
+    </div>
+    <div>
+      <div class="panel"><header><h2>Estado de la obra</h2></header>
+        ${esPeticion ? `<div class="sec-panel"><p style="margin:0">Esta obra es una petición de un particular y se revisa en <a href="#/peticiones">Peticiones</a>: ahí se publica, se pide información o se rechaza.</p></div>` : `
+        <div class="sec-panel"><div class="botones-estado">${OPC_ESTADO.map((x) => `<button class="btn ${x.estado === o.estado ? 'actual' : ''}" data-act="ob-estado" data-estado="${x.estado}" ${x.estado === o.estado ? 'disabled' : ''}>${esc(x.etiqueta)}</button>`).join('')}</div>
+          <p class="suave peq" style="margin:10px 0 0">${empAdj ? `Empresa adjudicataria: <b>${esc(empAdj.nombre)}</b>.` : 'Sin empresa adjudicataria todavía: para pasar a Adjudicada, En curso o Finalizada hay que aceptar antes una oferta.'}${pct != null ? ` Último avance: ${pct} %.` : ''}</p></div>
+        <div class="sec-panel"><h3>Condiciones</h3>
+          <div class="fila-form"><label for="ob-puntos">Puntos bonus</label><input type="number" min="0" id="ob-puntos" value="${esc(o.puntos_bonus ?? 0)}" /><button class="btn peq" data-act="ob-puntos">Guardar</button></div>
+          <div class="fila-form" style="margin-top:10px"><span>Plazo para ofertas:</span>
+            ${[[24, '24 h'], [48, '48 h'], [72, '72 h'], [168, '7 días']].map(([h, t]) => `<button class="btn peq" data-act="ob-plazo" data-h="${h}">${t}</button>`).join('')}<button class="btn peq" data-act="ob-plazo" data-h="">Sin plazo</button></div></div>`}
+      </div>
+      ${esPeticion ? '' : `<div class="panel" style="margin-top:16px"><header><h2>Ofertas de las empresas (${posts.length})</h2></header>${htmlTabla('o-posts', [
+        { t: 'Empresa', f: (p) => `<b>${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || 'Sin nombre')}</b><span class="sub">${esc(p.disponibilidad_equipo || '')}</span>` },
+        { t: 'Oferta', cls: 'der', f: (p) => euros(p.oferta_economica), s: (p) => Number(p.oferta_economica) },
+        { t: 'Mensaje', f: (p) => `${esc(p.motivacion || '—')}${p.motivo_rechazo ? `<span class="sub mal-t">Rechazada: ${esc(p.motivo_rechazo)}</span>` : ''}` },
+        { t: 'Estado', f: (p) => marca(POST_EST[p.estado] || ['neutro', p.estado]) },
+        { t: 'Enviada', f: (p) => fecha(p.created_at), s: (p) => p.created_at },
+        { t: '', cls: 'acc', f: (p) => o.origen === 'particular' ? '' : ['enviada', 'en_revision'].includes(p.estado) ? `<button class="btn peq primario" data-act="ob-aceptar" data-id="${esc(p.id)}" data-nombre="${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || '')}">Aceptar</button><button class="btn peq mal" data-act="ob-rechazar" data-id="${esc(p.id)}">Rechazar</button>` : '' }
+      ], posts, 'Todavía no hay ofertas para esta obra.')}${o.origen === 'particular' ? '<p class="suave peq" style="padding:10px 14px;margin:0">Es una petición de un particular: sus ofertas se trasladan o descartan en <a href="#/peticiones?t=ofertas">Peticiones</a>.</p>' : ''}</div>
+      <div class="panel" style="margin-top:16px"><header><h2>Avances (${avances.length})</h2></header>${htmlTabla('o-avances', [
+        { t: 'Fecha', f: (a) => fechaHora(a.created_at) }, { t: 'Avance', cls: 'der', f: (a) => a.porcentaje_avance != null ? a.porcentaje_avance + ' %' : '—' }, { t: 'Descripción', f: (a) => esc(a.descripcion) }
+      ], avances, 'La empresa todavía no ha registrado avances.')}</div>`}
+      <div class="panel zona-mal" style="margin-top:16px"><div class="cuerpo" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="suave">Eliminar la obra borra también sus ofertas. No se puede deshacer.</span><button class="btn mal" data-act="ob-eliminar">Eliminar obra</button></div></div>
+    </div>
+  </div>`;
+  $('#ob-foto-nueva').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try { aviso('Subiendo la foto…'); const url = await subirFotoObra(f); const { error: er } = await sb.from('obras').update({ imagen_url: url }).eq('id', id); if (er) throw er; aviso('Foto actualizada.'); enrutar(); }
+    catch (err) { aviso(mensajeError(err), true); }
+  });
+}
+
+function ventanaEstadoObra(nuevo) {
+  const o = window.__obra, e = window.__empAdj; const etiqueta = (OBRA_EST[nuevo] || [0, nuevo])[1]; const puntos = o.puntos_bonus || 0; const emp = e ? e.nombre : 'la empresa adjudicataria';
+  const op = OPC_ESTADO.find((x) => x.estado === nuevo);
+  if (op && op.adj && !e) { aviso('Antes hay que aceptar una oferta de una empresa.', true); return; }
+  let texto = 'Se cambiará el estado de la obra.';
+  if (nuevo === 'cerrada') {
+    const num = (e ? e.completadas : 0) + 1;
+    texto = num < OBRAS_PARA_DESBLOQUEAR_CLUB ? `Será la obra nº ${num} de ${emp}. Los puntos se acreditan a partir de la ${OBRAS_PARA_DESBLOQUEAR_CLUB}ª obra, así que esta no suma puntos (sí cuenta como completada).`
+      : puntos > 0 ? `Se acreditarán ${puntos} puntos a ${emp} y se sumará una obra completada.` : `Se sumará una obra completada a ${emp} (esta obra no tiene puntos).`;
+  } else if (o.estado === 'cerrada') texto = 'La obra deja de estar finalizada: se revertirán los puntos que se acreditaron por ella.';
+  else if (nuevo === 'abierta' && e) texto = `La oferta de ${e.nombre} volverá a estar pendiente y la obra se reabrirá a concurso.`;
+  else if (nuevo === 'cancelada') texto = 'La obra quedará cancelada.';
+  abrirVentana(`<h2>Cambiar a «${esc(etiqueta)}»</h2><p>${esc(texto)}</p>${pieVentana('Confirmar', 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('cambiar_estado_obra', { p_obra_id: o.id, p_nuevo_estado: nuevo }); cerrarVentana(); aviso('Estado actualizado.'); enrutar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaAceptarOferta(id, nombre) {
+  abrirVentana(`<h2>Aceptar la oferta</h2><p>La obra se adjudica a <b>${esc(nombre || 'esta empresa')}</b> y el resto de ofertas pendientes se descartan.</p>${pieVentana('Aceptar oferta', 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('aceptar_postulacion', { p_postulacion_id: id }); cerrarVentana(); aviso('Oferta aceptada.'); enrutar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaRechazarOferta(id) {
+  abrirVentana(`<h2>Rechazar la oferta</h2><p class="suave">El motivo le llega a la empresa.</p>
+    <div class="fila-form" style="margin-top:12px">${['Oferta económica demasiado alta', 'Sin disponibilidad para las fechas', 'Documentación incompleta', 'Perfil no adecuado para la obra'].map((m) => `<button type="button" class="btn peq" data-motivo="${esc(m)}">${esc(m)}</button>`).join('')}</div>
+    <label class="campo" for="m-motivo">Motivo</label><textarea id="m-motivo"></textarea>${pieVentana('Rechazar', 'mal')}`);
+  document.querySelectorAll('[data-motivo]').forEach((x) => { x.onclick = () => { $('#m-motivo').value = x.dataset.motivo; }; });
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const motivo = $('#m-motivo').value.trim(); if (motivo.length < 3) return errorVentana('Escribe el motivo del rechazo (se le enviará a la empresa).');
+    $('#v-ok').disabled = true;
+    const { error } = await sb.from('postulaciones').update({ estado: 'rechazada', motivo_rechazo: motivo }).eq('id', id);
+    if (error) { $('#v-ok').disabled = false; return errorVentana(error); }
+    cerrarVentana(); aviso('Oferta rechazada.'); enrutar();
+  };
+}
+function ventanaEliminarObra() {
+  const o = window.__obra;
+  abrirVentana(`<h2>Eliminar la obra</h2><p>Se eliminará <b>${esc(o.titulo)}</b> y todas sus ofertas. Los puntos ya acreditados a las empresas se mantienen. No se puede deshacer.</p>${pieVentana('Eliminar', 'mal')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    const { data, error } = await sb.from('obras').delete().eq('id', o.id).select('id');
+    if (error) { $('#v-ok').disabled = false; return errorVentana(error); }
+    if (!data || !data.length) { $('#v-ok').disabled = false; return errorVentana('No se ha eliminado nada: tu usuario no tiene permiso para borrar esta obra.'); }
+    cerrarVentana(); aviso('Obra eliminada.'); location.hash = '#/obras';
+  };
+}
+async function guardarCondicionObra(cambios) {
+  const { error } = await sb.from('obras').update(cambios).eq('id', window.__obra.id);
+  if (error) throw error; aviso('Guardado.'); enrutar();
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act^="ob-"]'); if (!b) return;
+  const d = b.dataset;
+  try {
+    if (d.act === 'ob-nueva') return ventanaObra(null);
+    if (d.act === 'ob-editar') return ventanaObra(window.__obra);
+    if (d.act === 'ob-vista') { guardarLocal('obras_vista', d.v); return window.__pintarObras && window.__pintarObras(); }
+    if (d.act === 'ob-foto') return $('#ob-foto-nueva').click();
+    if (d.act === 'ob-estado') return ventanaEstadoObra(d.estado);
+    if (d.act === 'ob-aceptar') return ventanaAceptarOferta(d.id, d.nombre);
+    if (d.act === 'ob-rechazar') return ventanaRechazarOferta(d.id);
+    if (d.act === 'ob-eliminar') return ventanaEliminarObra();
+    if (d.act === 'ob-puntos') { const n = Number($('#ob-puntos').value); if (isNaN(n) || n < 0) return aviso('Escribe un número de puntos válido (0 o más).', true); return await guardarCondicionObra({ puntos_bonus: Math.round(n) }); }
+    if (d.act === 'ob-plazo') return await guardarCondicionObra({ plazo_cierre: d.h === '' ? null : new Date(Date.now() + Number(d.h) * 3600000).toISOString() });
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+
+// ───────────────────────── Inicio ─────────────────────────
+const ICONO = {
+  obra: '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/>',
+  doc: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3"/>',
+  pet: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  emp: '<path d="M3 7h18v13H3zM8 7V4h8v3"/>',
+  mas: '<path d="M12 5v14M5 12h14"/>'
+};
+async function vistaInicio(v) {
+  const [obras, r, cola] = await Promise.all([
+    consultarObras().catch(() => []), rpc('panel_resumen').catch(() => ({})), rpc('panel_cola_peticiones').catch(() => [])
+  ]);
+  const nombre = ((yo && yo.nombre_completo) || '').split(' ')[0];
+  const hoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const cuenta = (e) => obras.filter((o) => o.estado === e).length;
+  const petsRev = cola.filter((p) => p.estado === 'en_revision').length;
+  v.innerHTML = `<div class="cab"><div><h1>${nombre ? 'Hola, ' + esc(nombre) : 'Inicio'}</h1><p class="suave">${esc(hoy.charAt(0).toUpperCase() + hoy.slice(1))}. Esto es lo que hay hoy en 3B Conecta.</p></div></div>
+  <div class="resumen">
+    <a href="#/obras?e=abierta"><b>${cuenta('abierta')}</b><span>Obras abiertas a ofertas</span></a>
+    <a href="#/obras?e=en_curso"><b>${cuenta('en_curso')}</b><span>Obras en curso</span></a>
+    <a href="#/peticiones"><b class="${petsRev ? 'mal' : ''}">${petsRev}</b><span>Peticiones por revisar</span></a>
+    <a href="#/revision"><b class="${r.por_revisar ? 'mal' : ''}">${r.por_revisar ?? 0}</b><span>Documentos por revisar</span></a>
+    <a href="#/empresas?f=pendiente"><b>${r.cuentas_pendientes ?? 0}</b><span>Cuentas por verificar</span></a>
+  </div>
+  <h2 class="sec">Acciones rápidas</h2>
+  <div class="acciones-rapidas">
+    <button data-act="ob-nueva"><svg viewBox="0 0 24 24">${ICONO.mas}</svg><b>Nueva obra</b><span>Publicar una licitación</span></button>
+    <a href="#/revision"><svg viewBox="0 0 24 24">${ICONO.doc}</svg><b>Revisar documentos</b><span>Aprobar o rechazar</span></a>
+    <a href="#/peticiones"><svg viewBox="0 0 24 24">${ICONO.pet}</svg><b>Peticiones</b><span>De particulares</span></a>
+    <a href="#/empresas?f=pendiente"><svg viewBox="0 0 24 24">${ICONO.emp}</svg><b>Verificar cuentas</b><span>Altas pendientes</span></a>
+  </div>
+  <div class="panel" style="margin-top:24px"><header><h2>Obras recientes</h2><a href="#/obras">Ver todas (${obras.length})</a></header>${htmlTabla('i-obras', [
+    { t: 'Estado', f: (o) => obraEst(o.estado) },
+    { t: 'Obra', f: (o) => `<b>${esc(o.titulo)}</b><span class="sub">${esc(o.referencia)}${o.ubicacion ? ' · ' + esc(o.ubicacion) : ''}</span>` },
+    { t: 'Presupuesto', cls: 'der', f: (o) => euros(o.presupuesto, o.moneda) },
+    { t: 'Ofertas', cls: 'der', f: (o) => nOfertas(o) }], obras.slice(0, 6), 'Todavía no hay obras.', (o) => '#/obra/' + o.id)}</div>
+  <div id="ini-doc"></div>`;
+  await vistaResumen($('#ini-doc'), true);
+}
+
+// ───────────────────────── Menú en móvil ─────────────────────────
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#btn-menu')) { document.body.classList.toggle('menu-abierto'); return; }
+  if (document.body.classList.contains('menu-abierto') && (e.target.closest('#lateral a') || !e.target.closest('#lateral'))) document.body.classList.remove('menu-abierto');
+});
+
+// ───────────────────────── Archivos de otros almacenes ─────────────────────────
+async function verArchivoEn(bucket, ruta) {
+  const w = window.open('', '_blank');
+  const { data, error } = await sb.storage.from(bucket).createSignedUrl(ruta, 300);
+  if (error || !data) { if (w) w.close(); aviso('No se ha podido abrir el archivo. Inténtalo de nuevo.', true); return; }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+const ROLES_RED = ['referidor', 'promotor', 'constructora', 'arquitecto', 'proveedor', 'profesional', 'administrador'];
+const NIVELES = ['bronce', 'plata', 'oro', 'platino'];
+const ETIQ_NIVEL = { bronce: 'Bronce', plata: 'Plata', oro: 'Oro', platino: 'Platino' };
+const num = (n) => new Intl.NumberFormat('es-ES', { minimumGroupingDigits: 1 }).format(Number(n || 0));
+async function actualizarContadoresRed() {
+  try {
+    const a = await sb.from('postulaciones').select('id, obras!inner(origen)', { count: 'exact', head: true }).eq('obras.origen', 'empresa').in('estado', ['enviada', 'en_revision']);
+    const c1 = $('#cnt-postulaciones'); if (c1 && !a.error) { c1.textContent = a.count || 0; c1.classList.toggle('hidden', !a.count); }
+  } catch (e) {}
+  try {
+    const b = await sb.from('canjes').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente');
+    const c2 = $('#cnt-canjes'); if (c2 && !b.error) { c2.textContent = b.count || 0; c2.classList.toggle('hidden', !b.count); }
+  } catch (e) {}
+}
+
+// ───────────────────────── Postulaciones ─────────────────────────
+const MOTIVOS_RECHAZO = ['Oferta económica demasiado alta', 'Sin disponibilidad para las fechas', 'Documentación incompleta', 'Perfil no adecuado para la obra'];
+const POST_ETIQ = { enviada: ['aviso', 'Enviada'], en_revision: ['aviso', 'En revisión'], aceptada: ['ok', 'Aceptada'], rechazada: ['mal', 'No seleccionada'] };
+async function vistaPostulaciones(v) {
+  const t = new URLSearchParams(location.hash.split('?')[1] || '').get('t') || 'pendientes';
+  const { data, error } = await sb.from('postulaciones')
+    .select('id, oferta_economica, telefono_contacto, estado, created_at, empresa_id, obra_id, motivacion, motivo_rechazo, obras(titulo, referencia, moneda, estado, origen), empresas_subcontratistas(nombre)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  const todas = data || [];
+  const ids = todas.map((p) => p.id), empIds = [...new Set(todas.map((p) => p.empresa_id))];
+  const [ra, rc] = await Promise.all([
+    ids.length ? sb.from('postulacion_archivos').select('id, nombre_archivo, storage_path, postulacion_id').in('postulacion_id', ids) : { data: [] },
+    empIds.length ? sb.from('profiles').select('empresa_id, nombre_completo, telefono, email').in('empresa_id', empIds) : { data: [] }
+  ]);
+  const arch = {}; (ra.data || []).forEach((a) => { (arch[a.postulacion_id] = arch[a.postulacion_id] || []).push(a); });
+  const cont = {}; (rc.data || []).forEach((c) => { if (!cont[c.empresa_id]) cont[c.empresa_id] = c; });
+  const pend = (p) => ['enviada', 'en_revision'].includes(p.estado);
+  const grupos = { pendientes: todas.filter(pend), aceptadas: todas.filter((p) => p.estado === 'aceptada'), rechazadas: todas.filter((p) => p.estado === 'rechazada'), todas };
+  const lista = grupos[t] || grupos.pendientes;
+  const pestanas = [['pendientes', 'Por decidir'], ['aceptadas', 'Aceptadas'], ['rechazadas', 'No seleccionadas'], ['todas', 'Todas']];
+  v.innerHTML = `<div class="cab"><div><h1>Postulaciones</h1><p class="suave">Las ofertas que envían las empresas a las obras. Aceptar una adjudica la obra y descarta las demás.</p></div></div>
+  <div class="herramientas">${pestanas.map(([k, n]) => `<a class="btn ${k === t ? 'primario' : ''}" href="#/postulaciones?t=${k}">${n} (${grupos[k].length})</a>`).join('')}</div>
+  <div class="panel">${htmlTabla('postulaciones', [
+    { t: 'Obra', f: (p) => p.obras ? `<a href="#/obra/${esc(p.obra_id)}"><b>${esc(p.obras.titulo)}</b></a><span class="sub">${esc(p.obras.referencia)} · ${esc((OBRA_EST[p.obras.estado] || [0, p.obras.estado])[1])}</span>` : '—' },
+    { t: 'Empresa', f: (p) => { const c = cont[p.empresa_id]; return `<a href="#/gremio/${esc(p.empresa_id)}"><b>${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || 'Sin nombre')}</b></a>${c ? `<span class="sub">${esc(c.nombre_completo || '')}${c.email ? ` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}</span>` : ''}<span class="sub">${esc(p.telefono_contacto || (c && c.telefono) || '')}</span>`; } },
+    { t: 'Oferta', cls: 'der', f: (p) => euros(p.oferta_economica, p.obras && p.obras.moneda), s: (p) => Number(p.oferta_economica) },
+    { t: 'Mensaje', f: (p) => `${esc(p.motivacion || '—')}${p.motivo_rechazo ? `<span class="sub mal-t">${esc(p.motivo_rechazo)}</span>` : ''}${(arch[p.id] || []).map((a) => `<button class="btn peq" data-act="po-archivo" data-ruta="${esc(a.storage_path)}">${esc(a.nombre_archivo)}</button>`).join(' ')}` },
+    { t: 'Estado', f: (p) => marca(POST_ETIQ[p.estado] || ['neutro', p.estado]), s: (p) => p.estado },
+    { t: 'Enviada', f: (p) => fecha(p.created_at), s: (p) => p.created_at },
+    { t: '', cls: 'acc', f: (p) => p.obras && p.obras.origen === 'particular' ? '<span class="sub">Petición de particular: se decide en <a href="#/peticiones?t=ofertas">Peticiones</a></span>'
+      : pend(p) ? `<button class="btn peq primario" data-act="ob-aceptar" data-id="${esc(p.id)}" data-nombre="${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || '')}" data-vuelta="1">Aceptar</button><button class="btn peq mal" data-act="ob-rechazar" data-id="${esc(p.id)}">Rechazar</button>` : '' }
+  ], lista, t === 'pendientes' ? 'No hay ofertas por decidir.' : 'No hay ofertas en esta lista.')}</div>`;
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-act="po-archivo"]'); if (b) verArchivoEn('postulacion-archivos', b.dataset.ruta); });
+
+// ───────────────────────── Gremios ─────────────────────────
+const TIPO_DOC_HOM = { alta_autonomo: 'Alta Autónomo / Modelo 036', seguro_rc: 'Seguro de Responsabilidad Civil', certificado_prl: 'Certificado PRL', certificado_aeat_tgss: 'Corriente de pagos AEAT y TGSS', otro: 'Otro documento' };
+const DOC_HOM_EST = { vigente: ['ok', 'Vigente'], vencido: ['mal', 'Vencido'], pendiente_revision: ['aviso', 'Pendiente de revisión'] };
+const ORDEN_DOC_HOM = ['pendiente_revision', 'vigente', 'vencido'];
+const estrellas = (n) => n == null ? '<span class="suave">Sin valorar</span>' : `<span style="color:#D99A1E">${'★'.repeat(Math.round(n))}</span><span style="color:#C3CCD8">${'★'.repeat(5 - Math.round(n))}</span>`;
+async function vistaGremios(v) {
+  const [r, aj] = await Promise.all([
+    sb.from('empresas_subcontratistas').select('id, nombre, especialidad, homologado, nivel_partner, puntos_disponibles, puntos_totales, rating_medio, obras_completadas').order('nombre', { ascending: true }),
+    sb.from('profiles').select('empresa_id').in('role', ROLES_RED).not('empresa_id', 'is', null)
+  ]);
+  if (r.error) throw r.error;
+  const ajenos = new Set((aj.data || []).map((p) => p.empresa_id));
+  const todas = (r.data || []).filter((e) => !ajenos.has(e.id));
+  const q = new URLSearchParams(location.hash.split('?')[1] || '');
+  v.innerHTML = `<div class="cab"><div><h1>Gremios</h1><p class="suave">${todas.length} empresas de oficios registradas. Su homologación, nivel del Club Partner y valoración.</p></div></div>
+  <div class="resumen">${NIVELES.map((n) => `<a href="#/gremios?n=${n}"><b>${todas.filter((e) => e.nivel_partner === n).length}</b><span>${ETIQ_NIVEL[n]}</span></a>`).join('')}
+    <a href="#/gremios"><b>${todas.filter((e) => e.homologado).length}</b><span>Homologadas</span></a></div>
+  <div class="herramientas" style="margin-top:16px"><input type="search" id="g-texto" placeholder="Buscar por nombre o especialidad" aria-label="Buscar" />
+    <select id="g-nivel" aria-label="Nivel"><option value="">Todos los niveles</option>${NIVELES.map((n) => `<option value="${n}">${ETIQ_NIVEL[n]}</option>`).join('')}</select></div>
+  <div class="panel" id="g-lista"></div>`;
+  if (q.get('n')) $('#g-nivel').value = q.get('n');
+  const pintar = () => {
+    const t = $('#g-texto').value.trim().toLowerCase(), n = $('#g-nivel').value;
+    const lista = todas.filter((e) => (!n || e.nivel_partner === n) && (!t || [e.nombre, e.especialidad].some((x) => String(x || '').toLowerCase().includes(t))));
+    $('#g-lista').innerHTML = htmlTabla('gremios', [
+      { t: 'Empresa', f: (e) => `<b>${esc(e.nombre)}</b><span class="sub">${esc(e.especialidad || '')}</span>`, s: (e) => String(e.nombre).toLowerCase() },
+      { t: 'Homologada', f: (e) => marca(e.homologado ? ['ok', 'Sí'] : ['neutro', 'No']), s: (e) => e.homologado ? 1 : 0 },
+      { t: 'Nivel', f: (e) => esc(ETIQ_NIVEL[e.nivel_partner] || e.nivel_partner), s: (e) => NIVELES.indexOf(e.nivel_partner) },
+      { t: 'Puntos', cls: 'der', f: (e) => `${num(e.puntos_disponibles)}<span class="sub">de ${num(e.puntos_totales)} en total</span>`, s: (e) => Number(e.puntos_totales) },
+      { t: 'Valoración', f: (e) => estrellas(e.rating_medio), s: (e) => Number(e.rating_medio || 0) },
+      { t: 'Obras', cls: 'der', f: (e) => e.obras_completadas, s: (e) => Number(e.obras_completadas) }
+    ], lista, 'Ninguna empresa coincide con los filtros.', (e) => '#/gremio/' + e.id);
+  };
+  ['g-texto', 'g-nivel'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+}
+async function vistaGremio(v, id) {
+  const [re, rc, rd] = await Promise.all([
+    sb.from('empresas_subcontratistas').select('id, nombre, cif, especialidad, direccion, homologado, nivel_partner, puntos_disponibles, puntos_totales, rating_medio, obras_completadas').eq('id', id).maybeSingle(),
+    sb.from('profiles').select('id, nombre_completo, telefono, email').eq('empresa_id', id),
+    sb.from('documentos_homologacion').select('id, tipo, estado, storage_path').eq('empresa_id', id)
+  ]);
+  if (re.error) throw re.error;
+  const e = re.data;
+  if (!e) { v.innerHTML = '<div class="miga"><a href="#/gremios">← Gremios</a></div><div class="error-caja">No se ha encontrado esta empresa.</div>'; return; }
+  window.__gremio = e;
+  const docs = rd.data || [], contactos = rc.data || [];
+  v.innerHTML = `<div class="miga"><a href="#/gremios">← Gremios</a></div>
+  <div class="cab"><div><h1>${esc(e.nombre)}</h1><p>${marca(e.homologado ? ['ok', 'Homologada'] : ['neutro', 'Sin homologar'])} &nbsp; <span class="suave">${esc(e.especialidad || '')}</span></p></div>
+    <div><button class="btn ${e.homologado ? '' : 'primario'}" data-act="gr-homologar">${e.homologado ? 'Quitar la homologación' : 'Homologar la empresa'}</button></div></div>
+  <div class="ficha"><div>
+    <div class="panel"><header><h2>Datos</h2></header><div class="cuerpo">${listaDatos([['CIF', esc(e.cif || '—')], ['Dirección', esc(e.direccion || '—')], ['Nivel', esc(ETIQ_NIVEL[e.nivel_partner] || e.nivel_partner)],
+      ['Puntos disponibles', num(e.puntos_disponibles)], ['Puntos totales', num(e.puntos_totales)], ['Obras completadas', esc(e.obras_completadas)]])}
+      <p style="margin:14px 0 4px;font-weight:500">Valoración</p><div class="estrellas">${[1, 2, 3, 4, 5].map((n) => `<button data-act="gr-valorar" data-n="${n}" class="${e.rating_medio != null && n <= Math.round(e.rating_medio) ? 'on' : ''}" aria-label="${n} estrellas">★</button>`).join('')}</div></div></div>
+    <div class="panel" style="margin-top:16px"><header><h2>Contactos</h2></header><div class="cuerpo">${contactos.length ? contactos.map((c) => `<p style="margin:0 0 10px"><b>${esc(c.nombre_completo || '—')}</b><span class="sub">${esc(c.telefono || '')}${c.telefono && c.email ? ' · ' : ''}${c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}</span></p>`).join('') : '<span class="suave">Sin usuarios vinculados.</span>'}</div></div>
+  </div>
+  <div class="panel"><header><h2>Documentos de homologación</h2></header>${htmlTabla('gr-docs', [
+    { t: 'Documento', f: (d) => `<b>${esc(TIPO_DOC_HOM[d.tipo] || d.tipo)}</b>` },
+    { t: 'Estado', f: (d) => marca(DOC_HOM_EST[d.estado] || ['neutro', d.estado]) },
+    { t: '', cls: 'acc', f: (d) => `${d.storage_path ? `<button class="btn peq" data-act="gr-ver" data-ruta="${esc(d.storage_path)}">Ver</button>` : '<span class="sub">Sin archivo</span>'}<button class="btn peq" data-act="gr-estado-doc" data-id="${esc(d.id)}" data-estado="${esc(d.estado)}">Cambiar estado</button>` }
+  ], docs, 'Esta empresa no ha subido documentos.')}
+  <p class="suave peq" style="padding:10px 14px;margin:0">«Cambiar estado» recorre: pendiente de revisión → vigente → vencido.</p></div></div>`;
+}
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('[data-act^="gr-"]'); if (!b) return;
+  const d = b.dataset, e = window.__gremio;
+  try {
+    if (d.act === 'gr-ver') return verArchivoEn('documentos-homologacion', d.ruta);
+    if (d.act === 'gr-homologar') { const { error } = await sb.from('empresas_subcontratistas').update({ homologado: !e.homologado }).eq('id', e.id); if (error) throw error; aviso(e.homologado ? 'Homologación retirada.' : 'Empresa homologada.'); return enrutar(); }
+    if (d.act === 'gr-valorar') { const { error } = await sb.from('empresas_subcontratistas').update({ rating_medio: Number(d.n) }).eq('id', e.id); if (error) throw error; aviso('Valoración guardada.'); return enrutar(); }
+    if (d.act === 'gr-estado-doc') { const sig = ORDEN_DOC_HOM[(ORDEN_DOC_HOM.indexOf(d.estado) + 1) % ORDEN_DOC_HOM.length]; const { error } = await sb.from('documentos_homologacion').update({ estado: sig }).eq('id', d.id); if (error) throw error; aviso('Estado: ' + DOC_HOM_EST[sig][1] + '.'); return enrutar(); }
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+
+// ───────────────────────── Recompensas ─────────────────────────
+const CANJE_EST = { pendiente: ['aviso', 'Pendiente'], completado: ['ok', 'Completado'], cancelado: ['mal', 'Cancelado'] };
+async function vistaRecompensas(v) {
+  const t = new URLSearchParams(location.hash.split('?')[1] || '').get('t') || 'canjes';
+  const [rr, rc] = await Promise.all([
+    sb.from('recompensas_catalogo').select('id, nombre, descripcion, puntos_requeridos, categoria, activo, nivel_minimo').order('puntos_requeridos', { ascending: true }),
+    sb.from('canjes').select('id, puntos_gastados, estado, created_at, empresas_subcontratistas(nombre), recompensas_catalogo(nombre)').order('created_at', { ascending: false }).limit(200)
+  ]);
+  if (rr.error) throw rr.error;
+  const rec = rr.data || [], canjes = rc.data || [];
+  window.__canjes = canjes; window.__recs = rec;
+  const pend = canjes.filter((c) => c.estado === 'pendiente').length;
+  v.innerHTML = `<div class="cab"><div><h1>Recompensas</h1><p class="suave">El catálogo del Club Partner y los canjes que piden las empresas.</p></div><button class="btn primario" data-act="re-nueva">+ Nueva recompensa</button></div>
+  <div class="herramientas"><a class="btn ${t === 'canjes' ? 'primario' : ''}" href="#/recompensas?t=canjes">Canjes${pend ? ' (' + pend + ' por entregar)' : ''}</a><a class="btn ${t === 'catalogo' ? 'primario' : ''}" href="#/recompensas?t=catalogo">Catálogo (${rec.length})</a></div>
+  <div class="panel">${t === 'catalogo' ? htmlTabla('catalogo', [
+    { t: 'Recompensa', f: (r) => `<b>${esc(r.nombre)}</b><span class="sub">${esc(r.descripcion || '')}</span>`, s: (r) => String(r.nombre).toLowerCase() },
+    { t: 'Categoría', f: (r) => esc(r.categoria || '—') },
+    { t: 'Puntos', cls: 'der', f: (r) => num(r.puntos_requeridos), s: (r) => Number(r.puntos_requeridos) },
+    { t: 'Nivel mínimo', f: (r) => `<select data-act="re-nivel" data-id="${esc(r.id)}" style="width:auto">${NIVELES.map((n) => `<option value="${n}" ${n === r.nivel_minimo ? 'selected' : ''}>${ETIQ_NIVEL[n]}</option>`).join('')}</select>` },
+    { t: 'Visible', f: (r) => marca(r.activo ? ['ok', 'Activa'] : ['neutro', 'Oculta']) },
+    { t: '', cls: 'acc', f: (r) => `<button class="btn peq" data-act="re-activa" data-id="${esc(r.id)}" data-activa="${r.activo ? '' : '1'}">${r.activo ? 'Ocultar' : 'Activar'}</button>` }
+  ], rec, 'El catálogo está vacío. Crea la primera recompensa.') : htmlTabla('canjes', [
+    { t: 'Fecha', f: (c) => fechaHora(c.created_at), s: (c) => c.created_at },
+    { t: 'Empresa', f: (c) => `<b>${esc((c.empresas_subcontratistas && c.empresas_subcontratistas.nombre) || '—')}</b>` },
+    { t: 'Recompensa', f: (c) => esc((c.recompensas_catalogo && c.recompensas_catalogo.nombre) || '—') },
+    { t: 'Puntos', cls: 'der', f: (c) => num(c.puntos_gastados), s: (c) => Number(c.puntos_gastados) },
+    { t: 'Estado', f: (c) => marca(CANJE_EST[c.estado] || ['neutro', c.estado]) },
+    { t: '', cls: 'acc', f: (c) => c.estado === 'pendiente' ? `<button class="btn peq primario" data-act="re-resolver" data-id="${esc(c.id)}" data-a="completado">Entregada</button><button class="btn peq mal" data-act="re-resolver" data-id="${esc(c.id)}" data-a="cancelado">Cancelar</button>` : '' }
+  ], canjes, 'Todavía no hay canjes.')}</div>`;
+}
+function ventanaRecompensa() {
+  abrirVentana(`<h2>Nueva recompensa</h2><p class="suave">Aparece en el catálogo del Club Partner de las empresas.</p>
+  <label class="campo" for="rc-nombre">Nombre *</label><input type="text" id="rc-nombre" />
+  <label class="campo" for="rc-desc">Descripción</label><textarea id="rc-desc" style="min-height:60px"></textarea>
+  <div class="form-rejilla"><div><label class="campo" for="rc-pts">Puntos necesarios *</label><input type="text" inputmode="numeric" id="rc-pts" /></div>
+  <div><label class="campo" for="rc-cat">Categoría</label><input type="text" id="rc-cat" /></div></div>
+  <label class="campo" for="rc-niv">Nivel mínimo</label><select id="rc-niv">${NIVELES.map((n) => `<option value="${n}">${ETIQ_NIVEL[n]}</option>`).join('')}</select>${pieVentana('Crear recompensa', 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const nombre = $('#rc-nombre').value.trim(), p = Number($('#rc-pts').value.trim().replace(',', '.'));
+    if (!nombre) return errorVentana('El nombre es obligatorio.');
+    if ($('#rc-pts').value.trim() === '' || isNaN(p) || p <= 0) return errorVentana('Escribe un número de puntos válido.');
+    $('#v-ok').disabled = true;
+    const { error } = await sb.from('recompensas_catalogo').insert({ nombre, descripcion: $('#rc-desc').value.trim() || null, puntos_requeridos: Math.round(p), categoria: $('#rc-cat').value.trim() || null, nivel_minimo: $('#rc-niv').value, activo: true });
+    if (error) { $('#v-ok').disabled = false; return errorVentana(error); }
+    cerrarVentana(); aviso('Recompensa creada.'); location.hash = '#/recompensas?t=catalogo'; enrutar();
+  };
+}
+function ventanaCanje(id, a) {
+  const c = (window.__canjes || []).find((x) => x.id === id); if (!c) return;
+  const emp = (c.empresas_subcontratistas && c.empresas_subcontratistas.nombre) || 'la empresa', rec = (c.recompensas_catalogo && c.recompensas_catalogo.nombre) || 'la recompensa';
+  abrirVentana(a === 'completado'
+    ? `<h2>Marcar como entregada</h2><p>¿Has entregado «${esc(rec)}» a ${esc(emp)}?</p>${pieVentana('Sí, entregada', 'primario')}`
+    : `<h2>Cancelar el canje</h2><p>Se devolverán ${num(c.puntos_gastados)} puntos a ${esc(emp)} y se le avisará.</p>${pieVentana('Cancelar canje', 'mal')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('resolver_canje', { p_canje_id: id, p_nuevo_estado: a }); cerrarVentana(); aviso('Canje actualizado.'); enrutar(); actualizarContadoresRed(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+document.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button[data-act^="re-"]'); if (!b) return;
+  const d = b.dataset;
+  try {
+    if (d.act === 're-nueva') return ventanaRecompensa();
+    if (d.act === 're-resolver') return ventanaCanje(d.id, d.a);
+    if (d.act === 're-activa') { const { error } = await sb.from('recompensas_catalogo').update({ activo: !!d.activa }).eq('id', d.id); if (error) throw error; aviso('Actualizada.'); return enrutar(); }
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+document.addEventListener('change', async (ev) => {
+  const s = ev.target.closest('select[data-act="re-nivel"]'); if (!s) return;
+  const { error } = await sb.from('recompensas_catalogo').update({ nivel_minimo: s.value }).eq('id', s.dataset.id);
+  if (error) { aviso(mensajeError(error), true); enrutar(); } else aviso('Nivel actualizado.');
+});
+
+// ───────────────────────── Red 3B Conecta: Tablón, Directorio, Comisiones, Referidos ─────────────────────────
+const ETIQ_PERFIL = { subcontratista: 'Oficios', referidor: 'Recomendador', promotor: 'Promotor', constructora: 'Constructora', arquitecto: 'Arquitecto', proveedor: 'Proveedor', profesional: 'Profesional', administrador: 'Inmobiliaria / Administrador', particular: 'Particular', tecnico: 'Técnico' };
+const etiqPerfil = (r) => ETIQ_PERFIL[r] || r || '—';
+const coincide = (texto, ...campos) => { const t = String(texto || '').trim().toLowerCase(); return !t || campos.some((c) => String(c || '').toLowerCase().includes(t)); };
+function confirmarVentana(titulo, texto, boton, clase, accion, hecho) {
+  abrirVentana(`<h2>${esc(titulo)}</h2><p>${texto}</p>${pieVentana(boton, clase)}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await accion(); cerrarVentana(); aviso(hecho); enrutar(); } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+
+async function vistaTablon(v) {
+  const { data, error } = await sb.from('publicaciones_tablon').select('id, tipo, titulo, descripcion, categoria, created_at, profiles(nombre_completo, role)').order('created_at', { ascending: false });
+  if (error) throw error;
+  const todas = data || []; window.__tablon = todas;
+  v.innerHTML = `<div class="cab"><div><h1>Tablón</h1><p class="suave">Lo que publican las cuentas de 3B Conecta. Aquí quitas lo que no deba estar.</p></div></div>
+  <div class="herramientas"><input type="search" id="tb-texto" placeholder="Buscar en el Tablón" aria-label="Buscar" />
+    <select id="tb-tipo" aria-label="Tipo"><option value="">Todo (${todas.length})</option><option value="necesidad">Necesidades</option><option value="aviso">Avisos</option></select></div>
+  <div class="panel" id="tb-lista"></div>`;
+  const pintar = () => {
+    const t = $('#tb-texto').value, tipo = $('#tb-tipo').value;
+    const lista = todas.filter((p) => (!tipo || p.tipo === tipo) && coincide(t, p.titulo, p.descripcion, p.categoria, p.profiles && p.profiles.nombre_completo));
+    $('#tb-lista').innerHTML = htmlTabla('tablon', [
+      { t: 'Fecha', f: (p) => fecha(p.created_at), s: (p) => p.created_at },
+      { t: 'Tipo', f: (p) => marca(p.tipo === 'aviso' ? ['aviso', 'Aviso'] : ['azul', 'Necesidad']) },
+      { t: 'Publicación', f: (p) => `<b>${esc(p.titulo)}</b><span class="sub">${esc(p.descripcion || '')}</span>` },
+      { t: 'Categoría', f: (p) => esc(p.categoria || '—') },
+      { t: 'Publicó', f: (p) => `${esc((p.profiles && p.profiles.nombre_completo) || '—')}<span class="sub">${esc(etiqPerfil(p.profiles && p.profiles.role))}</span>` },
+      { t: '', cls: 'acc', f: (p) => `<button class="btn peq mal" data-act="rd-quitar-post" data-id="${esc(p.id)}">Quitar</button>` }
+    ], lista, todas.length ? 'Nada coincide con la búsqueda.' : 'No hay nada publicado en el Tablón.');
+  };
+  ['tb-texto', 'tb-tipo'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+}
+async function vistaDirectorio(v) {
+  const { data, error } = await sb.from('fichas_directorio').select('profile_id, rol, nombre_mostrar, categoria, zona_cobertura, created_at').order('created_at', { ascending: false });
+  if (error) throw error;
+  const todas = data || []; window.__fichas = todas;
+  const roles = [...new Set(todas.map((f) => f.rol))];
+  v.innerHTML = `<div class="cab"><div><h1>Directorio</h1><p class="suave">Las fichas públicas de proveedores, arquitectos y profesionales. Aquí quitas las que no deban estar.</p></div></div>
+  <div class="herramientas"><input type="search" id="di-texto" placeholder="Buscar en el Directorio" aria-label="Buscar" />
+    <select id="di-rol" aria-label="Perfil"><option value="">Todos los perfiles (${todas.length})</option>${roles.map((r) => `<option value="${esc(r)}">${esc(etiqPerfil(r))}</option>`).join('')}</select></div>
+  <div class="panel" id="di-lista"></div>`;
+  const pintar = () => {
+    const t = $('#di-texto').value, r = $('#di-rol').value;
+    const lista = todas.filter((f) => (!r || f.rol === r) && coincide(t, f.nombre_mostrar, f.categoria, f.zona_cobertura));
+    $('#di-lista').innerHTML = htmlTabla('directorio', [
+      { t: 'Ficha', f: (f) => `<b>${esc(f.nombre_mostrar)}</b>`, s: (f) => String(f.nombre_mostrar).toLowerCase() },
+      { t: 'Perfil', f: (f) => esc(etiqPerfil(f.rol)), s: (f) => f.rol },
+      { t: 'Categoría', f: (f) => esc(f.categoria || '—') },
+      { t: 'Zona', f: (f) => esc(f.zona_cobertura || '—') },
+      { t: 'Alta', f: (f) => fecha(f.created_at), s: (f) => f.created_at },
+      { t: '', cls: 'acc', f: (f) => `<button class="btn peq mal" data-act="rd-quitar-ficha" data-id="${esc(f.profile_id)}">Quitar</button>` }
+    ], lista, todas.length ? 'Nada coincide con la búsqueda.' : 'Todavía no hay fichas en el Directorio.');
+  };
+  ['di-texto', 'di-rol'].forEach((id) => $('#' + id).addEventListener('input', pintar)); pintar();
+}
+
+const COMISION_EST = { pendiente: ['aviso', 'Por aceptar'], aceptada: ['azul', 'Por pagar'], pagada: ['ok', 'Pagada'], rechazada: ['mal', 'Rechazada'] };
+async function vistaComisiones(v) {
+  const f = new URLSearchParams(location.hash.split('?')[1] || '').get('f') || '';
+  const { data, error } = await sb.from('recompensas_referido').select('id, estado, importe, porcentaje, base_imponible, created_at, referencias_comerciales(nombre_cliente), profiles(nombre_completo, role)').order('created_at', { ascending: false });
+  if (error) throw error;
+  const todas = data || []; window.__comisiones = todas;
+  const suma = (e) => todas.filter((c) => c.estado === e).reduce((s, c) => s + Number(c.importe || 0), 0);
+  const lista = todas.filter((c) => !f || c.estado === f);
+  v.innerHTML = `<div class="cab"><div><h1>Comisiones</h1><p class="suave">Lo que se debe a quienes recomiendan clientes. Marca como pagado lo que ya has abonado.</p></div></div>
+  <div class="resumen"><a href="#/comisiones?f=aceptada"><b>${euros(suma('aceptada'))}</b><span>Por pagar</span></a><a href="#/comisiones?f=pendiente"><b>${euros(suma('pendiente'))}</b><span>Por aceptar</span></a>
+    <a href="#/comisiones?f=pagada"><b>${euros(suma('pagada'))}</b><span>Pagado</span></a><a href="#/comisiones"><b>${todas.length}</b><span>Comisiones en total</span></a></div>
+  <div class="panel" style="margin-top:16px">${htmlTabla('comisiones', [
+    { t: 'Fecha', f: (c) => fecha(c.created_at), s: (c) => c.created_at },
+    { t: 'Cliente', f: (c) => `<b>${esc((c.referencias_comerciales && c.referencias_comerciales.nombre_cliente) || '—')}</b>` },
+    { t: 'Recomendó', f: (c) => `${esc((c.profiles && c.profiles.nombre_completo) || '—')}<span class="sub">${esc(etiqPerfil(c.profiles && c.profiles.role))}</span>` },
+    { t: 'Base', cls: 'der', f: (c) => euros(c.base_imponible), s: (c) => Number(c.base_imponible) },
+    { t: '%', cls: 'der', f: (c) => c.porcentaje != null ? esc(c.porcentaje) + ' %' : '—' },
+    { t: 'Importe', cls: 'der', f: (c) => `<b>${euros(c.importe)}</b>`, s: (c) => Number(c.importe) },
+    { t: 'Estado', f: (c) => marca(COMISION_EST[c.estado] || ['neutro', c.estado]) },
+    { t: '', cls: 'acc', f: (c) => c.estado === 'aceptada' ? `<button class="btn peq primario" data-act="rd-pagar" data-id="${esc(c.id)}">Marcar pagada</button>` : '' }
+  ], lista, 'No hay comisiones en esta lista.')}</div>`;
+}
+
+const REF_ESTADOS = [['enviado', 'Enviado', 'neutro'], ['contactado', 'Contactado', 'azul'], ['visita', 'Visita', 'azul'], ['presupuesto', 'Presupuesto', 'azul'], ['reserva', 'Reserva', 'aviso'], ['venta', 'Venta', 'ok'], ['comision_disponible', 'Comisión disponible', 'ok'], ['descartado', 'Descartado', 'mal']];
+const refEst = (k) => { const x = REF_ESTADOS.find((e) => e[0] === k); return marca(x ? [x[2], x[1]] : ['neutro', k]); };
+async function vistaReferidos(v) {
+  const f = new URLSearchParams(location.hash.split('?')[1] || '').get('f') || '';
+  const { data, error } = await sb.from('referencias_comerciales').select('id, nombre_cliente, telefono_cliente, email_cliente, estado, precio_venta, motivo_descarte, created_at, profiles(nombre_completo, role)').order('created_at', { ascending: false });
+  if (error) throw error;
+  const todas = data || []; window.__refs = todas;
+  const h = await sb.from('referencias_historial').select('referencia_id, estado_nuevo, created_at, profiles(nombre_completo)').order('created_at', { ascending: false }).limit(500);
+  const ult = {}; (h.data || []).forEach((x) => { if (!ult[x.referencia_id]) ult[x.referencia_id] = x; });
+  const cuenta = (e) => todas.filter((r) => r.estado === e).length;
+  const abiertas = todas.filter((r) => !['venta', 'comision_disponible', 'descartado'].includes(r.estado)).length;
+  const lista = todas.filter((r) => !f || (f === 'abiertas' ? !['venta', 'comision_disponible', 'descartado'].includes(r.estado) : r.estado === f));
+  v.innerHTML = `<div class="cab"><div><h1>Referidos</h1><p class="suave">Las recomendaciones de clientes (OH Recomienda). Cada cambio de estado avisa a quien la envió.</p></div></div>
+  <div class="resumen"><a href="#/referidos?f=abiertas"><b>${abiertas}</b><span>En curso</span></a><a href="#/referidos?f=venta"><b>${cuenta('venta')}</b><span>Ventas</span></a>
+    <a href="#/referidos?f=comision_disponible"><b>${cuenta('comision_disponible')}</b><span>Comisión disponible</span></a><a href="#/referidos?f=descartado"><b>${cuenta('descartado')}</b><span>Descartadas</span></a><a href="#/referidos"><b>${todas.length}</b><span>Total</span></a></div>
+  <div class="panel" style="margin-top:16px">${htmlTabla('referidos', [
+    { t: 'Fecha', f: (r) => fecha(r.created_at), s: (r) => r.created_at },
+    { t: 'Cliente', f: (r) => `<b>${esc(r.nombre_cliente)}</b><span class="sub">${esc(r.telefono_cliente || '')}${r.telefono_cliente && r.email_cliente ? ' · ' : ''}${r.email_cliente ? `<a href="mailto:${esc(r.email_cliente)}">${esc(r.email_cliente)}</a>` : ''}</span>` },
+    { t: 'Recomendó', f: (r) => `${esc((r.profiles && r.profiles.nombre_completo) || '—')}<span class="sub">${esc(etiqPerfil(r.profiles && r.profiles.role))}</span>` },
+    { t: 'Estado', f: (r) => `${refEst(r.estado)}${r.motivo_descarte ? `<span class="sub">${esc(r.motivo_descarte)}</span>` : ''}${ult[r.id] ? `<span class="sub">${fechaHora(ult[r.id].created_at)}${ult[r.id].profiles && ult[r.id].profiles.nombre_completo ? ' · ' + esc(ult[r.id].profiles.nombre_completo) : ''}</span>` : ''}`, s: (r) => r.estado },
+    { t: 'Venta', cls: 'der', f: (r) => r.precio_venta != null ? euros(r.precio_venta) : '—' },
+    { t: '', cls: 'acc', f: (r) => `<button class="btn peq" data-act="rd-estado-ref" data-id="${esc(r.id)}">Cambiar estado</button>` }
+  ], lista, 'No hay recomendaciones en esta lista.')}</div>`;
+}
+function ventanaEstadoReferencia(id) {
+  const r = (window.__refs || []).find((x) => x.id === id); if (!r) return;
+  const quien = (r.profiles && r.profiles.nombre_completo) || 'quien la envió';
+  abrirVentana(`<h2>Cambiar el estado</h2><p class="suave">${esc(r.nombre_cliente)}. Se avisará a ${esc(quien)}.</p>
+    <label class="campo" for="rf-estado">Nuevo estado</label><select id="rf-estado">${REF_ESTADOS.map((e) => `<option value="${e[0]}" ${e[0] === r.estado ? 'selected' : ''}>${esc(e[1])}</option>`).join('')}</select>
+    <div id="rf-venta" class="hidden"><label class="campo" for="rf-precio">Precio de venta al cliente, sin IVA (€) *</label><input type="text" inputmode="decimal" id="rf-precio" value="${esc(r.precio_venta ?? '')}" /></div>
+    <div id="rf-descarte" class="hidden"><label class="campo" for="rf-motivo">Motivo del descarte (opcional)</label><textarea id="rf-motivo" style="min-height:60px">${esc(r.motivo_descarte || '')}</textarea></div>${pieVentana('Cambiar estado', 'primario')}`);
+  const mostrar = () => { const e = $('#rf-estado').value; $('#rf-venta').classList.toggle('hidden', e !== 'venta'); $('#rf-descarte').classList.toggle('hidden', e !== 'descartado'); };
+  $('#rf-estado').onchange = mostrar; mostrar();
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const e = $('#rf-estado').value; let precio = null;
+    if (e === r.estado) return errorVentana('Elige un estado distinto del actual.');
+    if (e === 'venta') { precio = Number($('#rf-precio').value.trim().replace(',', '.')); if (!$('#rf-precio').value.trim() || isNaN(precio) || precio <= 0) return errorVentana('Indica el precio de venta al cliente (sin IVA) antes de marcarla como venta.'); }
+    $('#v-ok').disabled = true;
+    try { await rpc('actualizar_estado_referencia', { p_referencia_id: id, p_nuevo_estado: e, p_motivo_descarte: e === 'descartado' ? ($('#rf-motivo').value.trim() || null) : null, p_obra_id: null, p_precio_venta: precio }); cerrarVentana(); aviso('Estado actualizado.'); enrutar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+document.addEventListener('click', (ev) => {
+  const b = ev.target.closest('button[data-act^="rd-"]'); if (!b) return;
+  const d = b.dataset;
+  if (d.act === 'rd-quitar-post') { const p = (window.__tablon || []).find((x) => x.id === d.id); if (p) confirmarVentana('Quitar publicación', `¿Quitar «${esc(p.titulo)}» del Tablón? Dejará de verla todo el mundo.`, 'Quitar', 'mal', async () => { const { error } = await sb.from('publicaciones_tablon').delete().eq('id', d.id); if (error) throw error; }, 'Publicación quitada.'); }
+  if (d.act === 'rd-quitar-ficha') { const f = (window.__fichas || []).find((x) => x.profile_id === d.id); if (f) confirmarVentana('Quitar ficha', `¿Quitar la ficha de «${esc(f.nombre_mostrar)}» del Directorio? La persona podrá volver a crearla.`, 'Quitar', 'mal', async () => { const { error } = await sb.from('fichas_directorio').delete().eq('profile_id', d.id); if (error) throw error; }, 'Ficha quitada.'); }
+  if (d.act === 'rd-pagar') { const c = (window.__comisiones || []).find((x) => x.id === d.id); if (c) confirmarVentana('Marcar como pagada', `¿Confirmas que ya has pagado ${euros(c.importe)} a ${esc((c.profiles && c.profiles.nombre_completo) || 'esta persona')}? Se le avisará por notificación.`, 'Sí, ya está pagada', 'primario', async () => { await rpc('marcar_recompensa_pagada', { p_recompensa_id: d.id }); }, 'Comisión marcada como pagada.'); }
+  if (d.act === 'rd-estado-ref') ventanaEstadoReferencia(d.id);
+});
+
 
 arrancar();
 </script>
