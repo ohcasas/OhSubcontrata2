@@ -118,6 +118,19 @@
   .panel .cuerpo { padding:14px; }
   .dos { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; margin-top:16px; }
   .nota { border-top:1px solid var(--linea2); padding:10px 0; } .nota p { margin:0 0 4px; white-space:normal; }
+  .aviso-caja { border:1px solid #E6CFA3; background:#FFF8EA; color:var(--aviso); padding:9px 12px; border-radius:6px; }
+  .kpis { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; } @media (max-width:760px) { .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  .kpis div { padding:14px 16px; background:var(--papel); border:1px solid var(--linea); border-radius:10px; }
+  .kpis b { display:block; font-size:24px; font-weight:600; line-height:1.2; } .kpis span { color:var(--suave); font-size:12.5px; }
+  .barrasH { padding:6px 16px 14px; } .barrasH .fila { display:grid; grid-template-columns:150px minmax(0,1fr) 64px; gap:10px; align-items:center; padding:5px 0; font-size:13px; }
+  .barrasH .pista { height:10px; background:var(--linea2); border-radius:5px; overflow:hidden; } .barrasH .pista i { display:block; height:100%; background:var(--azul); border-radius:5px; }
+  .barrasH .fila.gris .pista i { background:#8A94A3; } .barrasH .v { text-align:right; font-weight:500; }
+  .columnas { display:flex; align-items:flex-end; gap:6px; height:150px; padding:14px 16px 0; }
+  .columnas .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; font-size:11.5px; color:var(--suave); }
+  .columnas .col i { display:block; width:100%; max-width:34px; background:var(--azul); border-radius:4px 4px 0 0; min-height:2px; }
+  .columnas .col i.cero { background:var(--linea); } .columnas .col em { font-style:normal; color:var(--tinta); font-weight:500; margin-bottom:3px; min-height:15px; }
+  .columnas .mes { padding-top:5px; }
+  .ficha-datos { padding:6px 16px 14px; } .ficha-datos p { display:flex; justify-content:space-between; margin:0; padding:7px 0; border-top:1px solid var(--linea2); } .ficha-datos p:first-child { border-top:0; }
   .ficha { display:grid; grid-template-columns:290px minmax(0,1fr); gap:16px; align-items:start; }
   @media (max-width:980px) { .dos, .ficha { grid-template-columns:1fr; } }
   dl.datos { margin:0; } dl.datos div { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--linea2); }
@@ -228,7 +241,9 @@
       <a href="#/trabajadores" data-nav="trabajadores"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Trabajadores</a>
       <div class="grupo-nav">Seguimiento</div>
       <a href="#/actividad" data-nav="actividad"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Actividad</a>
+      <a href="#/metricas" data-nav="metricas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15v3M12 9v9M17 5v13"/></svg>Métricas</a>
       <a href="#/ajustes" data-nav="ajustes"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Requisitos</a>
+      <a href="#/equipo" data-nav="equipo"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zM9 12l2 2 4-4"/></svg>Equipo</a>
     </nav>
     <div class="yo"><div class="quien"><b id="usuario"></b><span>Administración</span></div><button class="btn peq" id="btn-salir">Salir</button></div>
   </aside>
@@ -262,7 +277,7 @@ const ETIQ_ROL = { arquitecto:'Arquitecto', profesional:'Profesional', promotor:
 const DOC_ESTADO = { vigente:['ok','Vigente'], por_caducar:['aviso','Caduca pronto'], caducado:['mal','Caducado'], pendiente:['aviso','Pendiente de revisión'], rechazado:['mal','Rechazado'], faltante:['falta','Sin subir'] };
 const SEM = { verde:['ok','Al día'], ambar:['aviso','Pendiente'], rojo:['mal','Incidencia'] };
 const CUENTA = { verificada:['ok','Verificada'], pendiente:['aviso','Por verificar'], suspendida:['mal','Suspendida'] };
-const ACCION = { documento_subido:'Subió', documento_aprobado:'Aprobó', documento_rechazado:'Rechazó', 'cuenta.editada':'Editó la cuenta', 'cuenta.eliminada':'Eliminó la cuenta' };
+const ACCION = { documento_subido:'Subió', documento_aprobado:'Aprobó', documento_rechazado:'Rechazó', 'cuenta.editada':'Editó la cuenta', 'cuenta.eliminada':'Eliminó la cuenta', 'equipo.alta':'Dio de alta a un administrador', 'equipo.rol':'Cambió el rol de un administrador', 'equipo.baja':'Dio de baja a un administrador' };
 const marca = (par) => par ? `<span class="e ${par[0]}">${esc(par[1])}</span>` : '';
 const estadoDoc = (k) => marca(DOC_ESTADO[k] || ['neutro', k]);
 const semaforo = (k) => marca(SEM[k] || ['neutro', '—']);
@@ -405,6 +420,8 @@ async function enrutar() {
     else if (ruta === 'trabajador') await vistaTrabajador(v, id);
     else if (ruta === 'actividad') await vistaActividad(v);
     else if (ruta === 'ajustes') await vistaRequisitos(v);
+    else if (ruta === 'metricas') await vistaMetricas(v);
+    else if (ruta === 'equipo') await vistaEquipo(v);
     else location.hash = '#/panel';
   } catch (e) { v.innerHTML = `<div class="error-caja">${esc(mensajeError(e))}</div>`; }
 }
@@ -815,6 +832,9 @@ document.addEventListener('click', async (e) => {
     if (act === 'subir') return ventanaSubir(ctx, b.dataset.tipo, b.dataset.etiqueta);
     if (act === 'estado-cuenta') return ventanaEstadoCuenta(b.dataset.id, b.dataset.nuevo, !!b.dataset.reac);
     if (act === 'editar-cuenta') return ventanaEditarCuenta(b.dataset.id);
+    if (act === 'eq-nuevo') return ventanaNuevoAdmin();
+    if (act === 'eq-rol') return ventanaRolAdmin(b.dataset.id, b.dataset.nombre, b.dataset.rol);
+    if (act === 'eq-baja') return ventanaBajaAdmin(b.dataset.id, b.dataset.nombre);
     if (act === 'eliminar-cuenta') return ventanaEliminarCuenta(b.dataset.id, b.dataset.nombre);
     if (act === 'nuevo-trabajador') return ventanaTrabajador(null, b.dataset.id);
     if (act === 'editar-trabajador') return ventanaTrabajador(window.__trab, window.__trab.profile_id);
@@ -946,6 +966,126 @@ async function pintarNotas(id) {
     pintarNotas(id);
   }));
 }
+
+/* ---------- Métricas ---------- */
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const ETQ_CUENTA_M = { verificada: 'Verificadas', pendiente: 'Por verificar', suspendida: 'Suspendidas' };
+const ETQ_OBRA_M = { abierta: 'Abiertas', adjudicada: 'Adjudicadas', en_curso: 'En curso', cerrada: 'Cerradas', cancelada: 'Canceladas', en_revision: 'Peticiones en revisión', pendiente_info: 'Peticiones sin información', rechazada: 'Peticiones rechazadas' };
+const ETQ_REF_M = { enviado: 'Enviado', contactado: 'Contactado', visita: 'Visita', presupuesto: 'Presupuesto', reserva: 'Reserva', venta: 'Venta', comision_disponible: 'Comisión disponible', descartado: 'Descartado' };
+const ETQ_COM_M = { pendiente: 'Pendiente', aceptada: 'Aceptada', pagada: 'Pagada', rechazada: 'Rechazada' };
+const ETQ_CANJE_M = { pendiente: 'Pendientes', completado: 'Completados', cancelado: 'Cancelados' };
+const nM = (x) => Number(x || 0);
+function barrasH(datos, etiquetas, formato, grises) {
+  const claves = Object.keys(etiquetas).filter((k) => datos && datos[k] != null);
+  const extra = Object.keys(datos || {}).filter((k) => !etiquetas[k]);
+  const todas = claves.concat(extra);
+  if (!todas.length) return '<p class="suave" style="padding:14px 16px;margin:0">Todavía no hay datos.</p>';
+  const max = Math.max(1, ...todas.map((k) => nM(datos[k])));
+  return `<div class="barrasH">${todas.map((k) => `<div class="fila ${(grises || []).includes(k) ? 'gris' : ''}"><span>${esc(etiquetas[k] || ETIQ_ROL[k] || k)}</span>
+    <div class="pista"><i style="width:${Math.round(nM(datos[k]) / max * 100)}%"></i></div><span class="v">${formato ? formato(datos[k]) : nM(datos[k])}</span></div>`).join('')}</div>`;
+}
+function columnasMes(serie) {
+  const max = Math.max(0, ...(serie || []).map((x) => nM(x.n)));
+  if (!max) return '<p class="suave" style="padding:14px 16px;margin:0">Todavía no hay datos.</p>';
+  return `<div class="columnas">${serie.map((x) => `<div class="col"><em>${nM(x.n) || ''}</em><i class="${nM(x.n) ? '' : 'cero'}" style="height:${Math.max(2, Math.round(nM(x.n) / max * 100))}px"></i><span class="mes">${MESES_CORTOS[Number(x.mes.slice(5, 7)) - 1]}</span></div>`).join('')}</div>`;
+}
+const duracionH = (h) => h == null ? '—' : Number(h) >= 48 ? (Number(h) / 24).toFixed(1).replace('.', ',') + ' días' : Number(h).toFixed(1).replace('.', ',') + ' h';
+const pct = (a, b) => b ? Math.round(nM(a) / nM(b) * 100) + ' %' : '—';
+async function vistaMetricas(v) {
+  const [m, r] = await Promise.all([rpc('panel_metricas'), rpc('panel_resumen').catch(() => null)]);
+  const c = m.cuentas || {}, o = m.obras || {}, rf = m.referidos || {}, cl = m.club || {};
+  const totalObras = Object.values(o.por_estado || {}).reduce((a, b) => a + nM(b), 0);
+  const pagadas = nM((rf.comisiones_importe || {}).pagada), pendCobro = nM((rf.comisiones_importe || {}).pendiente) + nM((rf.comisiones_importe || {}).aceptada);
+  v.innerHTML = `<div class="cab"><div><h1>Métricas</h1><p class="suave">Una foto de cómo va 3B Conecta: cuentas, obras, recomendaciones y club de puntos.</p></div></div>
+  <div class="kpis">
+    <div><b>${nM(c.total)}</b><span>Cuentas · ${nM((c.por_estado || {}).pendiente)} por verificar</span></div>
+    <div><b>${duracionH(c.horas_verificacion)}</b><span>Tiempo medio hasta verificar una cuenta</span></div>
+    <div><b>${totalObras}</b><span>Obras y peticiones</span></div>
+    <div><b>${o.media_postulaciones_por_obra == null ? '—' : String(o.media_postulaciones_por_obra).replace('.', ',')}</b><span>Postulaciones por obra</span></div>
+    <div><b>${pct(o.postulaciones_aceptadas, o.postulaciones)}</b><span>Postulaciones aceptadas (${nM(o.postulaciones_aceptadas)} de ${nM(o.postulaciones)})</span></div>
+    <div><b>${nM(rf.ventas)}</b><span>Ventas por recomendación · ${euros(rf.importe_ventas)}</span></div>
+  </div>
+  <div class="dos" style="margin-top:0">
+    <div class="panel"><header><h2>Cuentas nuevas por mes</h2></header>${columnasMes(c.altas_mes)}</div>
+    <div class="panel"><header><h2>Cuentas por perfil</h2></header>${barrasH(c.por_perfil, {})}</div>
+  </div>
+  <div class="dos">
+    <div class="panel"><header><h2>Obras publicadas por mes</h2></header>${columnasMes(o.publicadas_mes)}</div>
+    <div class="panel"><header><h2>Obras por estado</h2></header>${barrasH(o.por_estado, ETQ_OBRA_M, null, ['cancelada', 'rechazada'])}</div>
+  </div>
+  <div class="dos">
+    <div class="panel"><header><h2>Dinero en obras</h2></header><div class="ficha-datos">
+      <p><span>Presupuesto de obras adjudicadas o en curso</span><b>${euros(o.presupuesto_en_marcha)}</b></p>
+      <p><span>Presupuesto de obras cerradas</span><b>${euros(o.presupuesto_cerrado)}</b></p>
+      <p><span>Suma de ofertas aceptadas</span><b>${euros(o.oferta_aceptada)}</b></p></div></div>
+    <div class="panel"><header><h2>Documentación de las cuentas</h2></header>${r ? barrasH({ verde: nM(r.verde), ambar: nM(r.ambar), rojo: nM(r.rojo) }, { verde: 'Al día', ambar: 'Pendiente', rojo: 'Con incidencias' }, null, []) : '<p class="suave" style="padding:14px 16px;margin:0">No disponible.</p>'}</div>
+  </div>
+  <div class="dos">
+    <div class="panel"><header><h2>Recomendaciones: de enviada a venta</h2></header>${barrasH(rf.por_estado, ETQ_REF_M, null, ['descartado'])}</div>
+    <div class="panel"><header><h2>Comisiones</h2></header>${barrasH(rf.comisiones_importe, ETQ_COM_M, (x) => euros(x), ['rechazada'])}
+      <div class="ficha-datos"><p><span>Pagado hasta ahora</span><b>${euros(pagadas)}</b></p><p><span>Pendiente de pagar</span><b>${euros(pendCobro)}</b></p></div></div>
+  </div>
+  <div class="dos">
+    <div class="panel"><header><h2>Canjes del club de puntos</h2></header>${barrasH(cl.canjes, ETQ_CANJE_M, null, ['cancelado'])}</div>
+    <div class="panel"><header><h2>Club de puntos</h2></header><div class="ficha-datos">
+      <p><span>Puntos canjeados (completados)</span><b>${nM(cl.puntos_canjeados).toLocaleString('es-ES', { useGrouping: 'always' })}</b></p>
+      <p><span>Empresas con puntos disponibles</span><b>${nM(cl.empresas_con_puntos)}</b></p></div></div>
+  </div>`;
+}
+
+/* ---------- Equipo ---------- */
+async function vistaEquipo(v) {
+  const lista = await rpc('panel_administradores');
+  if (!ORDEN.equipo) ORDEN.equipo = { i: 0, dir: 'asc' };
+  const soyS = yo && yo.role === 'superadmin';
+  v.innerHTML = `<div class="cab"><div><h1>Equipo</h1><p class="suave">Las personas que pueden entrar en este panel y en la parte de administración de la app.</p></div>
+    ${soyS ? '<button class="btn primario" data-act="eq-nuevo">Añadir administrador</button>' : ''}</div>
+  ${soyS ? '' : '<div class="aviso-caja" style="margin-bottom:12px">Solo un superadmin puede añadir, cambiar o dar de baja administradores. Tú puedes ver el equipo.</div>'}
+  <div class="panel" id="lista"></div>`;
+  $('#lista').innerHTML = htmlTabla('equipo', [
+    { t: 'Persona', f: (a) => `<b>${esc(a.nombre_completo || '—')}</b>${a.profile_id === yo.id ? ' <span class="e neutro">Tú</span>' : ''}<span class="sub">${esc(a.email || '')}</span>`, s: (a) => String(a.nombre_completo || '').toLowerCase() },
+    { t: 'Rol', f: (a) => a.role === 'superadmin' ? '<span class="e ok">Superadmin</span>' : '<span class="e neutro">Admin</span>', s: (a) => a.role },
+    { t: 'Alta', f: (a) => fecha(a.alta), s: (a) => a.alta },
+    { t: 'Último acceso', f: (a) => fechaHora(a.ultimo_acceso), s: (a) => a.ultimo_acceso },
+    { t: '', cls: 'acc', f: (a) => (!soyS || a.profile_id === yo.id) ? '' :
+      `<button class="btn peq" data-act="eq-rol" data-id="${esc(a.profile_id)}" data-nombre="${esc(a.nombre_completo || a.email)}" data-rol="${a.role === 'superadmin' ? 'admin' : 'superadmin'}">Pasar a ${a.role === 'superadmin' ? 'admin' : 'superadmin'}</button>
+       <button class="btn peq mal" data-act="eq-baja" data-id="${esc(a.profile_id)}" data-nombre="${esc(a.nombre_completo || a.email)}">Dar de baja</button>` }
+  ], lista, 'Todavía no hay administradores.');
+}
+function ventanaNuevoAdmin() {
+  abrirVentana(`<h2>Añadir administrador</h2>
+    <p class="suave">Primero crea su usuario en Supabase: <b>Authentication → Users → Add user</b> (con su correo y una contraseña). Después completa esto para darle acceso al panel.</p>
+    <label class="campo" for="a-email">Correo</label><input type="email" id="a-email" autocomplete="off" />
+    <label class="campo" for="a-nombre">Nombre</label><input type="text" id="a-nombre" autocomplete="off" />
+    <label class="campo" for="a-rol">Rol</label><select id="a-rol"><option value="admin">Admin: gestiona obras, cuentas y documentación</option><option value="superadmin">Superadmin: además gestiona el equipo</option></select>${pieVentana('Dar acceso', 'primario')}`, 560);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_crear_admin', { p_email: $('#a-email').value, p_nombre: $('#a-nombre').value, p_rol: $('#a-rol').value }); cerrarVentana(); aviso('Administrador añadido.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaRolAdmin(id, nombre, rol) {
+  abrirVentana(`<h2>Cambiar el rol</h2><p><b>${esc(nombre)}</b> pasará a ser <b>${rol === 'superadmin' ? 'superadmin' : 'admin'}</b>.</p>
+    <p class="suave">${rol === 'superadmin' ? 'Podrá añadir y dar de baja a otros administradores.' : 'Dejará de poder gestionar el equipo, pero seguirá usando el panel.'}</p>${pieVentana('Cambiar rol', 'primario')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_cambiar_rol_admin', { p_profile_id: id, p_rol: rol }); cerrarVentana(); aviso('Rol cambiado.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaBajaAdmin(id, nombre) {
+  abrirVentana(`<h2>Dar de baja</h2><p>Vas a quitar el acceso de <b>${esc(nombre)}</b> y a borrar su cuenta.</p>
+    <p class="suave">No se puede deshacer. Las obras que publicó se conservan y en Actividad queda anotado quién lo hizo.</p>${pieVentana('Dar de baja', 'mal')}`);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_quitar_admin', { p_profile_id: id }); cerrarVentana(); aviso('Administrador dado de baja.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+
 function ventanaEliminarCuenta(id, nombre) {
   abrirVentana(`<h2>Eliminar la cuenta</h2>
     <p>Vas a eliminar <b>${esc(nombre)}</b>: se borran su acceso a la app, sus avisos y, si nadie más la usa, su ficha de empresa con postulaciones, canjes, documentos y puntos.</p>
@@ -1019,7 +1159,7 @@ const POST_EST = { enviada: ['aviso', 'Enviada'], en_revision: ['aviso', 'En rev
 const ESTADOS_PETICION = ['en_revision', 'pendiente_info', 'rechazada'];
 const obraEst = (k) => marca(OBRA_EST[k] || ['neutro', 'Sin estado']);
 const clsCol = (k) => 'c-' + (OBRA_EST[k] || ['neutro'])[0];
-const euros = (n, m) => (n == null || n === '' || isNaN(Number(n))) ? '—' : new Intl.NumberFormat('es-ES', { style: 'currency', currency: m || 'EUR', maximumFractionDigits: 0 }).format(Number(n));
+const euros = (n, m) => (n == null || n === '' || isNaN(Number(n))) ? '—' : new Intl.NumberFormat('es-ES', { style: 'currency', currency: m || 'EUR', maximumFractionDigits: 0, useGrouping: 'always' }).format(Number(n));
 const plazoTxt = (o) => !o.plazo_cierre ? 'Sin plazo para ofertas' : (new Date(o.plazo_cierre) < new Date() ? 'Plazo cerrado el ' : 'Cierra el ') + fechaHora(o.plazo_cierre);
 const fotoObra = (o) => `<img src="${esc(o.imagen_url || LOGO)}" alt="" loading="lazy">`;
 const nOfertas = (o) => (o.postulaciones && o.postulaciones[0] && o.postulaciones[0].count) || 0;
@@ -1671,4 +1811,4 @@ document.addEventListener('click', (ev) => {
 arrancar();
 </script>
 </body>
-</html>
+</html> 
