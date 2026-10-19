@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
@@ -7,6 +7,16 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import { formatearMoneda } from '../../utils/moneda';
 import LicitacionDetalle from './LicitacionDetalle';
+import SelectorEtiquetas from '../../components/SelectorEtiquetas';
+import ChipsEtiquetas from '../../components/ChipsEtiquetas';
+import { MAX_ETIQUETAS_OBRA } from '../../constants/etiquetas';
+import {
+  asignarEtiquetasObra,
+  cargarEtiquetas,
+  etiquetasDeObras,
+  proponerEtiqueta,
+  type Etiqueta,
+} from '../../services/etiquetas';
 import { ETIQUETA_ESTADO_OBRA, ESTILO_ESTADO_OBRA, fechaCorta, parsearImporte } from './estados';
 
 type Licitacion = {
@@ -24,7 +34,7 @@ type Licitacion = {
 type Vista = { tipo: 'lista' } | { tipo: 'nueva' } | { tipo: 'detalle'; id: string };
 
 /**
- * Pestaña "Licitaciones" de promotoras y constructoras: publican licitaciones,
+ * Pestaña "Licitaciones" de promotoras, constructoras e inmobiliarias: publican licitaciones,
  * reciben las postulaciones de oficios y adjudican. Tres vistas dentro de la
  * misma pestaña (lista, nueva, detalle), sin navegador propio.
  */
@@ -56,12 +66,17 @@ function ListaLicitaciones({ onNueva, onAbrir }: { onNueva: () => void; onAbrir:
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [etiquetas, setEtiquetas] = useState<Map<string, Etiqueta[]>>(new Map());
 
   const cargar = useCallback(async () => {
     setError(null);
     const { data, error: errorRpc } = await supabase.rpc('mis_licitaciones');
     if (errorRpc) setError(errorRpc.message);
-    else setItems((data as Licitacion[] | null) ?? []);
+    else {
+      const lista = (data as Licitacion[] | null) ?? [];
+      setItems(lista);
+      setEtiquetas(await etiquetasDeObras(lista.map((l) => l.id)));
+    }
     setCargando(false);
   }, []);
 
@@ -131,6 +146,11 @@ function ListaLicitaciones({ onNueva, onAbrir }: { onNueva: () => void; onAbrir:
                       {l.referencia} · {formatearMoneda(Number(l.presupuesto))}
                       {l.estado === 'abierta' && l.plazo_cierre !== null ? ` · cierra el ${fechaCorta(l.plazo_cierre)}` : ''}
                     </Text>
+                    {(etiquetas.get(l.id)?.length ?? 0) > 0 && (
+                      <View className="mt-2">
+                        <ChipsEtiquetas etiquetas={etiquetas.get(l.id)} />
+                      </View>
+                    )}
                     <View className="flex-row items-center gap-1.5 mt-2 pt-2 border-t border-border">
                       <Feather name="users" size={12} color={Number(l.n_pendientes) > 0 ? colors.action : colors.inkMuted} />
                       <Text
@@ -157,7 +177,9 @@ const DIAS_ABIERTA = [7, 15, 30, 60];
 function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onCreada: (id: string) => void }) {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [especialidad, setEspecialidad] = useState('');
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [cargandoEtiquetas, setCargandoEtiquetas] = useState(true);
   const [ubicacion, setUbicacion] = useState('');
   const [presupuesto, setPresupuesto] = useState('');
   const [duracion, setDuracion] = useState('');
@@ -166,10 +188,54 @@ function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onC
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let vivo = true;
+    cargarEtiquetas(true)
+      .then((lista) => {
+        if (vivo) setEtiquetas(lista);
+      })
+      .catch(() => {
+        if (vivo) setError('No se han podido cargar las etiquetas. Cierra y vuelve a abrir esta pantalla.');
+      })
+      .finally(() => {
+        if (vivo) setCargandoEtiquetas(false);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const alternarEtiqueta = (id: string) => {
+    setError(null);
+    if (seleccion.has(id)) {
+      const nueva = new Set(seleccion);
+      nueva.delete(id);
+      setSeleccion(nueva);
+      return;
+    }
+    if (seleccion.size >= MAX_ETIQUETAS_OBRA) {
+      setError(`Puedes elegir como máximo ${MAX_ETIQUETAS_OBRA} etiquetas.`);
+      return;
+    }
+    setSeleccion(new Set(seleccion).add(id));
+  };
+
+  const handleProponerEtiqueta = async (nombre: string): Promise<string> => {
+    const id = await proponerEtiqueta(nombre);
+    const lista = await cargarEtiquetas(true);
+    setEtiquetas(lista);
+    setSeleccion((previa) => (previa.size < MAX_ETIQUETAS_OBRA ? new Set(previa).add(id) : previa));
+    return 'Etiqueta enviada a revisión. Ya puedes usarla en esta licitación.';
+  };
+
   const handlePublicar = async () => {
     setError(null);
     if (titulo.trim().length < 3) {
       setError('Escribe un título.');
+      return;
+    }
+    if (seleccion.size === 0) {
+      setError('Elige al menos una etiqueta: así los oficios encuentran tu licitación.');
       return;
     }
     const importe = parsearImporte(presupuesto);
@@ -183,6 +249,10 @@ function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onC
       return;
     }
 
+    // El texto de "especialidad" se rellena con los nombres de las etiquetas elegidas.
+    const elegidas = etiquetas.filter((e) => seleccion.has(e.id));
+    const especialidad = elegidas.map((e) => e.nombre).join(', ');
+
     setEnviando(true);
     const { data, error: errorRpc } = await supabase.rpc('crear_licitacion', {
       p_titulo: titulo,
@@ -194,12 +264,20 @@ function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onC
       p_requisitos: requisitos,
       p_duracion_dias: dur,
     });
-    setEnviando(false);
-
     if (errorRpc || typeof data !== 'string') {
+      setEnviando(false);
       setError(errorRpc?.message ?? 'No se ha podido publicar la licitación.');
       return;
     }
+    try {
+      await asignarEtiquetasObra(data, elegidas.map((e) => e.id));
+    } catch (e) {
+      Alert.alert(
+        'Licitación publicada',
+        `Se ha publicado, pero no se han podido guardar las etiquetas (${e instanceof Error ? e.message : 'error desconocido'}). Escribe a 3B para que se las añadan.`,
+      );
+    }
+    setEnviando(false);
     onCreada(data);
   };
 
@@ -240,7 +318,24 @@ function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onC
 
         {campo('Título *', titulo, setTitulo, { placeholder: 'Qué necesitas contratar' })}
         {campo('Descripción', descripcion, setDescripcion, { placeholder: 'Cuenta los detalles del trabajo', multilinea: true })}
-        {campo('Especialidad que buscas', especialidad, setEspecialidad, { placeholder: 'Ej: Fontanería, estructura, piscinas...' })}
+        <View className="mb-3">
+          <Text className="text-ink text-xs font-sansSemiBold mb-0.5">Etiquetas del trabajo *</Text>
+          <Text className="text-inkMuted text-[12px] mb-2.5">
+            Los oficios con estas etiquetas verán tu obra cuando busquen trabajo.
+          </Text>
+          {cargandoEtiquetas ? (
+            <ActivityIndicator color={colors.action} />
+          ) : (
+            <SelectorEtiquetas
+              etiquetas={etiquetas}
+              seleccion={seleccion}
+              maximo={MAX_ETIQUETAS_OBRA}
+              deshabilitado={enviando}
+              onAlternar={alternarEtiqueta}
+              onProponer={handleProponerEtiqueta}
+            />
+          )}
+        </View>
         {campo('Ubicación', ubicacion, setUbicacion, { placeholder: 'Ciudad o zona' })}
         {campo('Presupuesto (€) *', presupuesto, setPresupuesto, { placeholder: 'Ej: 50000', teclado: 'decimal-pad' })}
         {campo('Duración estimada (días)', duracion, setDuracion, { placeholder: 'Opcional', teclado: 'number-pad' })}

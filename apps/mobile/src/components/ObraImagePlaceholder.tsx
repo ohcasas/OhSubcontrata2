@@ -6,7 +6,7 @@ import type { Feather } from '@expo/vector-icons';
 type Props = {
   imageUrl?: string | null;
   height?: number;
-  /** Ya no se usa: el marcador ahora es siempre el logo de OH Contratas. Se mantiene para no tocar a quien lo pasa. */
+  /** Ya no se usa: el marcador ahora es siempre el logo de 3B Conecta. Se mantiene para no tocar a quien lo pasa. */
   icon?: ComponentProps<typeof Feather>['name'];
   rounded?: 'top' | 'all';
 };
@@ -16,7 +16,7 @@ const LOGO = require('../../assets/branding/logo-3b-simbolo-negro.png');
 /**
  * Banner de portada de una obra. Si `imageUrl` tiene un valor, muestra la
  * foto real; si es null (obra sin foto) O si la foto falla al cargar, muestra
- * el logo de OH Contratas sobre el fondo navy de marca — nunca un <Image> roto ni
+ * el logo de 3B Conecta sobre el fondo navy de marca — nunca un <Image> roto ni
  * un hueco en blanco. El logo es el aspecto "normal" de una obra sin foto, no
  * un estado de error.
  */

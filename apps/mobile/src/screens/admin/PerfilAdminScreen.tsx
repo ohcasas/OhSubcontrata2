@@ -298,7 +298,7 @@ export default function PerfilAdminScreen() {
                 onChangeText={setBioEnEdicion}
                 multiline
                 numberOfLines={3}
-                placeholder="Cuéntanos brevemente tu rol dentro de OH Contratas..."
+                placeholder="Cuéntanos brevemente tu rol dentro de 3B Conecta..."
                 placeholderTextColor={colors.inkSubtle}
                 editable={!guardandoBio}
                 className="bg-surface border border-border rounded-xl px-3 py-2.5 text-ink text-sm"

@@ -14,6 +14,9 @@ import { ETIQUETA_NIVEL } from '../../constants/niveles';
 import type { NivelPartner } from '../../constants/niveles';
 import { esPrioritaria, msHastaCierre, textoCuentaAtras, textoDuracion } from '../../utils/plazos';
 import { formatearMoneda } from '../../utils/moneda';
+import BarraEtiquetas from '../../components/BarraEtiquetas';
+import ChipsEtiquetas from '../../components/ChipsEtiquetas';
+import { cargarEtiquetas, etiquetasDeObras, misEtiquetasIds, type Etiqueta } from '../../services/etiquetas';
 
 const COLOR_NIVEL: Record<NivelPartner, { texto: string; fondo: string }> = {
   bronce: { texto: colors.bronze, fondo: colors.bronzeTint },
@@ -63,6 +66,11 @@ export default function ObrasScreen() {
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [guardadas, setGuardadas] = useState<Set<string>>(new Set());
   const [soloGuardadas, setSoloGuardadas] = useState(false);
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
+  const [etiquetasObra, setEtiquetasObra] = useState<Map<string, Etiqueta[]>>(new Map());
+  const [misEtiquetas, setMisEtiquetas] = useState<Set<string>>(new Set());
+  const [filtroEtiquetas, setFiltroEtiquetas] = useState<Set<string>>(new Set());
+  const [soloMias, setSoloMias] = useState(false);
   const [ahora, setAhora] = useState(Date.now());
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
@@ -146,7 +154,22 @@ export default function ObrasScreen() {
     const yaPostuladas = new Set(
       ((postulacionesRes.data as { obra_id: string }[] | null) ?? []).map((p) => p.obra_id),
     );
-    setObras(((obrasRes.data as Obra[] | null) ?? []).filter((o) => !yaPostuladas.has(o.id)));
+    const disponibles = ((obrasRes.data as Obra[] | null) ?? []).filter((o) => !yaPostuladas.has(o.id));
+    setObras(disponibles);
+
+    // Etiquetas (oficios): si fallan, la lista de obras funciona igual, solo sin filtro por oficio.
+    try {
+      const [todas, deObras, mias] = await Promise.all([
+        cargarEtiquetas(false),
+        etiquetasDeObras(disponibles.map((o) => o.id)),
+        empresaId !== null ? misEtiquetasIds(empresaId) : Promise.resolve([] as string[]),
+      ]);
+      setEtiquetas(todas);
+      setEtiquetasObra(deObras);
+      setMisEtiquetas(new Set(mias));
+    } catch {
+      setEtiquetas([]);
+    }
   }, []);
 
   // Se recarga cada vez que la pestaña vuelve a estar en pantalla (p.ej. al
@@ -203,7 +226,20 @@ export default function ObrasScreen() {
 
   // Licitaciones prioritarias: las que cierran en 48 h o menos, la más
   // urgente primero. Salen destacadas arriba y no se repiten en la lista.
-  const visibles = soloGuardadas ? obras.filter((o) => guardadas.has(o.id)) : obras;
+  const tieneAlguna = (obraId: string, ids: Set<string>) =>
+    (etiquetasObra.get(obraId) ?? []).some((e) => ids.has(e.id));
+  const visibles = obras
+    .filter((o) => !soloGuardadas || guardadas.has(o.id))
+    .filter((o) => filtroEtiquetas.size === 0 || tieneAlguna(o.id, filtroEtiquetas))
+    .filter((o) => !soloMias || tieneAlguna(o.id, misEtiquetas));
+  const hayFiltros = filtroEtiquetas.size > 0 || soloMias;
+  const alternarFiltro = (id: string) =>
+    setFiltroEtiquetas((previo) => {
+      const nuevo = new Set(previo);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
   const prioritarias = visibles
     .filter((o) => esPrioritaria(o.plazo_cierre, ahora))
     .sort(
@@ -280,6 +316,27 @@ export default function ObrasScreen() {
         </View>
       )}
 
+      {etiquetas.length > 0 && (
+        <View className="mt-3">
+          {misEtiquetas.size > 0 && (
+            <View className="flex-row mb-2">
+              <Pressable
+                onPress={() => setSoloMias((v) => !v)}
+                className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 border ${
+                  soloMias ? 'bg-navySurface border-navySurface' : 'bg-surface border-border'
+                }`}
+              >
+                <Feather name="user-check" size={14} color={soloMias ? colors.white : colors.ink} />
+                <Text className={`text-xs font-sansBold ${soloMias ? 'text-white' : 'text-ink'}`}>
+                  Mis especialidades
+                </Text>
+              </Pressable>
+            </View>
+          )}
+          <BarraEtiquetas etiquetas={etiquetas} seleccion={filtroEtiquetas} onAlternar={alternarFiltro} />
+        </View>
+      )}
+
       {prioritarias.map((obra) => {
         const ms = msHastaCierre(obra.plazo_cierre, ahora) ?? 0;
         return (
@@ -308,6 +365,11 @@ export default function ObrasScreen() {
               </View>
 
               <Text className="text-ink text-lg font-sansBold mt-3">{obra.titulo}</Text>
+              {(etiquetasObra.get(obra.id)?.length ?? 0) > 0 && (
+                <View className="mt-2">
+                  <ChipsEtiquetas etiquetas={etiquetasObra.get(obra.id)} />
+                </View>
+              )}
               <View className="flex-row items-center flex-wrap gap-x-3 gap-y-0.5 mt-1">
                 {obra.ubicacion !== null && (
                   <View className="flex-row items-center gap-1">
@@ -391,12 +453,18 @@ export default function ObrasScreen() {
             <View className="items-center mt-16 px-6">
               <Feather name={soloGuardadas ? 'bookmark' : 'inbox'} size={32} color={colors.borderStrong} />
               <Text className="text-ink text-base font-sansSemiBold text-center mt-3">
-                {soloGuardadas ? 'No tienes ofertas guardadas' : 'No hay licitaciones abiertas ahora mismo'}
+                {hayFiltros
+                  ? 'No hay obras con esas etiquetas'
+                  : soloGuardadas
+                    ? 'No tienes ofertas guardadas'
+                    : 'No hay licitaciones abiertas ahora mismo'}
               </Text>
               <Text className="text-inkMuted text-sm text-center mt-2">
-                {soloGuardadas
-                  ? 'Toca el marcador de una oferta para guardarla y te avisaremos antes de que cierre.'
-                  : 'Vuelve más tarde o desliza hacia abajo para actualizar.'}
+                {hayFiltros
+                  ? 'Quita alguna etiqueta para ver más obras.'
+                  : soloGuardadas
+                    ? 'Toca el marcador de una oferta para guardarla y te avisaremos antes de que cierre.'
+                    : 'Vuelve más tarde o desliza hacia abajo para actualizar.'}
               </Text>
             </View>
           ) : null
@@ -465,6 +533,12 @@ export default function ObrasScreen() {
                   </View>
                 )}
               </View>
+
+              {(etiquetasObra.get(item.id)?.length ?? 0) > 0 && (
+                <View className="mt-3">
+                  <ChipsEtiquetas etiquetas={etiquetasObra.get(item.id)} />
+                </View>
+              )}
 
               {item.descripcion !== null && (
                 <Text className="text-inkMuted text-xs mt-3 leading-relaxed">{item.descripcion}</Text>

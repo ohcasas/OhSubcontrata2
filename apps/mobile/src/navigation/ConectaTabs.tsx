@@ -23,7 +23,7 @@ const ICONOS = {
  * y el Directorio completos; lo que cambia según el rol es qué pueden
  * PUBLICAR (ver TablonScreen y DirectorioScreen).
  *
- * Promotoras y constructoras tienen además la pestaña Licitaciones (primera): ahí
+ * Promotoras, constructoras e inmobiliarias tienen además la pestaña Licitaciones (primera): ahí
  * publican licitaciones a las que se postulan los oficios, y adjudican.
  *
  * El 'administrador' es también el perfil de las INMOBILIARIAS: además tiene
@@ -37,7 +37,7 @@ export default function ConectaTabs({ rol, userId }: { rol: string; userId: stri
         <AnimatedTabBar {...props} icons={ICONOS} barColor={colors.navySurface} activeColor={colors.action} />
       )}
     >
-      {(rol === 'promotor' || rol === 'constructora') && (
+      {(rol === 'promotor' || rol === 'constructora' || rol === 'administrador') && (
         <Tab.Screen name="Licitaciones" component={MisLicitacionesScreen} />
       )}
       <Tab.Screen name="Tablon">{() => <TablonScreen rol={rol} userId={userId} />}</Tab.Screen>

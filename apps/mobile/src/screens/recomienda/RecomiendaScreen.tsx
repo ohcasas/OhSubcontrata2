@@ -134,7 +134,7 @@ export default function RecomiendaScreen() {
       return;
     }
     if (!consentimiento) {
-      setErrorForm('Confirma que la persona sabe que vas a pasar sus datos a OH.');
+      setErrorForm('Confirma que la persona sabe que vas a pasar sus datos a 3B.');
       return;
     }
 
@@ -190,8 +190,8 @@ export default function RecomiendaScreen() {
           <Text className="text-white text-lg font-sansBold">¿Conoces a alguien que quiere construir?</Text>
           <Text className="text-white/80 text-sm mt-1.5 leading-relaxed">
             {porcentaje !== null
-              ? `Recomiéndalo a OH y, si la operación llega a buen puerto, ganas el ${String(porcentaje).replace('.', ',')} % del precio de venta (sin IVA).`
-              : 'Recomiéndalo a OH y, si la operación llega a buen puerto, gana una comisión.'}
+              ? `Recomiéndalo a 3B y, si la operación llega a buen puerto, ganas el ${String(porcentaje).replace('.', ',')} % del precio de venta (sin IVA).`
+              : 'Recomiéndalo a 3B y, si la operación llega a buen puerto, gana una comisión.'}
           </Text>
           <Pressable
             onPress={() => setMostrandoForm((v) => !v)}
@@ -254,7 +254,7 @@ export default function RecomiendaScreen() {
 
             <View className="flex-row items-center justify-between bg-canvas border border-border rounded-xl px-3 py-2.5 mb-4">
               <Text className="text-ink text-xs flex-1 pr-2">
-                Esta persona sabe que voy a pasar sus datos a OH para que la contacten.
+                Esta persona sabe que voy a pasar sus datos a 3B para que la contacten.
               </Text>
               <Switch
                 value={consentimiento}

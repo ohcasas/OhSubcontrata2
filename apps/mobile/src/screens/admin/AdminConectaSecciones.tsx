@@ -1,5 +1,5 @@
 /**
- * Secciones de la pestaña "Conecta" del admin de OH:
+ * Secciones de la pestaña "Conecta" del admin de 3B:
  *  - Cuentas: quién se ha registrado en cada tipo de perfil.
  *  - Tablón / Directorio: ver lo publicado y quitar lo que no deba estar.
  *

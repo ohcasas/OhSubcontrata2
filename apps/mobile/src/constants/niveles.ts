@@ -1,5 +1,5 @@
 /**
- * Niveles del Club OH Partner.
+ * Niveles del Club 3B Partner.
  *
  * IMPORTANTE: estos umbrales son un ESPEJO de los que están fijados a mano
  * dentro de la función SQL `finalizar_obra()` (migraciones 0005/0012), que
@@ -10,7 +10,7 @@
 export type NivelPartner = 'bronce' | 'plata' | 'oro' | 'platino';
 
 /**
- * Obras que una empresa debe completar para desbloquear el Club OH Partner
+ * Obras que una empresa debe completar para desbloquear el Club 3B Partner
  * (los puntos se acreditan y el canje se habilita desde esta obra incluida).
  * Espejo de las constantes `c_obras_para_puntos` / `c_obras_para_canje` de
  * las funciones SQL `cambiar_estado_obra()` y `solicitar_canje()` (0021).

@@ -23,6 +23,7 @@ import { cerrarSesion } from '../../services/sesion';
 import { subirImagenPublica, subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import MisEspecialidades from '../../components/MisEspecialidades';
 import PerfilPorRol from './PerfilPorRol';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
@@ -557,6 +558,9 @@ export default function PerfilScreen() {
             </Text>
           )}
         </View>
+
+        {/* A qué se dedica el oficio: sirve para enseñarle primero las obras de su especialidad */}
+        {esSubcontratista && empresaId !== null && <MisEspecialidades empresaId={empresaId} />}
 
         {/* Documentación: renovar los documentos de la cuenta y gestionar a los trabajadores */}
         {rol !== null && rol !== 'particular' && rol !== 'tecnico' && (

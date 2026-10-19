@@ -153,7 +153,7 @@ export default function RegistroReferidorScreen() {
             />
             <Text className="text-ink text-2xl font-sansBold">Recomienda y gana</Text>
             <Text className="text-inkMuted text-sm mt-1 text-center px-4">
-              Regístrate para empezar a recomendar clientes a OH.
+              Regístrate para empezar a recomendar clientes a 3B.
             </Text>
           </View>
 

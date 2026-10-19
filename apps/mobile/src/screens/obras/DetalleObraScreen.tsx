@@ -22,6 +22,8 @@ import type { RootStackParamList } from '../../navigation/types';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { esPrioritaria, textoDuracion } from '../../utils/plazos';
 import { formatearMoneda } from '../../utils/moneda';
+import ChipsEtiquetas from '../../components/ChipsEtiquetas';
+import { etiquetasDeObras, type Etiqueta } from '../../services/etiquetas';
 
 type Obra = {
   id: string;
@@ -97,6 +99,7 @@ export default function DetalleObraScreen() {
   const { obraId } = route.params;
 
   const [obra, setObra] = useState<Obra | null>(null);
+  const [etiquetasObra, setEtiquetasObra] = useState<Etiqueta[]>([]);
   const [postulacionExistente, setPostulacionExistente] = useState<Postulacion | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [guardada, setGuardada] = useState(false);
@@ -142,6 +145,7 @@ export default function DetalleObraScreen() {
     }
     setObra(obraData as Obra);
     navigation.setOptions({ title: (obraData as Obra).titulo });
+    etiquetasDeObras([obraId]).then((m) => setEtiquetasObra(m.get(obraId) ?? []));
 
     const { data: userData } = await supabase.auth.getUser();
     const usuarioId = userData.user?.id;
@@ -384,6 +388,11 @@ export default function DetalleObraScreen() {
           </View>
 
           <Text className="text-ink text-2xl font-sansBold mt-3">{obra.titulo}</Text>
+          {etiquetasObra.length > 0 && (
+            <View className="mt-2.5">
+              <ChipsEtiquetas etiquetas={etiquetasObra} />
+            </View>
+          )}
           {obra.ubicacion !== null && (
             <View className="flex-row items-center gap-1.5 mt-1.5">
               <Feather name="map-pin" size={15} color={colors.action} />

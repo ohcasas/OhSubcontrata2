@@ -350,7 +350,7 @@ export default function AdminObrasScreen() {
               <TextInput
                 value={puntosBonus}
                 onChangeText={setPuntosBonus}
-                placeholder="Puntos Club OH"
+                placeholder="Puntos Club 3B"
                 placeholderTextColor={colors.inkSubtle}
                 keyboardType="number-pad"
                 editable={!publicando}

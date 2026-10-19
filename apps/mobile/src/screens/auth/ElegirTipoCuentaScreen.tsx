@@ -25,7 +25,7 @@ const OPCIONES_TRABAJO: OpcionTrabajo[] = [
     tipo: 'subcontratista',
     icono: 'briefcase',
     titulo: 'Oficios',
-    subtitulo: 'Postula a licitaciones, ejecuta obras y gana puntos del Club OH Partner.',
+    subtitulo: 'Postula a licitaciones, ejecuta obras y gana puntos del Club 3B Partner.',
   },
   {
     tipo: 'referidor',
@@ -100,7 +100,7 @@ export default function ElegirTipoCuentaScreen() {
           />
           <Text className="text-ink text-2xl font-sansBold text-center">¿Qué quieres hacer?</Text>
           <Text className="text-inkMuted text-sm text-center mt-1.5">
-            Puedes cambiarlo más adelante contactando con OH.
+            Puedes cambiarlo más adelante contactando con 3B.
           </Text>
         </View>
 

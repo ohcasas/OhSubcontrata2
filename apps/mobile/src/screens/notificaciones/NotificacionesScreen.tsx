@@ -27,6 +27,7 @@ const ICONO_POR_TIPO: Record<string, { icono: NombreIcono; color: string }> = {
   obra_revertida: { icono: 'rotate-ccw', color: colors.inkMuted },
   nivel_subido: { icono: 'trending-up', color: colors.gold },
   recordatorio_oferta: { icono: 'clock', color: colors.action },
+  nueva_obra_especialidad: { icono: 'tag', color: colors.action },
   canje_completado: { icono: 'gift', color: colors.success },
   canje_cancelado: { icono: 'gift', color: colors.error },
 };
@@ -87,7 +88,7 @@ export default function NotificacionesScreen() {
 
   const abrir = (n: Notificacion) => {
     marcarLeida(n);
-    if (n.tipo === 'recordatorio_oferta' && n.datos?.obra_id) {
+    if ((n.tipo === 'recordatorio_oferta' || n.tipo === 'nueva_obra_especialidad') && n.datos?.obra_id) {
       navigation.navigate('DetalleObra', { obraId: n.datos.obra_id });
     } else if (n.tipo.startsWith('postulacion_') || n.tipo.startsWith('obra_')) {
       navigation.navigate('AppSubcontratista', { screen: 'Postulaciones' });

@@ -138,7 +138,7 @@ export default function RootNavigator() {
     );
   }
 
-  // Solo las cuentas verificadas (y el personal de OH) entran en la app. Esto es la parte
+  // Solo las cuentas verificadas (y el personal de 3B) entran en la app. Esto es la parte
   // visible; lo que de verdad lo impide es la base de datos (ver migración 0034).
   const cuentaActiva = rol === 'admin' || rol === 'superadmin' || estadoCuenta === 'verificada';
 

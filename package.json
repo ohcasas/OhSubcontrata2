@@ -2,7 +2,7 @@
   "name": "oh-casas-subcontratas",
   "private": true,
   "version": "0.0.0",
-  "description": "Portal de Subcontratas — OH Casas Modulares (monorepo)",
+  "description": "3B Conecta (monorepo)",
   "workspaces": [
     "apps/*",
     "packages/*"

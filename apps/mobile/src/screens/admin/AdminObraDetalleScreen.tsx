@@ -413,7 +413,7 @@ export default function AdminObraDetalleScreen() {
               </View>
             )}
 
-            <Text className="text-ink text-xs font-sansSemiBold">Puntos Club OH al finalizar</Text>
+            <Text className="text-ink text-xs font-sansSemiBold">Puntos Club 3B al finalizar</Text>
             <View className="flex-row items-center mt-1.5" style={{ gap: 8 }}>
               <TextInput
                 value={puntosTexto}

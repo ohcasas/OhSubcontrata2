@@ -233,7 +233,7 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
                           p.empresa_especialidad,
                           p.empresa_homologada ? 'Homologada' : null,
                           p.empresa_rating !== null && Number(p.empresa_rating) > 0 ? `★ ${String(Number(p.empresa_rating)).replace('.', ',')}` : null,
-                          p.empresa_obras_completadas !== null ? `${p.empresa_obras_completadas} obras en OH` : null,
+                          p.empresa_obras_completadas !== null ? `${p.empresa_obras_completadas} obras en 3B` : null,
                         ].filter((x) => x !== null && x !== '').join(' · ')}
                       </Text>
                     </View>
