@@ -13,3 +13,6 @@ enable_refresh_token_rotation = true
 
 [storage]
 enabled = true
+
+[functions.enviar-correos]
+verify_jwt = false

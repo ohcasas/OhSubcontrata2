@@ -41,6 +41,10 @@ const config: ExpoConfig = {
   plugins: [
     'expo-secure-store',
     [
+      '@stripe/stripe-react-native',
+      { merchantIdentifier: 'merchant.es.tresbe.conecta', enableGooglePay: true },
+    ],
+    [
       'expo-notifications',
       {
         icon: './assets/branding/adaptive-icon-foreground.png',

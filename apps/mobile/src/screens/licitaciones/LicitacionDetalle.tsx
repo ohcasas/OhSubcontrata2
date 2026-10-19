@@ -5,6 +5,7 @@ import { supabase } from '../../services/supabase';
 import { obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import PagoObra from '../../components/PagoObra';
 import { formatearMoneda } from '../../utils/moneda';
 import { ETIQUETA_ESTADO_OBRA, ESTILO_ESTADO_OBRA, ETIQUETA_ESTADO_POSTULACION, fechaCorta } from './estados';
 
@@ -213,6 +214,8 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
           )}
         </View>
 
+        <PagoObra obraId={obraId} rol="cliente" obraAdjudicada={['adjudicada', 'en_curso', 'cerrada'].includes(obra.estado)} />
+
         {/* Postulaciones */}
         <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
           Postulaciones ({postulaciones.length})
@@ -233,7 +236,7 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
                           p.empresa_especialidad,
                           p.empresa_homologada ? 'Homologada' : null,
                           p.empresa_rating !== null && Number(p.empresa_rating) > 0 ? `★ ${String(Number(p.empresa_rating)).replace('.', ',')}` : null,
-                          p.empresa_obras_completadas !== null ? `${p.empresa_obras_completadas} obras en 3B` : null,
+                          p.empresa_obras_completadas !== null ? `${p.empresa_obras_completadas} obras en OH` : null,
                         ].filter((x) => x !== null && x !== '').join(' · ')}
                       </Text>
                     </View>

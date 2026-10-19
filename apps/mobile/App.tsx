@@ -13,6 +13,7 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import RootNavigator from './src/navigation/RootNavigator';
 import PantallaCarga from './src/components/PantallaCarga';
+import { StripeRaiz } from './src/services/stripeNativo';
 
 // La pantalla de carga nativa (negra) se queda puesta hasta que PantallaCarga
 // la quite, para que no haya un parpadeo entre una y otra.
@@ -30,11 +31,13 @@ export default function App() {
   // La app no se pinta hasta que DM Sans está cargada (si no, la primera pantalla
   // parpadearía con la fuente del sistema). Mientras tanto, PantallaCarga cubre todo.
   return (
-    <SafeAreaProvider>
-      <View style={{ flex: 1, backgroundColor: '#000000' }}>
-        {fuentesListas && <RootNavigator />}
-        {cargaVisible && <PantallaCarga listo={fuentesListas} onTerminada={() => setCargaVisible(false)} />}
-      </View>
-    </SafeAreaProvider>
+    <StripeRaiz>
+      <SafeAreaProvider>
+        <View style={{ flex: 1, backgroundColor: '#000000' }}>
+          {fuentesListas && <RootNavigator />}
+          {cargaVisible && <PantallaCarga listo={fuentesListas} onTerminada={() => setCargaVisible(false)} />}
+        </View>
+      </SafeAreaProvider>
+    </StripeRaiz>
   );
 }

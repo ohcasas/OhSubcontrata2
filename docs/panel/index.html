@@ -243,6 +243,8 @@
       <a href="#/actividad" data-nav="actividad"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Actividad</a>
       <a href="#/metricas" data-nav="metricas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15v3M12 9v9M17 5v13"/></svg>Métricas</a>
       <a href="#/etiquetas" data-nav="etiquetas"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg>Etiquetas <span class="n hidden" id="cnt-etiquetas">0</span></a>
+      <a href="#/pagos" data-nav="pagos"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pagos <span class="n hidden" id="cnt-pagos">0</span></a>
+      <a href="#/correos" data-nav="correos"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>Correos</a>
       <a href="#/ajustes" data-nav="ajustes"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Requisitos</a>
       <a href="#/equipo" data-nav="equipo"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zM9 12l2 2 4-4"/></svg>Equipo</a>
     </nav>
@@ -375,7 +377,7 @@ async function entrarComo(user) {
     const e = $('#error-entrar'); e.textContent = 'Este usuario no tiene acceso a la documentación.'; e.classList.remove('hidden'); return;
   }
   yo = data; $('#usuario').textContent = data.nombre_completo || data.email || '';
-  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); actualizarContadorEtiquetas(); actualizarContadoresRed(); enrutar();
+  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); actualizarContadorEtiquetas(); actualizarContadorPagos(); actualizarContadoresRed(); enrutar();
 }
 $('#form-config').addEventListener('submit', (e) => {
   e.preventDefault(); const u = $('#cfg-url').value.trim(), k = $('#cfg-key').value.trim();
@@ -424,6 +426,8 @@ async function enrutar() {
     else if (ruta === 'metricas') await vistaMetricas(v);
     else if (ruta === 'equipo') await vistaEquipo(v);
     else if (ruta === 'etiquetas') await vistaEtiquetas(v);
+    else if (ruta === 'pagos') await vistaPagos(v);
+    else if (ruta === 'correos') await vistaCorreos(v);
     else location.hash = '#/panel';
   } catch (e) { v.innerHTML = `<div class="error-caja">${esc(mensajeError(e))}</div>`; }
 }
@@ -920,6 +924,234 @@ document.addEventListener('click', async (e) => {
     if (d.act === 'etq-editar') return ventanaEditarEtiqueta(JSON.parse(d.etq));
     if (d.act === 'etq-revisar') return ventanaRevisarEtiqueta(d.id, d.nombre, d.a === '1');
     if (d.act === 'etq-archivar') { await rpc('panel_archivar_etiqueta', { p_id: d.id, p_archivar: d.arch === '1' }); aviso(d.arch === '1' ? 'Etiqueta archivada.' : 'Etiqueta reactivada.'); recargar(); }
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+
+// ───────────────────────── Pagos ─────────────────────────
+const ESTADO_PAGO = {
+  pendiente: ['Sin pagar', 'neutro'], retenido: ['Retenido', 'neutro'], terminada_oficio: ['Obra terminada', 'neutro'],
+  confirmada_cliente: ['Por aprobar', 'ok'], aprobado_3b: ['Aprobado', 'ok'], en_disputa: ['En disputa', 'mal'],
+  liberando: ['Liberando…', 'neutro'], liberado: ['Liberado', 'ok'], reembolsando: ['Reembolsando…', 'neutro'],
+  reembolsado: ['Reembolsado', 'neutro'], fallido: ['Fallido', 'mal'], cancelado: ['Cancelado', 'neutro']
+};
+const eurosC = (c) => (Number(c || 0) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const pctTxt = (p) => (p === null || p === undefined) ? 'sin definir' : String(Number(p)).replace('.', ',') + ' %';
+async function actualizarContadorPagos() {
+  try { const c = (await rpc('panel_pagos')).filter((x) => x.estado === 'confirmada_cliente' || x.estado === 'en_disputa').length; const n = $('#cnt-pagos'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) {}
+}
+async function vistaPagos(v) {
+  const [todos, aj, propias] = await Promise.all([rpc('panel_pagos'), rpc('panel_ajustes_pagos'), rpc('panel_comisiones_propias')]);
+  const t = new URLSearchParams((location.hash.split('?')[1]) || '').get('t') || 'aprobar';
+  const grupos = {
+    aprobar: todos.filter((x) => x.estado === 'confirmada_cliente'),
+    disputa: todos.filter((x) => x.estado === 'en_disputa'),
+    curso: todos.filter((x) => ['retenido', 'terminada_oficio', 'aprobado_3b', 'liberando', 'reembolsando'].includes(x.estado)),
+    cerrados: todos.filter((x) => ['liberado', 'reembolsado', 'fallido', 'cancelado', 'pendiente'].includes(x.estado))
+  };
+  const pestanas = [['aprobar', 'Por aprobar'], ['disputa', 'En disputa'], ['curso', 'En curso'], ['cerrados', 'Cerrados']];
+  v.innerHTML = `<div class="cab"><div><h1>Pagos</h1><p class="suave">El cliente paga al adjudicar y Stripe retiene el dinero. Se libera al oficio cuando el cliente confirma la obra (o pasa el plazo sin respuesta) y 3B da el visto bueno final.</p></div>
+    <button class="btn" data-act="pag-ajustes">Comisión y plazo</button></div>
+    <div class="panel" style="padding:14px 18px;margin-bottom:14px"><b>Comisión general:</b> ${esc(pctTxt(aj.comision_general_pct))} <span class="suave">· Plazo de confirmación del cliente: ${esc(aj.dias_confirmacion)} días</span>
+    ${aj.comision_general_pct === null ? '<div class="suave" style="margin-top:6px">Todavía no hay comisión definida: los pagos se liberan sin descontar nada hasta que la fijes.</div>' : ''}</div>
+    <div class="panel" style="padding:14px 18px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Comisiones propias</b><button class="btn peq" data-act="pag-propia-nueva">Añadir</button></div>
+    ${propias.length ? `<table class="tabla" style="margin-top:8px"><tbody>${propias.map((x) => `<tr><td>${x.tipo === 'empresa' ? 'Empresa' : 'Obra'}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(pctTxt(x.comision_pct))}</td><td class="acc"><button class="btn peq" data-act="pag-propia-editar" data-p='${esc(JSON.stringify({ tipo: x.tipo, id: x.id, nombre: x.nombre, pct: x.comision_pct }))}'>Cambiar</button> <button class="btn peq mal" data-act="pag-propia-quitar" data-p='${esc(JSON.stringify({ tipo: x.tipo, id: x.id }))}'>Quitar</button></td></tr>`).join('')}</tbody></table>` : '<div class="suave" style="margin-top:6px">Ninguna: se aplica la comisión general. Una comisión propia de una obra o empresa tiene prioridad (la de la obra, sobre la de la empresa). Solo afecta a pagos que aún no se han cobrado; en los ya cobrados se cambia desde su fila.</div>'}</div>
+    <div class="herramientas">${pestanas.map(([k, n]) => `<a class="btn ${k === t ? 'primario' : ''}" href="#/pagos?t=${k}">${n} (${grupos[k].length})</a>`).join('')}</div><div class="panel" id="lista"></div>`;
+  const estadoCol = { t: 'Estado', f: (x) => { const e = ESTADO_PAGO[x.estado] || [x.estado, 'neutro']; return `<span class="e ${e[1]}">${esc(e[0])}</span>${x.confirmada_automaticamente ? '<span class="sub">Por silencio del cliente</span>' : ''}`; }, s: (x) => x.estado };
+  const cols = [
+    { t: 'Obra', f: (x) => `<b>${esc(x.obra_titulo)}</b><span class="sub">${esc(x.empresa_nombre)} · ${esc(x.cliente_email || '')}</span>`, s: (x) => String(x.obra_titulo).toLowerCase() },
+    { t: 'Importe', f: (x) => `${eurosC(x.importe_cents)}<span class="sub">Comisión ${esc(pctTxt(x.comision_pct))} (${eurosC(x.comision_cents)})</span>`, s: (x) => Number(x.importe_cents) },
+    estadoCol,
+    { t: 'Fecha', f: (x) => fecha(x.confirmada_at || x.terminada_at || x.pagado_at || x.created_at), s: (x) => x.created_at }
+  ];
+  const info = (x) => JSON.stringify({ id: x.id, titulo: x.obra_titulo, empresa: x.empresa_nombre, importe: x.importe_cents, pct: x.comision_pct, motivo: x.disputa_motivo });
+  const accion = (x) => {
+    if (x.estado === 'confirmada_cliente') return `<button class="btn peq primario" data-act="pag-liberar" data-p='${esc(info(x))}'>Aprobar y liberar</button> <button class="btn peq" data-act="pag-comision" data-p='${esc(info(x))}'>Comisión</button>`;
+    if (x.estado === 'en_disputa') return `<button class="btn peq primario" data-act="pag-resolver" data-p='${esc(info(x))}'>Resolver</button>`;
+    if (['retenido', 'terminada_oficio', 'aprobado_3b'].includes(x.estado)) return `<button class="btn peq" data-act="pag-comision" data-p='${esc(info(x))}'>Comisión</button>`;
+    return '';
+  };
+  const detalleDisputa = { t: 'Problema reportado', f: (x) => `<span class="sub" style="white-space:normal">${esc(x.disputa_motivo || '')}</span>` };
+  const todasCols = t === 'disputa' ? [...cols, detalleDisputa] : cols;
+  $('#lista').innerHTML = htmlTabla('pagos-' + t, [...todasCols, { t: '', cls: 'acc', f: accion }], grupos[t], t === 'aprobar' ? 'No hay pagos esperando tu visto bueno.' : 'No hay pagos en esta lista.');
+  actualizarContadorPagos();
+}
+function ventanaAjustesPagos() {
+  rpc('panel_ajustes_pagos').then((aj) => {
+    abrirVentana(`<h2>Comisión y plazo</h2>
+      <label class="campo" for="p-pct">Comisión general (%). Déjalo vacío si todavía no está decidida.</label>
+      <input type="number" id="p-pct" min="0" max="50" step="0.01" value="${aj.comision_general_pct === null ? '' : esc(aj.comision_general_pct)}" />
+      <p class="suave">Se descuenta de lo que cobra el oficio: el cliente paga el precio de la oferta. Cada pago guarda el % que se aplicó al cobrar.</p>
+      <label class="campo" for="p-dias">Días para que el cliente confirme la obra (si no responde, se da por buena)</label>
+      <input type="number" id="p-dias" min="1" max="30" step="1" value="${esc(aj.dias_confirmacion)}" />${pieVentana('Guardar', 'primario')}`, 520);
+    $('[data-cerrar]').onclick = cerrarVentana;
+    $('#v-ok').onclick = async () => {
+      const crudo = $('#p-pct').value.trim().replace(',', '.');
+      const pct = crudo === '' ? null : Number(crudo);
+      if (pct !== null && (isNaN(pct) || pct < 0 || pct > 50)) return errorVentana('La comisión debe estar entre 0 y 50.');
+      $('#v-ok').disabled = true;
+      try { await rpc('panel_guardar_ajustes_pagos', { p_comision_general_pct: pct, p_dias_confirmacion: parseInt($('#p-dias').value, 10) }); cerrarVentana(); aviso('Ajustes guardados.'); recargar(); }
+      catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+    };
+  }).catch((err) => aviso(mensajeError(err), true));
+}
+function ventanaComisionPago(x) {
+  abrirVentana(`<h2>Comisión de este pago</h2><p><b>${esc(x.titulo)}</b> · ${esc(x.empresa)}</p>
+    <label class="campo" for="p-pct">Comisión (%). Vacío = sin comisión.</label>
+    <input type="number" id="p-pct" min="0" max="50" step="0.01" value="${x.pct === null ? '' : esc(x.pct)}" />${pieVentana('Guardar', 'primario')}`, 460);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const crudo = $('#p-pct').value.trim().replace(',', '.');
+    const pct = crudo === '' ? null : Number(crudo);
+    if (pct !== null && (isNaN(pct) || pct < 0 || pct > 50)) return errorVentana('La comisión debe estar entre 0 y 50.');
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_fijar_comision_pago', { p_pago_id: x.id, p_pct: pct }); cerrarVentana(); aviso('Comisión guardada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+async function moverPago(body) {
+  const { data, error } = await sb.functions.invoke('stripe-liberar-pago', { body });
+  if (error) {
+    let m = error.message;
+    try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e) {}
+    throw new Error(m);
+  }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+function ventanaLiberarPago(x) {
+  const com = Math.round(x.importe * (Number(x.pct) || 0) / 100);
+  abrirVentana(`<h2>Aprobar y liberar</h2><p><b>${esc(x.titulo)}</b> · ${esc(x.empresa)}</p>
+    <p>El cliente ha confirmado la obra. Al aprobar, el dinero sale hacia el oficio y no se puede deshacer.</p>
+    <table class="tabla"><tbody><tr><td>Pagado por el cliente</td><td>${eurosC(x.importe)}</td></tr>
+    <tr><td>Comisión (${esc(pctTxt(x.pct))})</td><td>− ${eurosC(com)}</td></tr>
+    <tr><td><b>Para el oficio</b></td><td><b>${eurosC(x.importe - com)}</b></td></tr></tbody></table>${pieVentana('Aprobar y liberar', 'primario')}`, 520);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await moverPago({ pago_id: x.id, accion: 'liberar' }); cerrarVentana(); aviso('Pago liberado.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaResolverDisputa(x) {
+  abrirVentana(`<h2>Resolver el problema</h2><p><b>${esc(x.titulo)}</b> · ${esc(x.empresa)} · ${eurosC(x.importe)}</p>
+    <p class="suave" style="white-space:pre-wrap">${esc(x.motivo || '')}</p>
+    <label class="campo" for="d-acc">Decisión</label>
+    <select id="d-acc"><option value="liberar">Liberar todo al oficio</option><option value="reembolsar">Devolver todo al cliente</option><option value="dividir">Dividir el importe</option></select>
+    <div id="d-div" class="hidden"><label class="campo" for="d-oficio">Importe para el oficio (€); el resto se devuelve al cliente</label><input type="number" id="d-oficio" min="0.01" step="0.01" /></div>
+    <label class="campo" for="d-nota">Nota interna (opcional)</label><textarea id="d-nota" rows="2" maxlength="500"></textarea>${pieVentana('Ejecutar decisión', 'primario')}`, 540);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#d-acc').onchange = () => $('#d-div').classList.toggle('hidden', $('#d-acc').value !== 'dividir');
+  $('#v-ok').onclick = async () => {
+    const acc = $('#d-acc').value; let cents = null;
+    if (acc === 'dividir') {
+      const e = Number($('#d-oficio').value.replace(',', '.'));
+      cents = Math.round(e * 100);
+      if (!(cents > 0 && cents < x.importe)) return errorVentana('El importe para el oficio debe ser mayor que 0 y menor que el total.');
+    }
+    $('#v-ok').disabled = true;
+    try { await moverPago({ pago_id: x.id, accion: acc, importe_oficio_cents: cents, nota: $('#d-nota').value }); cerrarVentana(); aviso('Decisión ejecutada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act^="pag-"]'); if (!b) return;
+  const d = b.dataset;
+  try {
+    if (d.act === 'pag-ajustes') return ventanaAjustesPagos();
+    const x = d.p ? JSON.parse(d.p) : null;
+    if (d.act === 'pag-liberar') return ventanaLiberarPago(x);
+    if (d.act === 'pag-resolver') return ventanaResolverDisputa(x);
+    if (d.act === 'pag-comision') return ventanaComisionPago(x);
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+
+async function ventanaPropiaComision(x) {
+  let tipo = x ? x.tipo : 'empresa';
+  const cargarOpciones = async (t) => {
+    const { data } = t === 'empresa'
+      ? await sb.from('empresas_subcontratistas').select('id, nombre').order('nombre')
+      : await sb.from('obras').select('id, titulo').order('created_at', { ascending: false }).limit(300);
+    return (data || []).map((r) => [r.id, r.nombre || r.titulo]);
+  };
+  const pintar = async () => {
+    const ops = x ? [[x.id, x.nombre]] : await cargarOpciones(tipo);
+    abrirVentana(`<h2>${x ? 'Cambiar comisión propia' : 'Comisión propia'}</h2>
+      ${x ? `<p><b>${esc(x.nombre)}</b> (${x.tipo === 'empresa' ? 'empresa' : 'obra'})</p>` : `<label class="campo" for="c-tipo">Aplicar a</label><select id="c-tipo"><option value="empresa" ${tipo === 'empresa' ? 'selected' : ''}>Una empresa (todas sus obras)</option><option value="obra" ${tipo === 'obra' ? 'selected' : ''}>Una obra concreta</option></select>
+      <label class="campo" for="c-id">${tipo === 'empresa' ? 'Empresa' : 'Obra'}</label><select id="c-id">${ops.map(([i, n]) => `<option value="${esc(i)}">${esc(n)}</option>`).join('')}</select>`}
+      <label class="campo" for="c-pct">Comisión (%)</label><input type="number" id="c-pct" min="0" max="50" step="0.01" value="${x && x.pct !== null ? esc(x.pct) : ''}" />${pieVentana('Guardar', 'primario')}`, 520);
+    $('[data-cerrar]').onclick = cerrarVentana;
+    if (!x) $('#c-tipo').onchange = () => { tipo = $('#c-tipo').value; pintar(); };
+    $('#v-ok').onclick = async () => {
+      const pct = Number($('#c-pct').value.replace(',', '.'));
+      if ($('#c-pct').value.trim() === '' || isNaN(pct) || pct < 0 || pct > 50) return errorVentana('Escribe una comisión entre 0 y 50.');
+      $('#v-ok').disabled = true;
+      try { await rpc('panel_guardar_comision', { p_tipo: x ? x.tipo : tipo, p_id: x ? x.id : $('#c-id').value, p_pct: pct }); cerrarVentana(); aviso('Comisión guardada.'); recargar(); }
+      catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+    };
+  };
+  pintar();
+}
+// ───────────────────────── Correos ─────────────────────────
+const VARIABLES_CORREO = '{{nombre}} {{titulo}} {{cuerpo}} {{obra}} {{importe}} {{enlace}}';
+async function vistaCorreos(v) {
+  const d = await rpc('panel_correos');
+  const a = d.ajustes;
+  v.innerHTML = `<div class="cab"><div><h1>Correos</h1><p class="suave">Cada aviso de la app puede llegar también por correo. Aquí eliges el diseño y el texto de cada tipo de correo.</p></div>
+    <button class="btn primario" data-act="cor-ajustes">Diseño y envío</button></div>
+    <div class="panel" style="padding:14px 18px;margin-bottom:14px"><b>Envío de correos:</b> ${a.activo ? '<span class="e ok">Activado</span>' : '<span class="e neutro">Desactivado</span>'}
+    <span class="suave"> · Remitente: ${esc(a.remitente_nombre)}${a.remitente_email ? ' &lt;' + esc(a.remitente_email) + '&gt;' : ' (sin correo)'} · En cola: ${esc(d.pendientes)} · Con error: ${esc(d.con_error)}</span></div>
+    <div class="panel" id="lista"></div>`;
+  $('#lista').innerHTML = htmlTabla('cor-pl', [
+    { t: 'Correo', f: (x) => `<b>${esc(x.nombre)}</b><span class="sub">${esc(x.asunto)}</span>`, s: (x) => String(x.nombre).toLowerCase() },
+    { t: 'Estado', f: (x) => x.activa ? '<span class="e ok">Activa</span>' : '<span class="e neutro">Apagada</span>', s: (x) => x.activa },
+    { t: '', cls: 'acc', f: (x) => `<button class="btn peq" data-act="cor-editar" data-p='${esc(JSON.stringify(x))}'>Editar</button> <button class="btn peq" data-act="cor-prueba" data-id="${esc(x.clave)}">Enviarme prueba</button>` }
+  ], d.plantillas, 'No hay plantillas.');
+  window.__ajustesCorreo = a;
+}
+function ventanaAjustesCorreo(a) {
+  abrirVentana(`<h2>Diseño y envío</h2>
+    <label class="campo"><input type="checkbox" id="k-act" ${a.activo ? 'checked' : ''}/> Enviar correos</label>
+    <label class="campo" for="k-rn">Nombre del remitente</label><input type="text" id="k-rn" value="${esc(a.remitente_nombre)}" />
+    <label class="campo" for="k-re">Correo del remitente (de un dominio verificado en Resend)</label><input type="text" id="k-re" value="${esc(a.remitente_email || '')}" />
+    <label class="campo" for="k-ra">Responder a (opcional)</label><input type="text" id="k-ra" value="${esc(a.responder_a || '')}" />
+    <label class="campo" for="k-col">Color (formato #RRGGBB)</label><input type="text" id="k-col" value="${esc(a.color)}" />
+    <label class="campo" for="k-cab">Texto de la cabecera</label><input type="text" id="k-cab" value="${esc(a.cabecera)}" />
+    <label class="campo" for="k-pie">Pie del correo</label><textarea id="k-pie" rows="2">${esc(a.pie)}</textarea>
+    <label class="campo" for="k-url">Enlace del botón (web o app)</label><input type="text" id="k-url" value="${esc(a.app_url || '')}" />
+    <label class="campo" for="k-fn">Dirección de la función de envío</label><input type="text" id="k-fn" placeholder="https://TU-PROYECTO.supabase.co/functions/v1/enviar-correos" value="${esc(a.funcion_url || '')}" />
+    <label class="campo" for="k-sec">Clave de envío ${a.tiene_secreto ? '(ya guardada; escribe otra solo para cambiarla)' : ''}</label><input type="password" id="k-sec" autocomplete="new-password" />${pieVentana('Guardar', 'primario')}`, 560);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try {
+      await rpc('panel_guardar_ajustes_correo', { p_activo: $('#k-act').checked, p_remitente_nombre: $('#k-rn').value, p_remitente_email: $('#k-re').value, p_responder_a: $('#k-ra').value, p_color: $('#k-col').value, p_cabecera: $('#k-cab').value, p_pie: $('#k-pie').value, p_app_url: $('#k-url').value, p_funcion_url: $('#k-fn').value, p_secreto: $('#k-sec').value });
+      cerrarVentana(); aviso('Ajustes guardados.'); recargar();
+    } catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaPlantilla(x) {
+  abrirVentana(`<h2>${esc(x.nombre)}</h2><p class="suave">Variables: ${esc(VARIABLES_CORREO)}</p>
+    <label class="campo"><input type="checkbox" id="t-act" ${x.activa ? 'checked' : ''}/> Enviar este correo</label>
+    <label class="campo" for="t-asu">Asunto</label><input type="text" id="t-asu" maxlength="200" value="${esc(x.asunto)}" />
+    <label class="campo" for="t-cue">Texto (una línea en blanco separa párrafos)</label><textarea id="t-cue" rows="8" maxlength="5000">${esc(x.cuerpo)}</textarea>
+    <label class="campo" for="t-bot">Texto del botón (vacío = sin botón)</label><input type="text" id="t-bot" maxlength="40" value="${esc(x.boton_texto || '')}" />${pieVentana('Guardar', 'primario')}`, 600);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_guardar_plantilla', { p_clave: x.clave, p_asunto: $('#t-asu').value, p_cuerpo: $('#t-cue').value, p_boton_texto: $('#t-bot').value, p_activa: $('#t-act').checked }); cerrarVentana(); aviso('Plantilla guardada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act^="cor-"], [data-act^="pag-propia-"]'); if (!b) return;
+  const d = b.dataset;
+  try {
+    if (d.act === 'cor-ajustes') return ventanaAjustesCorreo(window.__ajustesCorreo);
+    if (d.act === 'cor-editar') return ventanaPlantilla(JSON.parse(d.p));
+    if (d.act === 'cor-prueba') { await rpc('panel_correo_prueba', { p_clave: d.id }); return aviso('Prueba en cola: te llegará en un minuto.'); }
+    if (d.act === 'pag-propia-nueva') return ventanaPropiaComision(null);
+    if (d.act === 'pag-propia-editar') return ventanaPropiaComision(JSON.parse(d.p));
+    if (d.act === 'pag-propia-quitar') { const x = JSON.parse(d.p); await rpc('panel_guardar_comision', { p_tipo: x.tipo, p_id: x.id, p_pct: null }); aviso('Comisión propia quitada.'); recargar(); }
   } catch (err) { aviso(mensajeError(err), true); }
 });
 
