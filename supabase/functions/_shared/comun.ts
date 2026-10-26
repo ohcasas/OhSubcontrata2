@@ -1,9 +1,18 @@
 // Utilidades compartidas por las funciones de Stripe.
-import Stripe from "https://esm.sh/stripe@17.7.0?target=denonext";
+import Stripe from "npm:stripe@17.7.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-export const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
-  httpClient: Stripe.createFetchHttpClient(),
+// El cliente de Stripe se crea la primera vez que se usa, para que una clave ausente
+// dé un mensaje claro en vez de tumbar la función al arrancar.
+let _stripe: Stripe | null = null;
+function crearStripe(): Stripe {
+  const clave = Deno.env.get("STRIPE_SECRET_KEY");
+  if (!clave) throw new Error("Falta el secreto STRIPE_SECRET_KEY en Supabase.");
+  if (!_stripe) _stripe = new Stripe(clave, { httpClient: Stripe.createFetchHttpClient() });
+  return _stripe;
+}
+export const stripe = new Proxy({} as Stripe, {
+  get: (_t, prop) => (crearStripe() as unknown as Record<string | symbol, unknown>)[prop],
 });
 
 export const cors = {

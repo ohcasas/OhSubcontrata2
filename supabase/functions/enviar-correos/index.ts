@@ -1,6 +1,6 @@
 // Envía los correos pendientes de la cola con Resend, aplicando el diseño y las plantillas del panel.
 // Se despliega SIN verificación de JWT; la protege la cabecera x-envio-secret (= ENVIO_CORREOS_SECRET).
-import { clienteServicio } from "../_shared/comun.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -29,13 +29,21 @@ function html(a: Record<string, string>, cuerpo: string, boton: string | null, e
 }
 
 Deno.serve(async (req) => {
+  try {
+    return await procesar(req);
+  } catch (e) {
+    return new Response("Error: " + String((e as Error)?.message ?? e), { status: 500 });
+  }
+});
+
+async function procesar(req: Request): Promise<Response> {
   if (req.headers.get("x-envio-secret") !== Deno.env.get("ENVIO_CORREOS_SECRET")) {
     return new Response("No autorizado", { status: 401 });
   }
   const clave = Deno.env.get("RESEND_API_KEY");
   if (!clave) return new Response("Falta RESEND_API_KEY", { status: 500 });
 
-  const admin = clienteServicio();
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const { data: a } = await admin.from("ajustes_correo").select("*").eq("id", true).single();
   if (!a?.activo || !a.remitente_email) return new Response("correos desactivados", { status: 200 });
 
@@ -75,4 +83,4 @@ Deno.serve(async (req) => {
     }
   }
   return new Response(JSON.stringify({ enviados }), { status: 200 });
-});
+}

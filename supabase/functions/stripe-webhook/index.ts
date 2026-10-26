@@ -29,12 +29,15 @@ Deno.serve(async (req) => {
       await admin.rpc("pago_marcar_fallido", { p_payment_intent: pi.id });
     } else if (evento.type === "account.updated") {
       const c = evento.data.object;
-      await admin.from("stripe_cuentas").update({
-        detalles_enviados: c.details_submitted ?? false,
-        cobros_activos: c.charges_enabled ?? false,
-        transferencias_activas: c.payouts_enabled === true && c.capabilities?.transfers === "active",
-        updated_at: new Date().toISOString(),
-      }).eq("stripe_account_id", c.id);
+      // Las cuentas nuevas son Accounts v2: su estado real lo lee stripe-onboarding.
+      // Aquí solo se sube a "activa" si Stripe lo confirma; nunca se baja.
+      if (c.capabilities?.transfers === "active") {
+        await admin.from("stripe_cuentas").update({
+          detalles_enviados: true,
+          transferencias_activas: true,
+          updated_at: new Date().toISOString(),
+        }).eq("stripe_account_id", c.id);
+      }
     }
     return new Response("ok", { status: 200 });
   } catch (e) {

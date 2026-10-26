@@ -70,14 +70,24 @@ function ListaLicitaciones({ onNueva, onAbrir }: { onNueva: () => void; onAbrir:
 
   const cargar = useCallback(async () => {
     setError(null);
-    const { data, error: errorRpc } = await supabase.rpc('mis_licitaciones');
-    if (errorRpc) setError(errorRpc.message);
-    else {
-      const lista = (data as Licitacion[] | null) ?? [];
-      setItems(lista);
-      setEtiquetas(await etiquetasDeObras(lista.map((l) => l.id)));
+    try {
+      const { data, error: errorRpc } = await supabase.rpc('mis_licitaciones');
+      if (errorRpc) {
+        setError(errorRpc.message);
+      } else {
+        const lista = Array.isArray(data) ? (data as Licitacion[]) : [];
+        setItems(lista);
+        try {
+          setEtiquetas(await etiquetasDeObras(lista.map((l) => l.id)));
+        } catch {
+          // Las etiquetas son un extra: si fallan, la lista se ve igual.
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se han podido cargar las licitaciones.');
+    } finally {
+      setCargando(false);
     }
-    setCargando(false);
   }, []);
 
   useFocusEffect(
@@ -190,16 +200,19 @@ function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onC
 
   useEffect(() => {
     let vivo = true;
-    cargarEtiquetas(true)
-      .then((lista) => {
-        if (vivo) setEtiquetas(lista);
-      })
-      .catch(() => {
-        if (vivo) setError('No se han podido cargar las etiquetas. Cierra y vuelve a abrir esta pantalla.');
-      })
-      .finally(() => {
+    (async () => {
+      try {
+        const lista = await cargarEtiquetas(true);
+        if (vivo) {
+          setEtiquetas(Array.isArray(lista) ? lista : []);
+          if (!Array.isArray(lista) || lista.length === 0) setError('La consulta ha funcionado pero no ha devuelto etiquetas (0).');
+        }
+      } catch (e) {
+        if (vivo) setError(`No se han podido cargar las etiquetas: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
         if (vivo) setCargandoEtiquetas(false);
-      });
+      }
+    })();
     return () => {
       vivo = false;
     };
