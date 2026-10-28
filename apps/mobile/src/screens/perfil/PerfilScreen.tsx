@@ -25,6 +25,7 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import MisEspecialidades from '../../components/MisEspecialidades';
 import CuentaCobro from '../../components/CuentaCobro';
+import { PAGOS_ACTIVOS } from '../../constants/funciones';
 import PerfilPorRol from './PerfilPorRol';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
@@ -127,7 +128,7 @@ export default function PerfilScreen() {
   const [rol, setRol] = useState<string | null>(null);
   // Las cifras de obras/homologación, la documentación y el historial de
   // obras son de los Oficios (subcontratistas). El resto de perfiles de
-  // OH Conecta no los usan, así que no se les enseñan.
+  // 3B Conecta no los usan, así que no se les enseñan.
   const esSubcontratista = rol === 'subcontratista';
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
   const [eliminandoCuenta, setEliminandoCuenta] = useState(false);
@@ -562,7 +563,7 @@ export default function PerfilScreen() {
 
         {/* A qué se dedica el oficio: sirve para enseñarle primero las obras de su especialidad */}
         {esSubcontratista && empresaId !== null && <MisEspecialidades empresaId={empresaId} />}
-        {esSubcontratista && empresaId !== null && <CuentaCobro empresaId={empresaId} />}
+        {PAGOS_ACTIVOS && esSubcontratista && empresaId !== null && <CuentaCobro empresaId={empresaId} />}
 
         {/* Documentación: renovar los documentos de la cuenta y gestionar a los trabajadores */}
         {rol !== null && rol !== 'particular' && rol !== 'tecnico' && (

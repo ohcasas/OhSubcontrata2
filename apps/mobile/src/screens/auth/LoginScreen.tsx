@@ -30,7 +30,7 @@ function traducirErrorSupabase(mensaje: string): string {
     return 'Debes confirmar tu email antes de iniciar sesión.';
   }
   if (mensaje.toLowerCase().includes('banned')) {
-    return 'Tu cuenta está suspendida. Escríbenos a software@ohcasas.es.';
+    return 'Tu cuenta está suspendida. Escríbenos a soporte@3bconecta.com.';
   }
   return 'No se ha podido iniciar sesión. Inténtalo de nuevo.';
 }
@@ -101,7 +101,7 @@ export default function LoginScreen() {
               3B CONECTA
             </Text>
             <Text className="text-ink text-2xl font-sansBold mt-3">Bienvenido de nuevo</Text>
-            <Text className="text-inkMuted text-sm mt-1">Accede a tu portal de subcontratas.</Text>
+            <Text className="text-inkMuted text-sm mt-1">Accede a tu cuenta de 3B Conecta.</Text>
           </View>
 
           {/* Tarjeta del formulario */}

@@ -22,7 +22,19 @@ Deno.serve(async (req) => {
     let intent;
     if (fila?.stripe_payment_intent_id) {
       intent = await stripe.paymentIntents.retrieve(fila.stripe_payment_intent_id);
-      if (intent.amount !== pago.importe_cents && intent.status !== "succeeded") {
+      if (intent.status === "canceled") {
+        // El intent antiguo ya no sirve: se crea uno nuevo (la clave de idempotencia lleva el id del viejo)
+        intent = await stripe.paymentIntents.create({
+          amount: pago.importe_cents,
+          currency: pago.moneda,
+          transfer_group: pago.transfer_group,
+          automatic_payment_methods: { enabled: true },
+          metadata: { pago_id: pago.pago_id, obra_id },
+        }, { idempotencyKey: `pi_${pago.pago_id}_tras_${fila.stripe_payment_intent_id}` });
+        const { error: e2 } = await admin.from("pagos")
+          .update({ stripe_payment_intent_id: intent.id }).eq("id", pago.pago_id);
+        if (e2) throw e2;
+      } else if (intent.amount !== pago.importe_cents && intent.status !== "succeeded") {
         intent = await stripe.paymentIntents.update(intent.id, { amount: pago.importe_cents });
       }
     } else {

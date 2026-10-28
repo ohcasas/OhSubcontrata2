@@ -27,7 +27,7 @@ export type DocumentoRequerido = {
 };
 
 export const MENSAJE_DOCUMENTO_NO_VALIDO =
-  'Revisa este número: no parece un CIF, NIF o NIE válido. Si es de otro país, escríbenos a software@ohcasas.es.';
+  'Revisa este número: no parece un CIF, NIF o NIE válido. Si es de otro país, escríbenos a soporte@3bconecta.com.';
 
 export function useCatalogoRegistro(role: string) {
   const [campos, setCampos] = useState<CampoRegistro[]>([]);

@@ -16,6 +16,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
+import { PLANES_PAGO } from '../../services/pagos';
+import { PAGOS_ACTIVOS } from '../../constants/funciones';
 import { subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
@@ -88,7 +90,7 @@ function formatearFecha(fechaIso: string | null): string | null {
 
 const ETIQUETA_ESTADO: Record<Postulacion['estado'], string> = {
   enviada: 'Enviada — pendiente de revisión',
-  en_revision: 'En revisión por OH Contratas',
+  en_revision: 'En revisión por 3B Conecta',
   aceptada: 'Aceptada',
   rechazada: 'No seleccionada esta vez',
 };
@@ -111,6 +113,7 @@ export default function DetalleObraScreen() {
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
   const [motivacion, setMotivacion] = useState('');
+  const [clavePlan, setClavePlan] = useState('unico');
   const [errorOferta, setErrorOferta] = useState<string | null>(null);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -282,7 +285,7 @@ export default function DetalleObraScreen() {
 
     if (!empresaId) {
       setErrorEnvio(
-        'Tu usuario todavía no está vinculado a ninguna empresa subcontratista, así que no puedes postular. Contacta con OH Contratas para que lo configuren.',
+        'Tu usuario todavía no está vinculado a ninguna empresa subcontratista, así que no puedes postular. Contacta con 3B Conecta para que lo configuren.',
       );
       return;
     }
@@ -298,6 +301,7 @@ export default function DetalleObraScreen() {
           telefonoContacto.trim() !== '' ? `${telefonoContactoPrefijo} ${telefonoContacto.trim()}` : null,
         disponibilidad_equipo: disponibilidad.trim() || null,
         motivacion: motivacion.trim() || null,
+        plan_pagos: PLANES_PAGO.find((pl) => pl.clave === clavePlan)?.tramos ?? null,
       })
       .select('id, oferta_economica, estado')
       .single();
@@ -574,8 +578,41 @@ export default function DetalleObraScreen() {
               </View>
               {errorOferta !== null && <Text className="text-error text-xs mb-1">{errorOferta}</Text>}
               <Text className="text-inkMuted text-[13px] mb-3">
-                Presupuesto máximo fijado por OH Contratas: {formatearMoneda(obra.presupuesto, obra.moneda)}
+                Presupuesto máximo fijado por 3B Conecta: {formatearMoneda(obra.presupuesto, obra.moneda)}
               </Text>
+
+              {PAGOS_ACTIVOS && (
+                <>
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">¿Cómo quieres cobrar?</Text>
+              <Text className="text-inkMuted text-[13px] mb-2">
+                El cliente paga la obra entera al adjudicar y el dinero queda retenido. Se te libera según este calendario, cuando cada parte está terminada y confirmada.
+              </Text>
+              <View className="mb-3" style={{ gap: 6 }}>
+                {PLANES_PAGO.map((pl) => {
+                  const activo = pl.clave === clavePlan;
+                  const importe = Number(ofertaEconomica.replace(',', '.'));
+                  return (
+                    <Pressable
+                      key={pl.clave}
+                      onPress={() => setClavePlan(pl.clave)}
+                      disabled={enviando}
+                      className={`rounded-xl border px-3 py-2.5 ${activo ? 'border-action bg-actionTint' : 'border-border bg-surface'}`}
+                    >
+                      <View className="flex-row items-center" style={{ gap: 8 }}>
+                        <Feather name={activo ? 'check-circle' : 'circle'} size={15} color={activo ? colors.action : colors.inkSubtle} />
+                        <Text className="text-ink text-xs font-sansSemiBold flex-1">{pl.nombre}</Text>
+                      </View>
+                      {activo && pl.tramos !== null && importe > 0 && (
+                        <Text className="text-inkMuted text-[12px] mt-1 ml-6">
+                          {pl.tramos.map((t) => `${t.titulo}: ${formatearMoneda((importe * t.pct) / 100, obra.moneda)}`).join(' · ')}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+                </>
+              )}
 
               <Text className="text-ink text-xs font-sansSemiBold mb-1">
                 Teléfono de contacto para esta obra (opcional)

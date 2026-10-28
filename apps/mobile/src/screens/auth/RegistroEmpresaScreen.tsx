@@ -37,7 +37,7 @@ const ETIQUETA_ROL: Record<string, string> = {
 
 function traducirErrorRegistro(mensaje: string): string {
   if (mensaje.includes('CIF_DUPLICADO')) {
-    return 'Ya hay una cuenta registrada con ese CIF/NIF. Si es tuyo, escríbenos a software@ohcasas.es.';
+    return 'Ya hay una cuenta registrada con ese CIF/NIF. Si es tuyo, escríbenos a soporte@3bconecta.com.';
   }
   if (mensaje.includes('already registered') || mensaje.includes('already exists')) {
     return 'Ya existe una cuenta con ese email.';
@@ -46,7 +46,7 @@ function traducirErrorRegistro(mensaje: string): string {
     return 'La contraseña debe tener al menos 6 caracteres.';
   }
   if (mensaje.includes('Database error')) {
-    return 'No se ha podido crear la cuenta. Si el CIF/NIF ya estuviera registrado, escríbenos a software@ohcasas.es.';
+    return 'No se ha podido crear la cuenta. Si el CIF/NIF ya estuviera registrado, escríbenos a soporte@3bconecta.com.';
   }
   return 'No se ha podido crear la cuenta. Inténtalo de nuevo.';
 }

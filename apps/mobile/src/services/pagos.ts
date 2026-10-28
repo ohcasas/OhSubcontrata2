@@ -14,14 +14,60 @@ export type Pago = {
   auto_confirma_at: string | null;
   disputa_motivo: string | null;
   created_at: string;
+  /** true = el dinero se libera al oficio por tramos (ver Tramo) */
+  con_tramos: boolean;
 };
+
+export type EstadoTramo = 'pendiente' | 'terminado_oficio' | 'confirmado_cliente' | 'liberando' | 'liberado' | 'cerrado';
+
+export type Tramo = {
+  id: string;
+  pago_id: string;
+  orden: number;
+  titulo: string;
+  pct: number;
+  importe_cents: number;
+  estado: EstadoTramo;
+  auto_confirma_at: string | null;
+};
+
+/** Un tramo del calendario de cobro que el oficio propone en su oferta. */
+export type PlanTramo = { titulo: string; pct: number };
+
+export const PLANES_PAGO: { clave: string; nombre: string; tramos: PlanTramo[] | null }[] = [
+  { clave: 'unico', nombre: 'Un solo pago al terminar la obra', tramos: null },
+  {
+    clave: '50_50',
+    nombre: '2 tramos: 50 % + 50 %',
+    tramos: [{ titulo: 'Mitad de la obra', pct: 50 }, { titulo: 'Obra terminada', pct: 50 }],
+  },
+  {
+    clave: '30_40_30',
+    nombre: '3 tramos: 30 % + 40 % + 30 %',
+    tramos: [{ titulo: 'Inicio de obra', pct: 30 }, { titulo: 'Obra a la mitad', pct: 40 }, { titulo: 'Obra terminada', pct: 30 }],
+  },
+  {
+    clave: '25x4',
+    nombre: '4 tramos: 25 % cada uno',
+    tramos: [
+      { titulo: 'Primer cuarto', pct: 25 }, { titulo: 'Mitad de obra', pct: 25 },
+      { titulo: 'Tres cuartos', pct: 25 }, { titulo: 'Obra terminada', pct: 25 },
+    ],
+  },
+];
+
+/** "30 % · 40 % · 30 %" o null si el plan es un único pago. */
+export function resumenPlan(plan: PlanTramo[] | null | undefined): string | null {
+  if (!plan || plan.length < 2) return null;
+  return plan.map((t) => `${String(t.pct).replace('.', ',')} %`).join(' · ');
+}
 
 export type CuentaCobro = {
   activa: boolean;
   detalles_enviados: boolean;
 };
 
-const CAMPOS = 'id, obra_id, estado, importe_cents, comision_cents, comision_pct, auto_confirma_at, disputa_motivo, created_at';
+const CAMPOS = 'id, obra_id, estado, importe_cents, comision_cents, comision_pct, auto_confirma_at, disputa_motivo, created_at, con_tramos';
 
 /** Último pago de una obra que sigue en marcha (o el último en general). */
 export async function pagoDeObra(obraId: string): Promise<Pago | null> {
@@ -51,6 +97,27 @@ export async function oficioTermina(pagoId: string): Promise<void> {
 
 export async function clienteConfirma(pagoId: string): Promise<void> {
   const { error } = await supabase.rpc('pago_cliente_confirma', { p_pago_id: pagoId });
+  if (error) throw new Error(error.message);
+}
+
+/** Tramos de un pago por tramos, en orden. */
+export async function tramosDePago(pagoId: string): Promise<Tramo[]> {
+  const { data, error } = await supabase
+    .from('pago_tramos')
+    .select('id, pago_id, orden, titulo, pct, importe_cents, estado, auto_confirma_at')
+    .eq('pago_id', pagoId)
+    .order('orden', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data as Tramo[] | null) ?? [];
+}
+
+export async function oficioTerminaTramo(tramoId: string): Promise<void> {
+  const { error } = await supabase.rpc('tramo_oficio_termina', { p_tramo_id: tramoId });
+  if (error) throw new Error(error.message);
+}
+
+export async function clienteConfirmaTramo(tramoId: string): Promise<void> {
+  const { error } = await supabase.rpc('tramo_cliente_confirma', { p_tramo_id: tramoId });
   if (error) throw new Error(error.message);
 }
 

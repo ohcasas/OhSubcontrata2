@@ -21,7 +21,7 @@ export default function BarraEtiquetas({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingVertical: 4, paddingHorizontal: 2, gap: 12 }}
+      contentContainerStyle={{ paddingVertical: 4, paddingHorizontal: 2, gap: 6 }}
     >
       {etiquetas.map((e) => {
         const activa = seleccion.has(e.id);
@@ -32,7 +32,7 @@ export default function BarraEtiquetas({
             accessibilityRole="button"
             accessibilityState={{ selected: activa }}
             accessibilityLabel={e.nombre}
-            style={{ width: 76, alignItems: 'center' }}
+            style={{ width: 92, alignItems: 'center' }}
           >
             <View
               style={{
@@ -45,7 +45,9 @@ export default function BarraEtiquetas({
               <IconoEtiqueta icono={e.icono} size={64} radio={20} />
             </View>
             <Text
-              numberOfLines={2}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
               className={`text-[12px] text-center mt-1.5 ${activa ? 'text-action font-sansBold' : 'text-ink font-sansMedium'}`}
               style={{ lineHeight: 15 }}
             >

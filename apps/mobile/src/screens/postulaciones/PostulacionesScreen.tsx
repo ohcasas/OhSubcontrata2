@@ -62,7 +62,7 @@ const PASOS_OBRA: { estado: EstadoObra; etiqueta: string }[] = [
 ];
 
 const MENSAJE_PROGRESO: Partial<Record<EstadoObra, string>> = {
-  adjudicada: 'Obra adjudicada a tu empresa. Pendiente de que OH Contratas la inicie.',
+  adjudicada: 'Obra adjudicada a tu empresa. Pendiente de que 3B Conecta la inicie.',
   en_curso: 'Obra en curso.',
   cerrada: 'Obra finalizada.',
 };
@@ -164,7 +164,7 @@ export default function PostulacionesScreen() {
             Tu usuario todavía no está vinculado a ninguna empresa subcontratista
           </Text>
           <Text className="text-inkMuted text-sm text-center mt-2">
-            Contacta con OH Contratas para que lo configuren y así puedas ver tus postulaciones.
+            Contacta con 3B Conecta para que lo configuren y así puedas ver tus postulaciones.
           </Text>
         </View>
       ) : (
@@ -281,7 +281,7 @@ export default function PostulacionesScreen() {
                   <View className="flex-row items-center gap-1.5 bg-errorTint rounded-lg px-3 py-2 mt-2">
                     <Feather name="alert-triangle" size={14} color={colors.error} />
                     <Text className="text-error text-xs font-sansSemiBold flex-1">
-                      Esta obra ha sido cancelada por OH Contratas.
+                      Esta obra ha sido cancelada por 3B Conecta.
                     </Text>
                   </View>
                 )}

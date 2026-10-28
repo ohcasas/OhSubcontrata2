@@ -4,7 +4,7 @@ import { colors } from '../design-system/tokens';
 import { iconoEtiqueta } from '../constants/etiquetas';
 
 /**
- * Icono cromado de una etiqueta sobre el azul marino de la marca. Sin icono
+ * Icono isométrico de una etiqueta sobre un fondo azul muy claro de la marca. Sin icono
  * propio muestra una etiqueta genérica.
  */
 export default function IconoEtiqueta({
@@ -25,7 +25,7 @@ export default function IconoEtiqueta({
       style={{
         ...(llenar === true ? { flex: 1 } : { width: size, height: size }),
         borderRadius: radio ?? Math.round(size * 0.3),
-        backgroundColor: colors.navySurface,
+        backgroundColor: colors.actionTint,
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -33,11 +33,11 @@ export default function IconoEtiqueta({
       {fuente !== null ? (
         <Image
           source={fuente}
-          style={llenar === true ? { width: '74%', height: '74%' } : { width: size * 0.74, height: size * 0.74 }}
+          style={llenar === true ? { width: '88%', height: '88%' } : { width: size * 0.88, height: size * 0.88 }}
           resizeMode="contain"
         />
       ) : (
-        <Feather name="tag" size={Math.round(size * 0.42)} color={colors.white} />
+        <Feather name="tag" size={Math.round(size * 0.42)} color={colors.action} />
       )}
     </View>
   );

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
+import { PAGOS_ACTIVOS } from '../../constants/funciones';
 import { obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -35,6 +36,7 @@ type Postulacion = {
   motivo_rechazo: string | null;
   created_at: string;
   empresa_nombre: string;
+  plan_pagos?: { titulo: string; pct: number }[] | null;
   empresa_especialidad: string | null;
   empresa_homologada: boolean;
   empresa_rating: number | null;
@@ -57,7 +59,7 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
   const [motivo, setMotivo] = useState('');
 
   const cargar = useCallback(async () => {
-    const [{ data: o, error: eObra }, { data: p, error: ePost }, { data: a }] = await Promise.all([
+    const [{ data: o, error: eObra }, { data: p, error: ePost }, { data: a }, { data: planes }] = await Promise.all([
       supabase
         .from('obras')
         .select('id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, presupuesto, duracion_dias, plazo_cierre, estado, requisitos')
@@ -65,10 +67,14 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
         .single(),
       supabase.rpc('postulaciones_de_mi_licitacion', { p_obra_id: obraId }),
       supabase.from('avances_obra').select('id, descripcion, porcentaje_avance, created_at').eq('obra_id', obraId).order('created_at', { ascending: false }),
+      supabase.rpc('plan_pagos_de_ofertas', { p_obra_id: obraId }),
     ]);
     if (eObra || ePost) setError((eObra ?? ePost)?.message ?? 'No se ha podido cargar la licitación.');
     setObra((o as Obra | null) ?? null);
-    setPostulaciones((p as Postulacion[] | null) ?? []);
+    const planPorOferta = new Map(
+      ((planes as { postulacion_id: string; plan_pagos: { titulo: string; pct: number }[] | null }[] | null) ?? []).map((x) => [x.postulacion_id, x.plan_pagos]),
+    );
+    setPostulaciones(((p as Postulacion[] | null) ?? []).map((x) => ({ ...x, plan_pagos: planPorOferta.get(x.id) ?? null })));
     setAvances((a as Avance[] | null) ?? []);
     setCargando(false);
   }, [obraId]);
@@ -236,13 +242,20 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
                           p.empresa_especialidad,
                           p.empresa_homologada ? 'Homologada' : null,
                           p.empresa_rating !== null && Number(p.empresa_rating) > 0 ? `★ ${String(Number(p.empresa_rating)).replace('.', ',')}` : null,
-                          p.empresa_obras_completadas !== null ? `${p.empresa_obras_completadas} obras en OH` : null,
+                          p.empresa_obras_completadas !== null ? `${p.empresa_obras_completadas} obras en 3B` : null,
                         ].filter((x) => x !== null && x !== '').join(' · ')}
                       </Text>
                     </View>
                     <Text className="text-ink text-base font-sansBold">{formatearMoneda(Number(p.oferta_economica))}</Text>
                   </View>
 
+                  {!PAGOS_ACTIVOS ? null : p.plan_pagos && p.plan_pagos.length > 1 ? (
+                    <Text className="text-ink text-xs mt-2">
+                      Cobro por tramos: {p.plan_pagos.map((t) => `${t.titulo} ${String(t.pct).replace('.', ',')} %`).join(' · ')}
+                    </Text>
+                  ) : (
+                    <Text className="text-inkMuted text-xs mt-2">Cobro: un solo pago al terminar la obra.</Text>
+                  )}
                   {p.motivacion !== null && <Text className="text-inkMuted text-xs mt-2">{p.motivacion}</Text>}
                   {p.disponibilidad_equipo !== null && <Text className="text-inkMuted text-xs mt-1">Disponibilidad: {p.disponibilidad_equipo}</Text>}
 

@@ -15,7 +15,7 @@ const config: ExpoConfig = {
   name: '3B Conecta',
   slug: '3b-conecta',
   scheme: 'tresbeconecta',
-  version: '0.0.1',
+  version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
   icon: './assets/branding/icon.png',

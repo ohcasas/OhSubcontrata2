@@ -934,13 +934,16 @@ const ESTADO_PAGO = {
   liberando: ['Liberando…', 'neutro'], liberado: ['Liberado', 'ok'], reembolsando: ['Reembolsando…', 'neutro'],
   reembolsado: ['Reembolsado', 'neutro'], fallido: ['Fallido', 'mal'], cancelado: ['Cancelado', 'neutro']
 };
+const ESTADO_TRAMO = { pendiente: ['Pendiente', 'neutro'], terminado_oficio: ['Terminado por el oficio', 'aviso'], confirmado_cliente: ['Confirmado por el cliente', 'aviso'], liberando: ['Liberando', 'aviso'], liberado: ['Liberado', 'ok'], cerrado: ['Cerrado', 'neutro'] };
 const eurosC = (c) => (Number(c || 0) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 const pctTxt = (p) => (p === null || p === undefined) ? 'sin definir' : String(Number(p)).replace('.', ',') + ' %';
 async function actualizarContadorPagos() {
-  try { const c = (await rpc('panel_pagos')).filter((x) => x.estado === 'confirmada_cliente' || x.estado === 'en_disputa').length; const n = $('#cnt-pagos'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) {}
+  try { const tr = await rpc('panel_tramos').catch(() => []); const c = (await rpc('panel_pagos')).filter((x) => x.estado === 'confirmada_cliente' || x.estado === 'en_disputa').length + tr.filter((x) => x.estado === 'confirmado_cliente').length; const n = $('#cnt-pagos'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) {}
 }
 async function vistaPagos(v) {
-  const [todos, aj, propias] = await Promise.all([rpc('panel_pagos'), rpc('panel_ajustes_pagos'), rpc('panel_comisiones_propias')]);
+  const [todos, aj, propias, tramos] = await Promise.all([rpc('panel_pagos'), rpc('panel_ajustes_pagos'), rpc('panel_comisiones_propias'), rpc('panel_tramos').catch(() => [])]);
+  const tramosPorAprobar = tramos.filter((x) => x.estado === 'confirmado_cliente' && x.pago_estado === 'retenido');
+  const resumenTramos = (pagoId) => tramos.filter((x) => x.pago_id === pagoId).map((x) => `${esc(x.titulo)} ${esc((ESTADO_TRAMO[x.estado] || [x.estado])[0].toLowerCase())}`).join(' · ');
   const t = new URLSearchParams((location.hash.split('?')[1]) || '').get('t') || 'aprobar';
   const grupos = {
     aprobar: todos.filter((x) => x.estado === 'confirmada_cliente'),
@@ -955,10 +958,10 @@ async function vistaPagos(v) {
     ${aj.comision_general_pct === null ? '<div class="suave" style="margin-top:6px">Todavía no hay comisión definida: los pagos se liberan sin descontar nada hasta que la fijes.</div>' : ''}</div>
     <div class="panel" style="padding:14px 18px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Comisiones propias</b><button class="btn peq" data-act="pag-propia-nueva">Añadir</button></div>
     ${propias.length ? `<table class="tabla" style="margin-top:8px"><tbody>${propias.map((x) => `<tr><td>${x.tipo === 'empresa' ? 'Empresa' : 'Obra'}</td><td><b>${esc(x.nombre)}</b></td><td>${esc(pctTxt(x.comision_pct))}</td><td class="acc"><button class="btn peq" data-act="pag-propia-editar" data-p='${esc(JSON.stringify({ tipo: x.tipo, id: x.id, nombre: x.nombre, pct: x.comision_pct }))}'>Cambiar</button> <button class="btn peq mal" data-act="pag-propia-quitar" data-p='${esc(JSON.stringify({ tipo: x.tipo, id: x.id }))}'>Quitar</button></td></tr>`).join('')}</tbody></table>` : '<div class="suave" style="margin-top:6px">Ninguna: se aplica la comisión general. Una comisión propia de una obra o empresa tiene prioridad (la de la obra, sobre la de la empresa). Solo afecta a pagos que aún no se han cobrado; en los ya cobrados se cambia desde su fila.</div>'}</div>
-    <div class="herramientas">${pestanas.map(([k, n]) => `<a class="btn ${k === t ? 'primario' : ''}" href="#/pagos?t=${k}">${n} (${grupos[k].length})</a>`).join('')}</div><div class="panel" id="lista"></div>`;
+    <div class="herramientas">${pestanas.map(([k, n]) => `<a class="btn ${k === t ? 'primario' : ''}" href="#/pagos?t=${k}">${n} (${grupos[k].length + (k === 'aprobar' ? tramosPorAprobar.length : 0)})</a>`).join('')}</div><div id="lista-tramos"></div><div class="panel" id="lista"></div>`;
   const estadoCol = { t: 'Estado', f: (x) => { const e = ESTADO_PAGO[x.estado] || [x.estado, 'neutro']; return `<span class="e ${e[1]}">${esc(e[0])}</span>${x.confirmada_automaticamente ? '<span class="sub">Por silencio del cliente</span>' : ''}`; }, s: (x) => x.estado };
   const cols = [
-    { t: 'Obra', f: (x) => `<b>${esc(x.obra_titulo)}</b><span class="sub">${esc(x.empresa_nombre)} · ${esc(x.cliente_email || '')}</span>`, s: (x) => String(x.obra_titulo).toLowerCase() },
+    { t: 'Obra', f: (x) => `<b>${esc(x.obra_titulo)}</b><span class="sub">${esc(x.empresa_nombre)} · ${esc(x.cliente_email || '')}</span>${resumenTramos(x.id) ? `<span class="sub">Tramos: ${resumenTramos(x.id)}</span>` : ''}`, s: (x) => String(x.obra_titulo).toLowerCase() },
     { t: 'Importe', f: (x) => `${eurosC(x.importe_cents)}<span class="sub">Comisión ${esc(pctTxt(x.comision_pct))} (${eurosC(x.comision_cents)})</span>`, s: (x) => Number(x.importe_cents) },
     estadoCol,
     { t: 'Fecha', f: (x) => fecha(x.confirmada_at || x.terminada_at || x.pagado_at || x.created_at), s: (x) => x.created_at }
@@ -972,7 +975,19 @@ async function vistaPagos(v) {
   };
   const detalleDisputa = { t: 'Problema reportado', f: (x) => `<span class="sub" style="white-space:normal">${esc(x.disputa_motivo || '')}</span>` };
   const todasCols = t === 'disputa' ? [...cols, detalleDisputa] : cols;
-  $('#lista').innerHTML = htmlTabla('pagos-' + t, [...todasCols, { t: '', cls: 'acc', f: accion }], grupos[t], t === 'aprobar' ? 'No hay pagos esperando tu visto bueno.' : 'No hay pagos en esta lista.');
+  $('#lista').innerHTML = htmlTabla('pagos-' + t, [...todasCols, { t: '', cls: 'acc', f: accion }], grupos[t], t === 'aprobar' ? (tramosPorAprobar.length ? '' : 'No hay pagos esperando tu visto bueno.') : 'No hay pagos en esta lista.');
+  if (t === 'aprobar') {
+    const colsT = [
+      { t: 'Obra', f: (x) => `<b>${esc(x.obra_titulo)}</b><span class="sub">${esc(x.empresa_nombre)} · ${esc(x.cliente_email || '')}</span>`, s: (x) => String(x.obra_titulo).toLowerCase() },
+      { t: 'Tramo', f: (x) => `<b>${esc(x.titulo)}</b><span class="sub">${esc(x.orden)} de ${esc(x.total_tramos)} · ${esc(String(Number(x.pct)).replace('.', ','))} % de la obra</span>`, s: (x) => x.orden },
+      { t: 'Importe', f: (x) => `${eurosC(x.importe_cents)}<span class="sub">Comisión ${esc(pctTxt(x.comision_pct))}</span>`, s: (x) => Number(x.importe_cents) },
+      { t: 'Estado', f: (x) => `<span class="e aviso">Confirmado por el cliente</span>${x.confirmado_automaticamente ? '<span class="sub">Por silencio del cliente</span>' : ''}`, s: (x) => x.estado },
+      { t: '', cls: 'acc', f: (x) => `<button class="btn peq primario" data-act="pag-tramo-liberar" data-p='${esc(JSON.stringify({ id: x.id, titulo: x.obra_titulo, empresa: x.empresa_nombre, tramo: x.titulo, importe: x.importe_cents, pct: x.comision_pct }))}'>Aprobar y liberar tramo</button>` }
+    ];
+    $('#lista-tramos').innerHTML = tramosPorAprobar.length
+      ? `<h3 style="margin:0 0 8px">Tramos por aprobar</h3><div class="panel" style="margin-bottom:14px">${htmlTabla('tramos-aprobar', colsT, tramosPorAprobar, '')}</div>${grupos.aprobar.length ? '<h3 style="margin:0 0 8px">Obras completas por aprobar</h3>' : ''}`
+      : '';
+  }
   actualizarContadorPagos();
 }
 function ventanaAjustesPagos() {
@@ -1032,6 +1047,30 @@ function ventanaLiberarPago(x) {
     catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
   };
 }
+async function moverTramo(tramoId) {
+  const { data, error } = await sb.functions.invoke('stripe-liberar-tramo', { body: { tramo_id: tramoId } });
+  if (error) {
+    let m = error.message;
+    try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e) {}
+    throw new Error(m);
+  }
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+function ventanaLiberarTramo(x) {
+  const com = Math.round(x.importe * (Number(x.pct) || 0) / 100);
+  abrirVentana(`<h2>Aprobar y liberar tramo</h2><p><b>${esc(x.titulo)}</b> · ${esc(x.empresa)}</p>
+    <p>El cliente ha confirmado el tramo «${esc(x.tramo)}». Al aprobar, ese dinero sale hacia el oficio y no se puede deshacer. El resto de la obra sigue retenido.</p>
+    <table class="tabla"><tbody><tr><td>Importe del tramo</td><td>${eurosC(x.importe)}</td></tr>
+    <tr><td>Comisión (${esc(pctTxt(x.pct))})</td><td>− ${eurosC(com)}</td></tr>
+    <tr><td><b>Para el oficio</b></td><td><b>${eurosC(x.importe - com)}</b></td></tr></tbody></table>${pieVentana('Aprobar y liberar', 'primario')}`, 520);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await moverTramo(x.id); cerrarVentana(); aviso('Tramo liberado.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
 function ventanaResolverDisputa(x) {
   abrirVentana(`<h2>Resolver el problema</h2><p><b>${esc(x.titulo)}</b> · ${esc(x.empresa)} · ${eurosC(x.importe)}</p>
     <p class="suave" style="white-space:pre-wrap">${esc(x.motivo || '')}</p>
@@ -1060,6 +1099,7 @@ document.addEventListener('click', (e) => {
     if (d.act === 'pag-ajustes') return ventanaAjustesPagos();
     const x = d.p ? JSON.parse(d.p) : null;
     if (d.act === 'pag-liberar') return ventanaLiberarPago(x);
+    if (d.act === 'pag-tramo-liberar') return ventanaLiberarTramo(x);
     if (d.act === 'pag-resolver') return ventanaResolverDisputa(x);
     if (d.act === 'pag-comision') return ventanaComisionPago(x);
   } catch (err) { aviso(mensajeError(err), true); }
@@ -2103,7 +2143,7 @@ async function vistaReferidos(v) {
   const cuenta = (e) => todas.filter((r) => r.estado === e).length;
   const abiertas = todas.filter((r) => !['venta', 'comision_disponible', 'descartado'].includes(r.estado)).length;
   const lista = todas.filter((r) => !f || (f === 'abiertas' ? !['venta', 'comision_disponible', 'descartado'].includes(r.estado) : r.estado === f));
-  v.innerHTML = `<div class="cab"><div><h1>Referidos</h1><p class="suave">Las recomendaciones de clientes (OH Recomienda). Cada cambio de estado avisa a quien la envió.</p></div></div>
+  v.innerHTML = `<div class="cab"><div><h1>Referidos</h1><p class="suave">Las recomendaciones de clientes (Recomienda). Cada cambio de estado avisa a quien la envió.</p></div></div>
   <div class="resumen"><a href="#/referidos?f=abiertas"><b>${abiertas}</b><span>En curso</span></a><a href="#/referidos?f=venta"><b>${cuenta('venta')}</b><span>Ventas</span></a>
     <a href="#/referidos?f=comision_disponible"><b>${cuenta('comision_disponible')}</b><span>Comisión disponible</span></a><a href="#/referidos?f=descartado"><b>${cuenta('descartado')}</b><span>Descartadas</span></a><a href="#/referidos"><b>${todas.length}</b><span>Total</span></a></div>
   <div class="panel" style="margin-top:16px">${htmlTabla('referidos', [
