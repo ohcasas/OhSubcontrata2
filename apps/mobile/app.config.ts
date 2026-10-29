@@ -40,8 +40,8 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-secure-store',
-    // El SDK de Stripe para iPhone se resuelve con Swift Package Manager y necesita frameworks dinámicos.
-    ['expo-build-properties', { ios: { useFrameworks: 'dynamic' } }],
+    // Stripe en iPhone: se resuelve con CocoaPods en lugar de Swift Package Manager (ver el plugin).
+    './plugins/withStripeSinSPM',
     [
       '@stripe/stripe-react-native',
       { merchantIdentifier: 'merchant.es.tresbe.conecta', enableGooglePay: true },
