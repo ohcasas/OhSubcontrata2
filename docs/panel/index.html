@@ -948,7 +948,28 @@ async function actualizarContadorPagos() {
   try { const tr = await rpc('panel_tramos').catch(() => []); const c = (await rpc('panel_pagos')).filter((x) => x.estado === 'confirmada_cliente' || x.estado === 'en_disputa').length + tr.filter((x) => x.estado === 'confirmado_cliente').length; const n = $('#cnt-pagos'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) {}
 }
 async function vistaPagos(v) {
-  const [todos, aj, propias, tramos] = await Promise.all([rpc('panel_pagos'), rpc('panel_ajustes_pagos'), rpc('panel_comisiones_propias'), rpc('panel_tramos').catch(() => [])]);
+  const [todos, aj, propias, tramos, m] = await Promise.all([rpc('panel_pagos'), rpc('panel_ajustes_pagos'), rpc('panel_comisiones_propias'), rpc('panel_tramos').catch(() => []), rpc('panel_metricas_pagos').catch(() => null)]);
+  const interruptorListo = aj.pagos_activos !== undefined;
+  const bloqueInterruptor = interruptorListo ? `<div class="panel" style="padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div><b>Pagos en la app:</b> <span class="e ${aj.pagos_activos ? 'ok' : 'mal'}">${aj.pagos_activos ? 'Activados' : 'Desactivados'}</span>
+      <div class="suave" style="margin-top:4px;max-width:640px">${aj.pagos_activos ? 'Los clientes pueden pagar las obras y los oficios ven su cuenta de cobro. Los cambios llegan a la app en un par de minutos.' : 'Nadie ve nada de pagos en la app (los administradores sí, para poder probarlos). Los pagos que ya existan se siguen gestionando desde aquí.'}</div></div>
+      <button class="btn ${aj.pagos_activos ? '' : 'primario'}" data-act="pag-interruptor" data-p='${esc(JSON.stringify({ activar: !aj.pagos_activos, comision: aj.comision_general_pct }))}'>${aj.pagos_activos ? 'Desactivar pagos' : 'Activar pagos'}</button></div>`
+    : '<div class="panel" style="padding:14px 18px;margin-bottom:14px"><b>Pagos en la app:</b> <span class="suave">para controlarlos desde aquí, ejecuta primero la migración 0062 en Supabase.</span></div>';
+  const mes = (k) => { const [a, b] = k.split('-'); return ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'][Number(b) - 1] + ' ' + a.slice(2); };
+  const maxMes = m ? Math.max(1, ...m.por_mes.map((x) => Number(x.cobrado_cents))) : 1;
+  const bloqueMetricas = m ? `<div class="resumen" style="margin-bottom:14px">
+      <a href="#/pagos?t=curso"><b>${eurosC(m.cobrado_cents)}</b><span>Cobrado a clientes</span><span style="display:block">${esc(m.n_pagos)} pagos · ${esc(m.n_obras_pagadas)} obras</span></a>
+      <a href="#/pagos?t=curso"><b>${eurosC(m.retenido_cents)}</b><span>Retenido ahora</span><span style="display:block">En Stripe, pendiente de liberar</span></a>
+      <a href="#/pagos?t=cerrados"><b>${eurosC(m.entregado_oficio_cents)}</b><span>Entregado a los oficios</span></a>
+      <a href="#/pagos?t=cerrados"><b>${eurosC(m.comision_cobrada_cents)}</b><span>Comisión cobrada</span><span style="display:block">Prevista en lo retenido: ${eurosC(m.comision_prevista_cents)}</span></a>
+      <a href="#/pagos?t=cerrados"><b>${eurosC(m.reembolsado_cents)}</b><span>Devuelto a clientes</span></a>
+      <a href="#/pagos?t=aprobar"><b>${esc(m.por_aprobar_n)}</b><span>Por aprobar</span><span style="display:block">Esperando tu visto bueno</span></a>
+      <a href="#/pagos?t=disputa"><b>${esc(m.en_disputa_n)}</b><span>En disputa</span></a>
+      <a href="#/pagos?t=curso"><b>${eurosC(m.ticket_medio_cents)}</b><span>Pago medio</span><span style="display:block">Liberación media: ${m.dias_medio_liberacion === null ? '—' : esc(String(m.dias_medio_liberacion).replace('.', ',')) + ' días'}</span></a>
+    </div>
+    <div class="panel" style="padding:14px 18px;margin-bottom:14px"><b>Últimos 6 meses</b><span class="suave"> · cobrado a clientes (barra) y comisión liberada</span>
+      <div style="display:grid;grid-template-columns:64px 1fr 120px 110px;gap:6px 10px;align-items:center;margin-top:10px;font-size:13px">
+      ${m.por_mes.map((x) => `<span class="suave">${esc(mes(x.mes))}</span><div style="background:#E7EBEF;border-radius:4px;height:10px"><div style="width:${Math.round(Number(x.cobrado_cents) / maxMes * 100)}%;background:#0057ff;height:10px;border-radius:4px"></div></div><b style="text-align:right">${eurosC(x.cobrado_cents)}</b><span class="suave" style="text-align:right">${eurosC(x.comision_cents)}</span>`).join('')}</div></div>` : '';
   const tramosPorAprobar = tramos.filter((x) => x.estado === 'confirmado_cliente' && x.pago_estado === 'retenido');
   const resumenTramos = (pagoId) => tramos.filter((x) => x.pago_id === pagoId).map((x) => `${esc(x.titulo)} ${esc((ESTADO_TRAMO[x.estado] || [x.estado])[0].toLowerCase())}`).join(' · ');
   const t = new URLSearchParams((location.hash.split('?')[1]) || '').get('t') || 'aprobar';
@@ -961,6 +982,7 @@ async function vistaPagos(v) {
   const pestanas = [['aprobar', 'Por aprobar'], ['disputa', 'En disputa'], ['curso', 'En curso'], ['cerrados', 'Cerrados']];
   v.innerHTML = `<div class="cab"><div><h1>Pagos</h1><p class="suave">El cliente paga al adjudicar y Stripe retiene el dinero. Se libera al oficio cuando el cliente confirma la obra (o pasa el plazo sin respuesta) y 3B da el visto bueno final.</p></div>
     <button class="btn" data-act="pag-ajustes">Comisión y plazo</button></div>
+    ${bloqueInterruptor}${bloqueMetricas}
     <div class="panel" style="padding:14px 18px;margin-bottom:14px"><b>Comisión general:</b> ${esc(pctTxt(aj.comision_general_pct))} <span class="suave">· Plazo de confirmación del cliente: ${esc(aj.dias_confirmacion)} días</span>
     ${aj.comision_general_pct === null ? '<div class="suave" style="margin-top:6px">Todavía no hay comisión definida: los pagos se liberan sin descontar nada hasta que la fijes.</div>' : ''}</div>
     <div class="panel" style="padding:14px 18px;margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Comisiones propias</b><button class="btn peq" data-act="pag-propia-nueva">Añadir</button></div>
@@ -996,6 +1018,22 @@ async function vistaPagos(v) {
       : '';
   }
   actualizarContadorPagos();
+}
+function ventanaInterruptorPagos(x) {
+  const lista = x.activar
+    ? `<p>Antes de activarlos, comprueba:</p><ul style="margin:6px 0 10px 18px">
+        <li>La app lleva la clave <b>real</b> de Stripe y las claves reales están en Supabase.</li>
+        <li>Está decidido el titular de la cuenta de Stripe, el IVA y las facturas.</li>
+        <li>${x.comision === null || x.comision === undefined ? '<b>Todavía no hay comisión general definida: los pagos se liberarían sin descontar nada.</b>' : 'La comisión general (' + esc(pctTxt(x.comision)) + ') es la que quieres.'}</li>
+        <li>Los términos y la privacidad ya hablan de los pagos.</li></ul><p class="suave">Los clientes y oficios lo verán en la app en un par de minutos.</p>`
+    : '<p>Los clientes y oficios dejarán de ver los pagos en la app. Los pagos que ya existan no se pierden: sigues gestionándolos desde aquí.</p>';
+  abrirVentana(`<h2>${x.activar ? 'Activar los pagos' : 'Desactivar los pagos'}</h2>${lista}${pieVentana(x.activar ? 'Activar pagos' : 'Desactivar pagos', x.activar ? 'primario' : '')}`, 560);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_activar_pagos', { p_activos: x.activar }); cerrarVentana(); aviso(x.activar ? 'Pagos activados.' : 'Pagos desactivados.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
 }
 function ventanaAjustesPagos() {
   rpc('panel_ajustes_pagos').then((aj) => {
@@ -1105,6 +1143,7 @@ document.addEventListener('click', (e) => {
   try {
     if (d.act === 'pag-ajustes') return ventanaAjustesPagos();
     const x = d.p ? JSON.parse(d.p) : null;
+    if (d.act === 'pag-interruptor') return ventanaInterruptorPagos(x);
     if (d.act === 'pag-liberar') return ventanaLiberarPago(x);
     if (d.act === 'pag-tramo-liberar') return ventanaLiberarTramo(x);
     if (d.act === 'pag-resolver') return ventanaResolverDisputa(x);
@@ -1631,7 +1670,7 @@ async function ventanaObra(o) {
     if (!n) { const { data: act } = await sb.from('obras_etiquetas').select('etiqueta_id').eq('obra_id', o.id); (act || []).forEach((f) => etqSel.add(f.etiqueta_id)); }
   } catch (e) { aviso('No se han podido cargar las etiquetas: ' + mensajeError(e), true); }
   const etqInicial = new Set(etqSel);
-  const pintarEtq = () => etqCat.map((e) => `<button type="button" class="btn peq ${etqSel.has(e.id) ? 'primario' : ''}" data-etq="${esc(e.id)}" style="margin:0 6px 6px 0">${esc(e.nombre)}</button>`).join('');
+  const pintarEtq = () => etqCat.map((e) => `<button type="button" class="btn peq ${etqSel.has(e.id) ? 'primario' : ''}" data-etq="${esc(e.id)}" style="margin:0 6px 6px 0;display:inline-flex;align-items:center;gap:6px;padding-left:5px">${ICONOS_ETQ[e.icono] ? `<img src="data:image/png;base64,${ICONOS_ETQ[e.icono]}" alt="" width="26" height="26" style="background:#e8f0ff;border-radius:6px">` : '<span style="width:26px;height:26px;border-radius:6px;background:#e8f0ff;color:#0057ff;text-align:center;line-height:26px;font-weight:700">#</span>'}${esc(e.nombre)}</button>`).join('');
   abrirVentana(`<h2>${n ? 'Nueva obra' : 'Editar datos de la obra'}</h2><p class="suave">${n ? 'Se publica al momento y las empresas podrán enviar ofertas.' : 'Los cambios se ven enseguida en la app.'}</p>
   <div class="form-rejilla">
     <div style="grid-column:1/-1"><label class="campo" for="ob-titulo">Título *</label><input type="text" id="ob-titulo" value="${esc(o.titulo || '')}" /></div>
@@ -1752,14 +1791,36 @@ async function vistaObra(v, id) {
       <div class="panel" style="margin-top:16px"><header><h2>Avances (${avances.length})</h2></header>${htmlTabla('o-avances', [
         { t: 'Fecha', f: (a) => fechaHora(a.created_at) }, { t: 'Avance', cls: 'der', f: (a) => a.porcentaje_avance != null ? a.porcentaje_avance + ' %' : '—' }, { t: 'Descripción', f: (a) => esc(a.descripcion) }
       ], avances, 'La empresa todavía no ha registrado avances.')}</div>`}
+      <div id="obra-pago"></div>
       <div class="panel zona-mal" style="margin-top:16px"><div class="cuerpo" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="suave">Eliminar la obra borra también sus ofertas. No se puede deshacer.</span><button class="btn mal" data-act="ob-eliminar">Eliminar obra</button></div></div>
     </div>
   </div>`;
+  if (!esPeticion) cargarPagoObra(id);
   $('#ob-foto-nueva').addEventListener('change', async (e) => {
     const f = e.target.files[0]; if (!f) return;
     try { aviso('Subiendo la foto…'); const url = await subirFotoObra(f); const { error: er } = await sb.from('obras').update({ imagen_url: url }).eq('id', id); if (er) throw er; aviso('Foto actualizada.'); enrutar(); }
     catch (err) { aviso(mensajeError(err), true); }
   });
+}
+
+async function cargarPagoObra(obraId) {
+  try {
+    const [pagos, tramos] = await Promise.all([rpc('panel_pagos'), rpc('panel_tramos').catch(() => [])]);
+    const caja = $('#obra-pago'); if (!caja) return;
+    const delaObra = pagos.filter((x) => x.obra_id === obraId);
+    const p = delaObra.find((x) => !['fallido', 'cancelado'].includes(x.estado)) || delaObra[0];
+    if (!p) { caja.innerHTML = '<div class="panel" style="margin-top:16px"><header><h2>Pago</h2></header><div class="cuerpo suave">Esta obra todavía no tiene ningún pago iniciado.</div></div>'; return; }
+    const e = ESTADO_PAGO[p.estado] || [p.estado, 'neutro'];
+    const ts = tramos.filter((t) => t.pago_id === p.id);
+    const tab = p.estado === 'confirmada_cliente' || ts.some((t) => t.estado === 'confirmado_cliente') ? 'aprobar' : p.estado === 'en_disputa' ? 'disputa' : ['liberado', 'reembolsado', 'fallido', 'cancelado', 'pendiente'].includes(p.estado) ? 'cerrados' : 'curso';
+    caja.innerHTML = `<div class="panel" style="margin-top:16px"><header><h2>Pago</h2></header><div class="cuerpo">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span class="e ${e[1]}">${esc(e[0])}</span> <b style="margin-left:8px">${eurosC(p.importe_cents)}</b>
+        <span class="suave" style="margin-left:8px">Comisión ${esc(pctTxt(p.comision_pct))}</span></div>
+        <a class="btn peq primario" href="#/pagos?t=${tab}">Gestionar en Pagos</a></div>
+      ${p.estado === 'en_disputa' && p.disputa_motivo ? `<p class="suave" style="white-space:pre-wrap;margin:10px 0 0"><b>Problema reportado:</b> ${esc(p.disputa_motivo)}</p>` : ''}
+      ${ts.length ? `<table class="tabla" style="margin-top:10px"><tbody>${ts.map((t) => { const et = ESTADO_TRAMO[t.estado] || [t.estado, 'neutro']; return `<tr><td><b>${esc(t.titulo)}</b><span class="sub">${esc(String(Number(t.pct)).replace('.', ','))} %</span></td><td>${eurosC(t.importe_cents)}</td><td><span class="e ${et[1]}">${esc(et[0])}</span></td></tr>`; }).join('')}</tbody></table>` : ''}
+    </div></div>`;
+  } catch (err) { /* el pago es un extra: si falla, la obra se ve igual */ }
 }
 
 function ventanaEstadoObra(nuevo) {
@@ -1811,9 +1872,8 @@ function ventanaEliminarObra() {
   $('[data-cerrar]').onclick = cerrarVentana;
   $('#v-ok').onclick = async () => {
     $('#v-ok').disabled = true;
-    const { data, error } = await sb.from('obras').delete().eq('id', o.id).select('id');
-    if (error) { $('#v-ok').disabled = false; return errorVentana(error); }
-    if (!data || !data.length) { $('#v-ok').disabled = false; return errorVentana('No se ha eliminado nada: tu usuario no tiene permiso para borrar esta obra.'); }
+    try { await rpc('panel_eliminar_obra', { p_obra_id: o.id }); }
+    catch (err) { $('#v-ok').disabled = false; return errorVentana(err); }
     cerrarVentana(); aviso('Obra eliminada.'); location.hash = '#/obras';
   };
 }

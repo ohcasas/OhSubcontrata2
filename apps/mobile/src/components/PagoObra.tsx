@@ -8,7 +8,7 @@ import {
   type Pago, type Tramo,
 } from '../services/pagos';
 import { useHojaDePago } from '../services/stripeNativo';
-import { PAGOS_ACTIVOS } from '../constants/funciones';
+import { usePagosActivos } from '../services/pagosActivos';
 
 type Props = {
   obraId: string;
@@ -32,9 +32,10 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
   const [reportando, setReportando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const abrirHoja = useHojaDePago();
+  const pagosActivos = usePagosActivos();
 
   const cargar = useCallback(async () => {
-    if (!PAGOS_ACTIVOS) {
+    if (!pagosActivos) {
       setCargando(false);
       return;
     }
@@ -47,7 +48,7 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
       setError((e as Error).message);
     }
     setCargando(false);
-  }, [obraId]);
+  }, [obraId, pagosActivos]);
 
   useEffect(() => {
     cargar();
@@ -74,7 +75,7 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
       Alert.alert('Pago realizado', 'Tu dinero queda retenido de forma segura y se entrega al oficio según vayas confirmando el trabajo.');
     });
 
-  if (!PAGOS_ACTIVOS || !obraAdjudicada) return null;
+  if (!pagosActivos || !obraAdjudicada) return null;
   if (cargando) return <ActivityIndicator color={colors.action} style={{ marginVertical: 12 }} />;
 
   const porTramos = pago !== null && pago.con_tramos;

@@ -17,7 +17,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { PLANES_PAGO } from '../../services/pagos';
-import { PAGOS_ACTIVOS } from '../../constants/funciones';
+import { usePagosActivos } from '../../services/pagosActivos';
 import { subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
@@ -114,6 +114,7 @@ export default function DetalleObraScreen() {
   const [disponibilidad, setDisponibilidad] = useState('');
   const [motivacion, setMotivacion] = useState('');
   const [clavePlan, setClavePlan] = useState('unico');
+  const pagosActivos = usePagosActivos();
   const [errorOferta, setErrorOferta] = useState<string | null>(null);
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -581,7 +582,7 @@ export default function DetalleObraScreen() {
                 Presupuesto máximo fijado por 3B Conecta: {formatearMoneda(obra.presupuesto, obra.moneda)}
               </Text>
 
-              {PAGOS_ACTIVOS && (
+              {pagosActivos && (
                 <>
               <Text className="text-ink text-xs font-sansSemiBold mb-1">¿Cómo quieres cobrar?</Text>
               <Text className="text-inkMuted text-[13px] mb-2">

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
-import { PAGOS_ACTIVOS } from '../../constants/funciones';
+import { usePagosActivos } from '../../services/pagosActivos';
 import { obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
@@ -49,6 +49,7 @@ type Avance = { id: string; descripcion: string; porcentaje_avance: number | nul
 type Resultado = PromiseLike<{ error: { message: string } | null }>;
 
 export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string; onVolver: () => void }) {
+  const pagosActivos = usePagosActivos();
   const [obra, setObra] = useState<Obra | null>(null);
   const [postulaciones, setPostulaciones] = useState<Postulacion[]>([]);
   const [avances, setAvances] = useState<Avance[]>([]);
@@ -249,7 +250,7 @@ export default function LicitacionDetalle({ obraId, onVolver }: { obraId: string
                     <Text className="text-ink text-base font-sansBold">{formatearMoneda(Number(p.oferta_economica))}</Text>
                   </View>
 
-                  {!PAGOS_ACTIVOS ? null : p.plan_pagos && p.plan_pagos.length > 1 ? (
+                  {!pagosActivos ? null : p.plan_pagos && p.plan_pagos.length > 1 ? (
                     <Text className="text-ink text-xs mt-2">
                       Cobro por tramos: {p.plan_pagos.map((t) => `${t.titulo} ${String(t.pct).replace('.', ',')} %`).join(' · ')}
                     </Text>

@@ -25,7 +25,7 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import MisEspecialidades from '../../components/MisEspecialidades';
 import CuentaCobro from '../../components/CuentaCobro';
-import { PAGOS_ACTIVOS } from '../../constants/funciones';
+import { usePagosActivos } from '../../services/pagosActivos';
 import PerfilPorRol from './PerfilPorRol';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
@@ -116,6 +116,7 @@ const ETIQUETA_PERFIL: Record<string, string> = {
 
 export default function PerfilScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const pagosActivos = usePagosActivos();
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
@@ -563,7 +564,7 @@ export default function PerfilScreen() {
 
         {/* A qué se dedica el oficio: sirve para enseñarle primero las obras de su especialidad */}
         {esSubcontratista && empresaId !== null && <MisEspecialidades empresaId={empresaId} />}
-        {PAGOS_ACTIVOS && esSubcontratista && empresaId !== null && <CuentaCobro empresaId={empresaId} />}
+        {pagosActivos && esSubcontratista && empresaId !== null && <CuentaCobro empresaId={empresaId} />}
 
         {/* Documentación: renovar los documentos de la cuenta y gestionar a los trabajadores */}
         {rol !== null && rol !== 'particular' && rol !== 'tecnico' && (

@@ -11,6 +11,10 @@ Deno.serve(async (req) => {
     const { data: u } = await usuario.auth.getUser();
     if (!u?.user) return json({ error: "No autenticado" }, 401);
 
+    // Los pagos se activan desde el panel (Pagos > Pagos en la app). Los administradores pueden probar siempre.
+    const { data: activos } = await usuario.rpc("pagos_activos");
+    if (activos !== true) return json({ error: "Los pagos todavía no están activados." }, 403);
+
     // Todas las comprobaciones de negocio están en la función SQL (dueño, oferta aceptada, cuenta del oficio…)
     const { data: pago, error } = await usuario.rpc("pago_iniciar", { p_obra_id: obra_id });
     if (error) return json({ error: error.message }, 400);
