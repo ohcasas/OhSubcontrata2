@@ -29,7 +29,12 @@
       }
     }
   },
-  "submit": {
-    "production": {}
+    "submit": {
+    "production": {
+      "ios": {
+        "appleId": "software@ohcasas.es",
+        "ascAppId": "6828339617"
+      }
+    }
   }
 }
