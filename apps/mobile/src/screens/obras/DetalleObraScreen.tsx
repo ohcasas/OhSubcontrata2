@@ -38,6 +38,7 @@ type Obra = {
   m2: number | null;
   presupuesto: number;
   moneda: string;
+  origen: string;
   puntos_bonus: number | null;
   imagen_url: string | null;
   fecha_inicio: string | null;
@@ -138,7 +139,7 @@ export default function DetalleObraScreen() {
     const { data: obraData, error: errorObra } = await supabase
       .from('obras')
       .select(
-        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
+        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, origen, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
       )
       .eq('id', obraId)
       .single();
@@ -436,7 +437,7 @@ export default function DetalleObraScreen() {
           <View className="bg-surface border border-border rounded-2xl p-4 mt-3 flex-row justify-between items-end">
             <View className="flex-1 pr-2">
               <Text className="text-inkMuted text-[12px] uppercase font-sansSemiBold" style={{ letterSpacing: 0.5 }}>
-                Presupuesto licitado
+                {obra.origen === 'particular' ? 'Presupuesto del cliente' : 'Presupuesto de referencia'}
               </Text>
               <Text className="text-ink text-3xl font-sansBold mt-0.5">
                 {formatearMoneda(obra.presupuesto, obra.moneda)}
@@ -579,7 +580,7 @@ export default function DetalleObraScreen() {
               </View>
               {errorOferta !== null && <Text className="text-error text-xs mb-1">{errorOferta}</Text>}
               <Text className="text-inkMuted text-[13px] mb-3">
-                Presupuesto máximo fijado por 3B Conecta: {formatearMoneda(obra.presupuesto, obra.moneda)}
+                {obra.origen === 'particular' ? 'Presupuesto indicado por el cliente' : 'Presupuesto de referencia'}: {formatearMoneda(obra.presupuesto, obra.moneda)}. Tu oferta puede ser distinta.
               </Text>
 
               {pagosActivos && (

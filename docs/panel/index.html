@@ -1675,7 +1675,7 @@ async function ventanaObra(o) {
   <div class="form-rejilla">
     <div style="grid-column:1/-1"><label class="campo" for="ob-titulo">Título *</label><input type="text" id="ob-titulo" value="${esc(o.titulo || '')}" /></div>
     <div><label class="campo" for="ob-ref">Referencia *</label><input type="text" id="ob-ref" value="${esc(o.referencia || '')}" placeholder="LIC-2026-110" ${n ? '' : 'disabled'} /></div>
-    <div><label class="campo" for="ob-pres">Presupuesto (€) *</label><input type="text" inputmode="decimal" id="ob-pres" value="${esc(o.presupuesto ?? '')}" /></div>
+    <div><label class="campo" for="ob-pres">${o.origen === 'particular' ? 'Presupuesto del cliente (€)' : 'Presupuesto indicado por el cliente (€) *'}</label><input type="text" inputmode="decimal" id="ob-pres" value="${esc(o.presupuesto ?? '')}" ${o.origen === 'particular' ? 'disabled' : ''} /><span class="suave peq">${o.origen === 'particular' ? 'Lo escribió el cliente y no se puede cambiar.' : 'Escríbelo tal y como te lo haya dicho el cliente.'}</span></div>
     <div style="grid-column:1/-1"><label class="campo">Etiquetas del trabajo ${n ? '*' : ''} <span class="suave">(máximo 5; los oficios con estas etiquetas ven la obra)</span></label><div id="ob-etq">${pintarEtq() || '<span class="suave">No hay etiquetas activas. Créalas en el apartado Etiquetas.</span>'}</div></div>
     <div><label class="campo" for="ob-esp">Especialidad (texto libre)</label><input type="text" id="ob-esp" value="${esc(o.especialidad_requerida || '')}" placeholder="Si lo dejas vacío se usan las etiquetas" /></div>
     <div><label class="campo" for="ob-ubi">Ubicación</label><input type="text" id="ob-ubi" value="${esc(o.ubicacion || '')}" /></div>
@@ -1733,7 +1733,7 @@ async function ventanaObra(o) {
         cerrarVentana(); aviso('Obra publicada.' + avisoEtq, !!avisoEtq); location.hash = '#/obra/' + data.id;
       } else {
         const { error } = await sb.from('obras').update({
-          titulo, presupuesto: pres, especialidad_requerida: especialidad, ubicacion: $('#ob-ubi').value.trim() || null,
+          titulo, ...(o.origen === 'particular' ? {} : { presupuesto: pres }), especialidad_requerida: especialidad, ubicacion: $('#ob-ubi').value.trim() || null,
           duracion_dias: dur !== null ? Math.round(dur) : null, descripcion: $('#ob-desc').value.trim() || null, requisitos: $('#ob-req').value.trim() || null
         }).eq('id', o.id);
         if (error) throw error;
