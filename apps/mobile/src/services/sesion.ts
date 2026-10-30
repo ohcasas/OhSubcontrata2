@@ -2,6 +2,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { supabase } from './supabase';
+import { olvidarBloqueos } from './moderacion';
 
 /**
  * Cierra la sesión quitando antes el token de push de ESTE móvil para esa cuenta. Sin esto, el
@@ -26,5 +27,6 @@ export async function cerrarSesion(): Promise<void> {
     quitarToken().catch(() => undefined),
     new Promise<void>((resolve) => setTimeout(resolve, 4000)),
   ]);
+  olvidarBloqueos();
   await supabase.auth.signOut();
 }

@@ -127,7 +127,7 @@ export default function RegistroEmpresaScreen() {
       password: valores.password,
       options: {
         data: datosMetadata,
-        emailRedirectTo: 'https://ohcasas.github.io/OhSubcontrata2/confirmado.html',
+        emailRedirectTo: 'https://3bconecta.com/confirmado.html',
       },
     });
     setCargando(false);

@@ -7,6 +7,8 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import BuscadorFiltros from '../../components/BuscadorFiltros';
 import { coincide } from '../../utils/texto';
+import MenuDenuncia from '../../components/MenuDenuncia';
+import { useBloqueados } from '../../services/moderacion';
 
 type Publicacion = {
   id: string;
@@ -45,6 +47,7 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId?: st
   const [errorForm, setErrorForm] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos');
+  const bloqueados = useBloqueados();
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -108,6 +111,7 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId?: st
 
   const visibles = publicaciones.filter(
     (p) =>
+      !bloqueados.has(p.autor_id) &&
       (filtroTipo === 'todos' || p.tipo === filtroTipo) &&
       coincide(busqueda, p.titulo, p.descripcion, p.categoria, p.ubicacion, p.profiles?.nombre_completo),
   );
@@ -292,14 +296,24 @@ export default function TablonScreen({ rol, userId }: { rol: string; userId?: st
               <View key={pub.id} className="bg-surface rounded-xl border border-border p-3.5">
                 <View className="flex-row justify-between items-start">
                   <Text className="text-ink text-sm font-sansBold flex-1 pr-2">{pub.titulo}</Text>
-                  <View
-                    className={`rounded-md px-2 py-0.5 ${pub.tipo === 'aviso' ? 'bg-warningTint' : 'bg-actionTint'}`}
-                  >
-                    <Text
-                      className={`text-[10px] font-sansBold ${pub.tipo === 'aviso' ? 'text-warning' : 'text-action'}`}
+                  <View className="flex-row items-center gap-1">
+                    <View
+                      className={`rounded-md px-2 py-0.5 ${pub.tipo === 'aviso' ? 'bg-warningTint' : 'bg-actionTint'}`}
                     >
-                      {ETIQUETA_TIPO[pub.tipo]}
-                    </Text>
+                      <Text
+                        className={`text-[10px] font-sansBold ${pub.tipo === 'aviso' ? 'text-warning' : 'text-action'}`}
+                      >
+                        {ETIQUETA_TIPO[pub.tipo]}
+                      </Text>
+                    </View>
+                    {pub.autor_id !== userId && (
+                      <MenuDenuncia
+                        tipo="publicacion_tablon"
+                        objetoId={pub.id}
+                        usuarioId={pub.tipo === 'aviso' ? null : pub.autor_id}
+                        nombre={pub.profiles?.nombre_completo ?? null}
+                      />
+                    )}
                   </View>
                 </View>
                 {pub.descripcion !== null && (

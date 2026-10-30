@@ -1,160 +1,347 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, Pressable, Linking } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Linking,
+} from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
-import { obtenerUrlFirmada } from '../../services/storage';
+import { PLANES_PAGO } from '../../services/pagos';
+import { usePagosActivos } from '../../services/pagosActivos';
+import { subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
-import { ETIQUETA_NIVEL, progresoHaciaSiguiente } from '../../constants/niveles';
-import type { NivelPartner } from '../../constants/niveles';
-type TipoDocumento = 'alta_autonomo' | 'seguro_rc' | 'certificado_prl' | 'certificado_aeat_tgss' | 'otro';
-type EstadoDocumento = 'vigente' | 'vencido' | 'pendiente_revision';
+import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
+import { esPrioritaria, textoDuracion } from '../../utils/plazos';
+import { formatearMoneda } from '../../utils/moneda';
+import ChipsEtiquetas from '../../components/ChipsEtiquetas';
+import MenuDenuncia from '../../components/MenuDenuncia';
+import { etiquetasDeObras, type Etiqueta } from '../../services/etiquetas';
 
-type Empresa = {
+type Obra = {
   id: string;
-  nombre: string;
-  cif: string | null;
-  especialidad: string | null;
-  direccion: string | null;
-  homologado: boolean;
-  nivel_partner: NivelPartner;
-  puntos_disponibles: number;
-  puntos_totales: number;
-  rating_medio: number | null;
-  obras_completadas: number;
+  referencia: string;
+  titulo: string;
+  descripcion: string | null;
+  especialidad_requerida: string | null;
+  ubicacion: string | null;
+  modulos: number | null;
+  m2: number | null;
+  presupuesto: number;
+  moneda: string;
+  origen: string;
+  creado_por: string | null;
+  puntos_bonus: number | null;
+  imagen_url: string | null;
+  fecha_inicio: string | null;
+  duracion_dias: number | null;
+  requisitos: string | null;
+  estado: 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada';
+  plazo_cierre: string | null;
 };
 
-type Contacto = {
+const ETIQUETA_ESTADO_OBRA: Record<Obra['estado'], string> = {
+  abierta: 'Licitación abierta',
+  adjudicada: 'Adjudicada',
+  en_curso: 'Obra en curso',
+  cerrada: 'Finalizada',
+  cancelada: 'Cancelada',
+};
+
+const ESTILO_ESTADO_POSTULACION: Record<Postulacion['estado'], { fondo: string; texto: string }> = {
+  enviada: { fondo: colors.actionTint, texto: colors.action },
+  en_revision: { fondo: colors.warningTint, texto: colors.warning },
+  aceptada: { fondo: colors.successTint, texto: colors.success },
+  rechazada: { fondo: colors.errorTint, texto: colors.error },
+};
+
+type Postulacion = {
   id: string;
-  nombre_completo: string;
-  telefono: string | null;
-  email: string | null;
+  oferta_economica: number;
+  motivo_rechazo: string | null;
+  estado: 'enviada' | 'en_revision' | 'aceptada' | 'rechazada';
 };
 
-type Documento = {
+type Avance = {
   id: string;
-  tipo: TipoDocumento;
-  estado: EstadoDocumento;
-  storage_path: string | null;
+  descripcion: string;
+  porcentaje_avance: number | null;
+  created_at: string;
 };
 
-const ORDEN_ESTADOS: EstadoDocumento[] = ['pendiente_revision', 'vigente', 'vencido'];
-
-const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumento, string> = {
-  alta_autonomo: 'Alta Autónomo / Modelo 036',
-  seguro_rc: 'Seguro de Responsabilidad Civil',
-  certificado_prl: 'Certificado PRL',
-  certificado_aeat_tgss: 'Corriente de pagos AEAT y TGSS',
-  otro: 'Otro documento',
+type ArchivoAdjunto = {
+  id: string;
+  nombre_archivo: string;
+  storage_path: string;
 };
 
-const ESTILO_ESTADO_DOCUMENTO: Record<EstadoDocumento, { badge: string; texto: string; etiqueta: string }> = {
-  vigente: { badge: 'bg-successTint', texto: 'text-success', etiqueta: 'Vigente' },
-  vencido: { badge: 'bg-errorTint', texto: 'text-error', etiqueta: 'Vencido' },
-  pendiente_revision: {
-    badge: 'bg-warningTint',
-    texto: 'text-warning',
-    etiqueta: 'Pendiente de revisión',
-  },
+
+function formatearFecha(fechaIso: string | null): string | null {
+  if (fechaIso === null) return null;
+  return new Date(fechaIso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+}
+
+const ETIQUETA_ESTADO: Record<Postulacion['estado'], string> = {
+  enviada: 'Enviada — pendiente de revisión',
+  en_revision: 'En revisión por 3B Conecta',
+  aceptada: 'Aceptada',
+  rechazada: 'No seleccionada esta vez',
 };
 
-export default function GremioDetalleScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GremioDetalle'>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'GremioDetalle'>>();
-  const { empresaId } = route.params;
+export default function DetalleObraScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'DetalleObra'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'DetalleObra'>>();
+  const { obraId } = route.params;
 
-  const [empresa, setEmpresa] = useState<Empresa | null>(null);
-  const [contactos, setContactos] = useState<Contacto[]>([]);
-  const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [obra, setObra] = useState<Obra | null>(null);
+  const [etiquetasObra, setEtiquetasObra] = useState<Etiqueta[]>([]);
+  const [postulacionExistente, setPostulacionExistente] = useState<Postulacion | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [guardada, setGuardada] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
-  const [actualizandoHomologacion, setActualizandoHomologacion] = useState(false);
-  const [abriendoDocumentoId, setAbriendoDocumentoId] = useState<string | null>(null);
-  const [actualizandoEstadoId, setActualizandoEstadoId] = useState<string | null>(null);
+
+  const [ofertaEconomica, setOfertaEconomica] = useState('');
+  const [telefonoContactoPrefijo, setTelefonoContactoPrefijo] = useState('+34');
+  const [telefonoContacto, setTelefonoContacto] = useState('');
+  const [disponibilidad, setDisponibilidad] = useState('');
+  const [motivacion, setMotivacion] = useState('');
+  const [clavePlan, setClavePlan] = useState('unico');
+  const pagosActivos = usePagosActivos();
+  const [errorOferta, setErrorOferta] = useState<string | null>(null);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState<{
+    uri: string;
+    nombre: string;
+    mimeType: string;
+  } | null>(null);
+  const [archivosAdjuntos, setArchivosAdjuntos] = useState<ArchivoAdjunto[]>([]);
+  const [abriendoArchivoId, setAbriendoArchivoId] = useState<string | null>(null);
+
+  const [avances, setAvances] = useState<Avance[]>([]);
+  const [descripcionAvance, setDescripcionAvance] = useState('');
+  const [porcentajeAvance, setPorcentajeAvance] = useState('');
+  const [enviandoAvance, setEnviandoAvance] = useState(false);
+  const [errorAvance, setErrorAvance] = useState<string | null>(null);
 
   const cargarDatos = useCallback(async () => {
     setErrorCarga(null);
 
-    const [{ data: empresaData, error: errorEmpresa }, { data: contactosData }, { data: docsData }] =
-      await Promise.all([
-        supabase
-          .from('empresas_subcontratistas')
-          .select(
-            'id, nombre, cif, especialidad, direccion, homologado, nivel_partner, puntos_disponibles, puntos_totales, rating_medio, obras_completadas',
-          )
-          .eq('id', empresaId)
-          .single(),
-        supabase
-          .from('profiles')
-          .select('id, nombre_completo, telefono, email')
-          .eq('empresa_id', empresaId),
-        supabase.from('documentos_homologacion').select('id, tipo, estado, storage_path').eq('empresa_id', empresaId),
-      ]);
+    const { data: obraData, error: errorObra } = await supabase
+      .from('obras')
+      .select(
+        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, origen, creado_por, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
+      )
+      .eq('id', obraId)
+      .single();
 
-    if (errorEmpresa || !empresaData) {
-      setErrorCarga('No se ha podido cargar esta empresa.');
+    if (errorObra || !obraData) {
+      setErrorCarga('No se ha podido cargar esta obra. Puede que ya no esté disponible.');
       return;
     }
-    setEmpresa(empresaData as Empresa);
-    navigation.setOptions({ title: (empresaData as Empresa).nombre });
-    setContactos((contactosData as Contacto[] | null) ?? []);
-    setDocumentos((docsData as Documento[] | null) ?? []);
-  }, [empresaId, navigation]);
+    setObra(obraData as Obra);
+    navigation.setOptions({ title: (obraData as Obra).titulo });
+    etiquetasDeObras([obraId]).then((m) => setEtiquetasObra(m.get(obraId) ?? []));
+
+    const { data: userData } = await supabase.auth.getUser();
+    const usuarioId = userData.user?.id;
+    if (!usuarioId) return;
+
+    const { data: perfilData } = await supabase
+      .from('profiles')
+      .select('empresa_id')
+      .eq('id', usuarioId)
+      .single();
+    const idEmpresa = (perfilData?.empresa_id as string | null) ?? null;
+    setEmpresaId(idEmpresa);
+
+    if (idEmpresa) {
+      const { data: guardadaData } = await supabase
+        .from('obras_guardadas')
+        .select('obra_id')
+        .eq('obra_id', obraId)
+        .eq('empresa_id', idEmpresa)
+        .maybeSingle();
+      setGuardada(guardadaData !== null);
+
+      const { data: postData } = await supabase
+        .from('postulaciones')
+        .select('id, oferta_economica, estado, motivo_rechazo')
+        .eq('obra_id', obraId)
+        .eq('empresa_id', idEmpresa)
+        .maybeSingle();
+      if (postData) {
+        setPostulacionExistente(postData as Postulacion);
+        const { data: archivosData } = await supabase
+          .from('postulacion_archivos')
+          .select('id, nombre_archivo, storage_path')
+          .eq('postulacion_id', (postData as Postulacion).id);
+        setArchivosAdjuntos((archivosData as ArchivoAdjunto[] | null) ?? []);
+
+        // El progreso solo tiene sentido si esta empresa es la adjudicataria
+        // y la obra ya está en curso — en cualquier otro caso ni se pide.
+        if ((postData as Postulacion).estado === 'aceptada' && (obraData as Obra).estado === 'en_curso') {
+          const { data: avancesData } = await supabase
+            .from('avances_obra')
+            .select('id, descripcion, porcentaje_avance, created_at')
+            .eq('obra_id', obraId)
+            .order('created_at', { ascending: false });
+          setAvances((avancesData as Avance[] | null) ?? []);
+        }
+      }
+    }
+  }, [obraId, navigation]);
 
   useEffect(() => {
     setCargando(true);
     cargarDatos().finally(() => setCargando(false));
   }, [cargarDatos]);
 
-  const handleToggleHomologacion = async () => {
-    if (empresa === null) return;
-    setActualizandoHomologacion(true);
-    const { error } = await supabase
-      .from('empresas_subcontratistas')
-      .update({ homologado: !empresa.homologado })
-      .eq('id', empresa.id);
-    setActualizandoHomologacion(false);
-
-    if (!error) {
-      setEmpresa({ ...empresa, homologado: !empresa.homologado });
+  const validarOferta = (): boolean => {
+    const valor = Number(ofertaEconomica.replace(',', '.'));
+    if (ofertaEconomica.trim() === '' || Number.isNaN(valor) || valor <= 0) {
+      setErrorOferta('Introduce un importe válido.');
+      return false;
     }
+    setErrorOferta(null);
+    return true;
   };
 
-  const handleValorar = async (estrellas: number) => {
-    if (empresa === null) return;
-    setEmpresa({ ...empresa, rating_medio: estrellas });
-    await supabase.from('empresas_subcontratistas').update({ rating_medio: estrellas }).eq('id', empresa.id);
+  const handleElegirArchivo = async () => {
+    const resultado = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+      copyToCacheDirectory: true,
+    });
+    if (resultado.canceled) return;
+    const asset = resultado.assets[0];
+    setArchivoSeleccionado({
+      uri: asset.uri,
+      nombre: asset.name,
+      mimeType: asset.mimeType ?? 'application/octet-stream',
+    });
   };
 
-  const handleAbrirDocumento = async (doc: Documento) => {
-    if (doc.storage_path === null) return;
-    setAbriendoDocumentoId(doc.id);
+  const handleAbrirArchivo = async (archivo: ArchivoAdjunto) => {
+    setAbriendoArchivoId(archivo.id);
     try {
-      const url = await obtenerUrlFirmada('documentos-homologacion', doc.storage_path);
+      const url = await obtenerUrlFirmada('postulacion-archivos', archivo.storage_path);
       await Linking.openURL(url);
     } catch {
-      setErrorCarga('No se ha podido abrir el documento.');
+      setErrorEnvio('No se ha podido abrir el archivo.');
     } finally {
-      setAbriendoDocumentoId(null);
+      setAbriendoArchivoId(null);
     }
   };
 
-  const handleCambiarEstadoDocumento = async (doc: Documento) => {
-    const siguienteEstado =
-      ORDEN_ESTADOS[(ORDEN_ESTADOS.indexOf(doc.estado) + 1) % ORDEN_ESTADOS.length];
-    setActualizandoEstadoId(doc.id);
-    const { error } = await supabase
-      .from('documentos_homologacion')
-      .update({ estado: siguienteEstado })
-      .eq('id', doc.id);
-    setActualizandoEstadoId(null);
+  const toggleGuardada = async () => {
+    if (!empresaId) return;
+    const ya = guardada;
+    setGuardada(!ya);
+    const { error: errorGuardar } = ya
+      ? await supabase.from('obras_guardadas').delete().eq('empresa_id', empresaId).eq('obra_id', obraId)
+      : await supabase.from('obras_guardadas').insert({ empresa_id: empresaId, obra_id: obraId });
+    if (errorGuardar) setGuardada(ya);
+  };
 
-    if (!error) {
-      setDocumentos((prev) => prev.map((d) => (d.id === doc.id ? { ...d, estado: siguienteEstado } : d)));
+  const handleRegistrarAvance = async () => {
+    setErrorAvance(null);
+    if (descripcionAvance.trim().length < 3) {
+      setErrorAvance('Describe brevemente lo que se ha hecho.');
+      return;
     }
+    const porcentajeNum = porcentajeAvance.trim() === '' ? null : Number(porcentajeAvance.replace(',', '.'));
+    if (porcentajeNum !== null && (Number.isNaN(porcentajeNum) || porcentajeNum < 0 || porcentajeNum > 100)) {
+      setErrorAvance('El porcentaje debe ser un número entre 0 y 100 (o dejarse vacío).');
+      return;
+    }
+
+    setEnviandoAvance(true);
+    const { data, error: errorRpc } = await supabase.rpc('registrar_avance_obra', {
+      p_obra_id: obraId,
+      p_descripcion: descripcionAvance.trim(),
+      p_porcentaje_avance: porcentajeNum !== null ? Math.round(porcentajeNum) : null,
+    });
+    setEnviandoAvance(false);
+
+    if (errorRpc || !data) {
+      setErrorAvance(errorRpc?.message ?? 'No se ha podido registrar el avance.');
+      return;
+    }
+    setAvances((prev) => [data as Avance, ...prev]);
+    setDescripcionAvance('');
+    setPorcentajeAvance('');
+  };
+
+  const handleEnviarPostulacion = async () => {
+    setErrorEnvio(null);
+    if (!validarOferta()) return;
+
+    if (!empresaId) {
+      setErrorEnvio(
+        'Tu usuario todavía no está vinculado a ninguna empresa subcontratista, así que no puedes postular. Contacta con 3B Conecta para que lo configuren.',
+      );
+      return;
+    }
+
+    setEnviando(true);
+    const { data, error } = await supabase
+      .from('postulaciones')
+      .insert({
+        obra_id: obraId,
+        empresa_id: empresaId,
+        oferta_economica: Number(ofertaEconomica.replace(',', '.')),
+        telefono_contacto:
+          telefonoContacto.trim() !== '' ? `${telefonoContactoPrefijo} ${telefonoContacto.trim()}` : null,
+        disponibilidad_equipo: disponibilidad.trim() || null,
+        motivacion: motivacion.trim() || null,
+        plan_pagos: PLANES_PAGO.find((pl) => pl.clave === clavePlan)?.tramos ?? null,
+      })
+      .select('id, oferta_economica, estado')
+      .single();
+
+    if (error || !data) {
+      setEnviando(false);
+      setErrorEnvio('No se ha podido enviar la postulación. Inténtalo de nuevo.');
+      return;
+    }
+
+    const nuevaPostulacion = data as Postulacion;
+
+    if (archivoSeleccionado !== null) {
+      try {
+        const storagePath = await subirArchivoPrivado(
+          'postulacion-archivos',
+          empresaId,
+          archivoSeleccionado.uri,
+          archivoSeleccionado.mimeType,
+          archivoSeleccionado.nombre,
+        );
+        await supabase.from('postulacion_archivos').insert({
+          postulacion_id: nuevaPostulacion.id,
+          nombre_archivo: archivoSeleccionado.nombre,
+          storage_path: storagePath,
+          tipo_mime: archivoSeleccionado.mimeType,
+        });
+      } catch {
+        // La postulación ya se envió correctamente; el adjunto es un
+        // extra — si falla, no se bloquea el envío, solo se avisa.
+        setErrorEnvio('La postulación se envió, pero el archivo adjunto no se pudo subir.');
+      }
+    }
+
+    setEnviando(false);
+    setPostulacionExistente(nuevaPostulacion);
   };
 
   if (cargando) {
@@ -165,231 +352,470 @@ export default function GremioDetalleScreen() {
     );
   }
 
-  if (errorCarga !== null || empresa === null) {
+  if (errorCarga !== null || obra === null) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas px-6">
         <Feather name="alert-triangle" size={28} color={colors.inkSubtle} />
         <Text className="text-ink text-base font-sansSemiBold text-center mt-3">
-          {errorCarga ?? 'Empresa no encontrada.'}
+          {errorCarga ?? 'Obra no encontrada.'}
         </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-canvas" contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-      {/* Cabecera */}
-      <View className="bg-surface border border-border rounded-xl p-3.5">
-        <View className="flex-row justify-between items-start">
-          <View className="flex-1 pr-2">
-            <Text className="text-ink text-xl font-sansBold">{empresa.nombre}</Text>
-            {empresa.cif !== null && (
-              <Text className="text-inkMuted text-xs font-mono mt-0.5">{empresa.cif}</Text>
-            )}
-            {empresa.especialidad !== null && (
-              <View className="flex-row items-center gap-1.5 mt-1">
-                <Feather name="tool" size={14} color={colors.inkMuted} />
-                <Text className="text-inkMuted text-sm">{empresa.especialidad}</Text>
-              </View>
-            )}
-            {empresa.direccion !== null && (
-              <View className="flex-row items-center gap-1.5 mt-0.5">
-                <Feather name="map-pin" size={14} color={colors.inkMuted} />
-                <Text className="text-inkMuted text-sm">{empresa.direccion}</Text>
-              </View>
-            )}
-          </View>
-          <View
-            className={`flex-row items-center gap-1 rounded-md px-2 py-1 ${
-              empresa.homologado ? 'bg-successTint' : 'bg-errorTint'
-            }`}
-          >
-            <Feather
-              name={empresa.homologado ? 'check-circle' : 'alert-triangle'}
-              size={13}
-              color={empresa.homologado ? colors.success : colors.error}
-            />
-            <Text className={`text-[13px] font-sansBold ${empresa.homologado ? 'text-success' : 'text-error'}`}>
-              {empresa.homologado ? 'Homologada' : 'Sin homologar'}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Stats */}
-      <View className="flex-row mt-3 gap-2.5">
-        <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
-          <Feather name="award" size={16} color={colors.gold} />
-          <Text className="text-ink text-base font-sansBold mt-1">
-            {ETIQUETA_NIVEL[empresa.nivel_partner]}
-          </Text>
-          <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">
-            {empresa.puntos_totales.toLocaleString('es-ES')} pts
-          </Text>
-          {(() => {
-            const { siguiente, puntosFaltan } = progresoHaciaSiguiente(
-              empresa.nivel_partner,
-              empresa.puntos_totales,
-            );
-            return (
-              <Text className="text-inkMuted text-[12px] text-center mt-1">
-                {siguiente !== null
-                  ? `Faltan ${puntosFaltan.toLocaleString('es-ES')} para ${ETIQUETA_NIVEL[siguiente]}`
-                  : 'Nivel máximo'}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+      <ScrollView className="flex-1 bg-canvas" contentContainerStyle={{ paddingBottom: 16 }}>
+        <View className="px-4 pt-4">
+          {/* Estado de la licitación + referencia */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-1.5 bg-navySurface rounded-full px-3 py-1.5">
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.action }} />
+              <Text className="text-white text-[12px] font-sansSemiBold uppercase" style={{ letterSpacing: 1 }}>
+                {ETIQUETA_ESTADO_OBRA[obra.estado]}
+                {obra.estado === 'abierta' && esPrioritaria(obra.plazo_cierre, Date.now()) ? ' • Urgente' : ''}
               </Text>
-            );
-          })()}
-        </View>
-        <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
-          <Feather name="star" size={16} color={colors.gold} />
-          <Text className="text-ink text-base font-sansBold mt-1">
-            {empresa.rating_medio !== null ? empresa.rating_medio.toFixed(1) : '—'}
-          </Text>
-          <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Valoración</Text>
-        </View>
-        <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
-          <Feather name="home" size={16} color={colors.action} />
-          <Text className="text-ink text-base font-sansBold mt-1">{empresa.obras_completadas}</Text>
-          <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Obras</Text>
-        </View>
-      </View>
-
-      <View className="bg-surface border border-border rounded-xl p-3.5 mt-3">
-        <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
-          Valorar empresa
-        </Text>
-        <View className="flex-row gap-1">
-          {[1, 2, 3, 4, 5].map((estrella) => (
-            <Pressable key={estrella} onPress={() => handleValorar(estrella)} className="p-1">
-              <Feather
-                name="star"
-                size={26}
-                color={colors.gold}
-                style={
-                  empresa.rating_medio !== null && estrella <= Math.round(empresa.rating_medio)
-                    ? undefined
-                    : { opacity: 0.25 }
-                }
-              />
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <Pressable
-        onPress={handleToggleHomologacion}
-        disabled={actualizandoHomologacion}
-        className={`rounded-xl py-3 items-center mt-3 ${
-          empresa.homologado ? 'border border-error' : 'bg-action'
-        }`}
-      >
-        <View className="flex-row items-center gap-2">
-          {actualizandoHomologacion ? (
-            <ActivityIndicator color={empresa.homologado ? colors.error : colors.white} />
-          ) : (
-            <Feather
-              name={empresa.homologado ? 'x-circle' : 'check-circle'}
-              size={16}
-              color={empresa.homologado ? colors.error : colors.white}
-            />
-          )}
-          <Text className={`font-sansBold text-sm ${empresa.homologado ? 'text-error' : 'text-white'}`}>
-            {empresa.homologado ? 'Quitar homologación' : 'Homologar empresa'}
-          </Text>
-        </View>
-      </Pressable>
-
-      {/* Contactos */}
-      <Text className="text-ink text-xs font-sansBold uppercase mt-6 mb-2" style={{ letterSpacing: 1 }}>
-        Personas de contacto
-      </Text>
-      {contactos.length === 0 ? (
-        <Text className="text-inkMuted text-sm">Sin contactos registrados.</Text>
-      ) : (
-        <View className="gap-2">
-          {contactos.map((c) => (
-            <View
-              key={c.id}
-              className="bg-surface rounded-xl border border-border p-3.5"
-            >
-              <Text className="text-ink text-sm font-sansBold">{c.nombre_completo}</Text>
-              <View className="gap-2 mt-2">
-                {c.email !== null && (
-                  <Pressable
-                    onPress={() => Linking.openURL(`mailto:${c.email}`)}
-                    className="flex-row items-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3"
-                  >
-                    <Feather name="mail" size={14} color={colors.action} />
-                    <Text className="text-action text-xs font-sansSemiBold flex-1" numberOfLines={1} ellipsizeMode="tail">
-                      {c.email}
-                    </Text>
-                  </Pressable>
-                )}
-                {c.telefono !== null && (
-                  <Pressable
-                    onPress={() => Linking.openURL(`tel:${c.telefono}`)}
-                    className="flex-row items-center gap-1.5 bg-canvas border border-border rounded-lg py-2 px-3 self-start"
-                  >
-                    <Feather name="phone" size={14} color={colors.action} />
-                    <Text className="text-action text-xs font-sansSemiBold">{c.telefono}</Text>
-                  </Pressable>
-                )}
-              </View>
             </View>
-          ))}
-        </View>
-      )}
+            <View className="flex-row items-center" style={{ gap: 10 }}>
+              <View className="bg-surface border border-border rounded-lg px-2.5 py-1">
+                <Text className="text-inkMuted text-[12px] font-mono">REF: {obra.referencia}</Text>
+              </View>
+              <MenuDenuncia tipo="obra" objetoId={obra.id} usuarioId={obra.creado_por} nombre={null} onBloqueado={() => navigation.goBack()} />
+              {postulacionExistente === null && obra.estado === 'abierta' && empresaId !== null && (
+                <Pressable onPress={toggleGuardada} hitSlop={8} accessibilityLabel="Guardar oferta">
+                  <Ionicons
+                    name={guardada ? 'bookmark' : 'bookmark-outline'}
+                    size={22}
+                    color={guardada ? colors.action : colors.inkMuted}
+                  />
+                </Pressable>
+              )}
+            </View>
+          </View>
 
-      {/* Documentos de homologación */}
-      <Text className="text-ink text-xs font-sansBold uppercase mt-6 mb-2" style={{ letterSpacing: 1 }}>
-        Homologación legal y PRL
-      </Text>
-      {documentos.length > 0 && (
-        <Text className="text-inkMuted text-[13px] mb-2">
-          Toca un documento para abrirlo, o su estado para cambiarlo.
-        </Text>
-      )}
-      {documentos.length === 0 ? (
-        <Text className="text-inkMuted text-sm">Todavía no hay documentos registrados.</Text>
-      ) : (
-        <View className="gap-2">
-          {documentos.map((doc) => {
-            const estilo = ESTILO_ESTADO_DOCUMENTO[doc.estado];
-            return (
+          <Text className="text-ink text-2xl font-sansBold mt-3">{obra.titulo}</Text>
+          {etiquetasObra.length > 0 && (
+            <View className="mt-2.5">
+              <ChipsEtiquetas etiquetas={etiquetasObra} />
+            </View>
+          )}
+          {obra.ubicacion !== null && (
+            <View className="flex-row items-center gap-1.5 mt-1.5">
+              <Feather name="map-pin" size={15} color={colors.action} />
+              <Text className="text-inkMuted text-sm">{obra.ubicacion}</Text>
+            </View>
+          )}
+
+          {/* Imagen con etiquetas encima */}
+          <View className="rounded-2xl overflow-hidden mt-4">
+            <ObraImagePlaceholder imageUrl={obra.imagen_url} height={220} icon="home" rounded="all" />
+            {obra.especialidad_requerida !== null && (
               <View
-                key={doc.id}
-                className="bg-surface rounded-xl border border-border p-3 flex-row justify-between items-center"
+                className="absolute flex-row items-center gap-1 bg-navySurface/85 rounded-lg px-2.5 py-1.5"
+                style={{ top: 12, left: 12, maxWidth: '68%' }}
               >
-                <Pressable
-                  onPress={() => handleAbrirDocumento(doc)}
-                  disabled={doc.storage_path === null || abriendoDocumentoId === doc.id}
-                  className="flex-row items-center flex-1 pr-2 gap-1.5"
+                <Feather name="zap" size={13} color={colors.action} />
+                <Text className="text-white text-[12px] font-sansSemiBold uppercase flex-shrink" numberOfLines={1}>
+                  {obra.especialidad_requerida}
+                </Text>
+              </View>
+            )}
+            {obra.duracion_dias !== null && (
+              <View
+                className="absolute flex-row items-center gap-1 bg-navySurface/85 rounded-lg px-2.5 py-1.5"
+                style={{ top: 12, right: 12 }}
+              >
+                <Feather name="clock" size={13} color={colors.action} />
+                <Text className="text-white text-[12px] font-sansSemiBold">
+                  {textoDuracion(obra.duracion_dias)}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Presupuesto: fila de texto plano bajo la imagen, no un panel de color */}
+          <View className="bg-surface border border-border rounded-2xl p-4 mt-3 flex-row justify-between items-end">
+            <View className="flex-1 pr-2">
+              <Text className="text-inkMuted text-[12px] uppercase font-sansSemiBold" style={{ letterSpacing: 0.5 }}>
+                {obra.origen === 'particular' ? 'Presupuesto del cliente' : 'Presupuesto de referencia'}
+              </Text>
+              <Text className="text-ink text-3xl font-sansBold mt-0.5">
+                {formatearMoneda(obra.presupuesto, obra.moneda)}
+              </Text>
+            </View>
+            {obra.puntos_bonus !== null && obra.puntos_bonus > 0 && (
+              <View className="bg-actionTint rounded-lg px-2.5 py-1.5 flex-row items-center gap-1">
+                <Feather name="award" size={14} color={colors.action} />
+                <Text className="text-action text-xs font-sansBold">+{obra.puntos_bonus} pts Club 3B</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Especificaciones */}
+          <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+            <Text className="text-ink text-xs font-sansBold uppercase mb-3" style={{ letterSpacing: 1 }}>
+              Especificaciones
+            </Text>
+            <View className="flex-row items-center flex-wrap gap-x-4 gap-y-1.5">
+              {obra.especialidad_requerida !== null && (
+                <View className="flex-row items-center gap-1.5">
+                  <Feather name="tool" size={14} color={colors.inkMuted} />
+                  <Text className="text-ink text-xs font-sansMedium">{obra.especialidad_requerida}</Text>
+                </View>
+              )}
+              {obra.modulos !== null && (
+                <View className="flex-row items-center gap-1.5">
+                  <Feather name="layers" size={14} color={colors.inkMuted} />
+                  <Text className="text-ink text-xs font-sansMedium">{obra.modulos} módulos</Text>
+                </View>
+              )}
+              {obra.m2 !== null && (
+                <View className="flex-row items-center gap-1.5">
+                  <Feather name="maximize" size={14} color={colors.inkMuted} />
+                  <Text className="text-ink text-xs font-sansMedium">{obra.m2} m²</Text>
+                </View>
+              )}
+            </View>
+            <View className="flex-row justify-between items-center mt-3 pt-3 border-t border-border">
+              <View className="flex-row items-center gap-1 flex-1 pr-2">
+                <Feather name="calendar" size={13} color={colors.inkMuted} />
+                <Text className="text-inkMuted text-xs">
+                  {formatearFecha(obra.fecha_inicio) !== null
+                    ? `Inicio: ${formatearFecha(obra.fecha_inicio)}`
+                    : 'Fecha por confirmar'}
+                  {obra.duracion_dias !== null ? ` (${obra.duracion_dias} días)` : ''}
+                </Text>
+              </View>
+              {obra.requisitos !== null && (
+                <View className="flex-row items-center gap-1">
+                  <Feather name="shield" size={13} color={colors.inkMuted} />
+                  <Text className="text-inkMuted text-xs">{obra.requisitos}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {obra.descripcion !== null && (
+            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+              <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
+                Alcance de los trabajos
+              </Text>
+              <Text className="text-inkMuted text-sm leading-relaxed">{obra.descripcion}</Text>
+            </View>
+          )}
+
+          {/* Postulación: ya enviada, o formulario */}
+          {postulacionExistente !== null ? (
+            <View className="bg-surface border border-border rounded-2xl p-4 mt-3">
+              <View
+                className="self-start flex-row items-center gap-1.5 rounded-full px-2.5 py-1 mb-2"
+                style={{ backgroundColor: ESTILO_ESTADO_POSTULACION[postulacionExistente.estado].fondo }}
+              >
+                <Feather
+                  name="check-circle"
+                  size={15}
+                  color={ESTILO_ESTADO_POSTULACION[postulacionExistente.estado].texto}
+                />
+                <Text
+                  className="text-xs font-sansBold"
+                  style={{ color: ESTILO_ESTADO_POSTULACION[postulacionExistente.estado].texto }}
                 >
-                  {abriendoDocumentoId === doc.id ? (
-                    <ActivityIndicator size="small" color={colors.inkMuted} />
-                  ) : doc.storage_path !== null ? (
-                    <Feather name="paperclip" size={14} color={colors.action} />
-                  ) : null}
-                  <Text className="text-ink text-sm font-sansSemiBold flex-1">
-                    {ETIQUETA_TIPO_DOCUMENTO[doc.tipo]}
+                  {ETIQUETA_ESTADO[postulacionExistente.estado]}
+                </Text>
+              </View>
+              <Text className="text-ink text-sm font-sansSemiBold">Ya has postulado a esta obra</Text>
+              <Text className="text-inkMuted text-xs mt-2">
+                Tu oferta: {formatearMoneda(postulacionExistente.oferta_economica, obra.moneda)}
+              </Text>
+              {postulacionExistente.estado === 'rechazada' && postulacionExistente.motivo_rechazo !== null && (
+                <Text className="text-inkMuted text-xs mt-1">
+                  Motivo: {postulacionExistente.motivo_rechazo}
+                </Text>
+              )}
+              {archivosAdjuntos.length > 0 && (
+                <View className="mt-3 gap-1.5">
+                  {archivosAdjuntos.map((archivo) => (
+                    <Pressable
+                      key={archivo.id}
+                      onPress={() => handleAbrirArchivo(archivo)}
+                      disabled={abriendoArchivoId === archivo.id}
+                      className="flex-row items-center gap-2 bg-canvas rounded-lg px-3 py-2"
+                    >
+                      {abriendoArchivoId === archivo.id ? (
+                        <ActivityIndicator size="small" color={colors.action} />
+                      ) : (
+                        <Feather name="paperclip" size={15} color={colors.action} />
+                      )}
+                      <Text className="text-ink text-xs font-sansMedium flex-1" numberOfLines={1}>
+                        {archivo.nombre_archivo}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+              <Text className="text-ink text-sm font-sansBold mb-3">Formulario de postulación</Text>
+
+              {errorEnvio !== null && (
+                <View className="bg-errorTint rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
+                  <Feather name="alert-circle" size={17} color={colors.error} />
+                  <Text className="text-error text-sm flex-1">{errorEnvio}</Text>
+                </View>
+              )}
+
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">Tu oferta económica (sin IVA) *</Text>
+              <View className="flex-row items-center bg-surface border border-border rounded-xl px-3 mb-1">
+                <Feather name="dollar-sign" size={15} color={colors.inkSubtle} />
+                <TextInput
+                  value={ofertaEconomica}
+                  onChangeText={setOfertaEconomica}
+                  keyboardType="decimal-pad"
+                  placeholder="0,00 €"
+                  placeholderTextColor={colors.inkSubtle}
+                  editable={!enviando}
+                  className="flex-1 py-3 pl-2 text-ink"
+                />
+              </View>
+              {errorOferta !== null && <Text className="text-error text-xs mb-1">{errorOferta}</Text>}
+              <Text className="text-inkMuted text-[13px] mb-3">
+                {obra.origen === 'particular' ? 'Presupuesto indicado por el cliente' : 'Presupuesto de referencia'}: {formatearMoneda(obra.presupuesto, obra.moneda)}. Tu oferta puede ser distinta.
+              </Text>
+
+              {pagosActivos && (
+                <>
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">¿Cómo quieres cobrar?</Text>
+              <Text className="text-inkMuted text-[13px] mb-2">
+                El cliente paga la obra entera al adjudicar y el dinero queda retenido. Se te libera según este calendario, cuando cada parte está terminada y confirmada.
+              </Text>
+              <View className="mb-3" style={{ gap: 6 }}>
+                {PLANES_PAGO.map((pl) => {
+                  const activo = pl.clave === clavePlan;
+                  const importe = Number(ofertaEconomica.replace(',', '.'));
+                  return (
+                    <Pressable
+                      key={pl.clave}
+                      onPress={() => setClavePlan(pl.clave)}
+                      disabled={enviando}
+                      className={`rounded-xl border px-3 py-2.5 ${activo ? 'border-action bg-actionTint' : 'border-border bg-surface'}`}
+                    >
+                      <View className="flex-row items-center" style={{ gap: 8 }}>
+                        <Feather name={activo ? 'check-circle' : 'circle'} size={15} color={activo ? colors.action : colors.inkSubtle} />
+                        <Text className="text-ink text-xs font-sansSemiBold flex-1">{pl.nombre}</Text>
+                      </View>
+                      {activo && pl.tramos !== null && importe > 0 && (
+                        <Text className="text-inkMuted text-[12px] mt-1 ml-6">
+                          {pl.tramos.map((t) => `${t.titulo}: ${formatearMoneda((importe * t.pct) / 100, obra.moneda)}`).join(' · ')}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+                </>
+              )}
+
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">
+                Teléfono de contacto para esta obra (opcional)
+              </Text>
+              <View className="flex-row gap-2 mb-3">
+                <View className="w-20">
+                  <View className="flex-row items-center bg-surface border border-border rounded-xl px-2">
+                    <TextInput
+                      value={telefonoContactoPrefijo}
+                      onChangeText={setTelefonoContactoPrefijo}
+                      keyboardType="phone-pad"
+                      placeholder="+34"
+                      placeholderTextColor={colors.inkSubtle}
+                      editable={!enviando}
+                      className="py-3 text-ink text-center"
+                    />
+                  </View>
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center bg-surface border border-border rounded-xl px-3">
+                    <Feather name="phone" size={15} color={colors.inkSubtle} />
+                    <TextInput
+                      value={telefonoContacto}
+                      onChangeText={setTelefonoContacto}
+                      keyboardType="phone-pad"
+                      placeholder="Ej: 612 345 678"
+                      placeholderTextColor={colors.inkSubtle}
+                      editable={!enviando}
+                      className="flex-1 py-3 pl-2 text-ink"
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">Disponibilidad del equipo</Text>
+              <View className="flex-row items-center bg-surface border border-border rounded-xl px-3 mb-3">
+                <Feather name="users" size={15} color={colors.inkSubtle} />
+                <TextInput
+                  value={disponibilidad}
+                  onChangeText={setDisponibilidad}
+                  placeholder="Ej: Disponible de lunes a viernes, turnos de mañana y tarde…"
+                  placeholderTextColor={colors.inkSubtle}
+                  editable={!enviando}
+                  className="flex-1 py-3 pl-2 text-ink"
+                />
+              </View>
+
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">
+                ¿Por qué tu equipo es el ideal para esta obra?
+              </Text>
+              <View className="flex-row bg-surface border border-border rounded-xl px-3 mb-1">
+                <Feather name="message-square" size={15} color={colors.inkSubtle} style={{ marginTop: 12 }} />
+                <TextInput
+                  value={motivacion}
+                  onChangeText={setMotivacion}
+                  multiline
+                  numberOfLines={4}
+                  placeholder="Cuéntanos tu experiencia en proyectos similares..."
+                  placeholderTextColor={colors.inkSubtle}
+                  editable={!enviando}
+                  className="flex-1 py-3 pl-2 text-ink"
+                  style={{ minHeight: 90, textAlignVertical: 'top' }}
+                />
+              </View>
+
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">
+                Presupuesto desglosado u otra documentación (opcional)
+              </Text>
+              {archivoSeleccionado !== null ? (
+                <View className="flex-row items-center gap-2 bg-canvas rounded-xl px-3 py-2.5 mb-3">
+                  <Feather name="paperclip" size={15} color={colors.action} />
+                  <Text className="text-ink text-xs font-sansMedium flex-1" numberOfLines={1}>
+                    {archivoSeleccionado.nombre}
+                  </Text>
+                  <Pressable onPress={() => setArchivoSeleccionado(null)} disabled={enviando}>
+                    <Feather name="x" size={15} color={colors.inkMuted} />
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={handleElegirArchivo}
+                  disabled={enviando}
+                  className="flex-row items-center justify-center gap-2 border border-dashed border-border rounded-xl py-3 mb-3"
+                >
+                  <Feather name="paperclip" size={15} color={colors.inkMuted} />
+                  <Text className="text-inkMuted text-xs font-sansMedium">
+                    Adjuntar archivo (PDF, Excel o imagen)
                   </Text>
                 </Pressable>
-                <Pressable
-                  onPress={() => handleCambiarEstadoDocumento(doc)}
-                  disabled={actualizandoEstadoId === doc.id}
-                  className={`rounded-md px-2 py-0.5 ${estilo.badge}`}
-                >
-                  {actualizandoEstadoId === doc.id ? (
-                    <ActivityIndicator size="small" color={colors.inkMuted} />
+              )}
+
+              <Pressable
+                onPress={handleEnviarPostulacion}
+                disabled={enviando}
+                className="bg-action rounded-xl py-3 items-center"
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  {enviando ? (
+                    <ActivityIndicator color={colors.white} />
                   ) : (
-                    <Text className={`text-[12px] font-sansBold ${estilo.texto}`}>{estilo.etiqueta}</Text>
+                    <Feather name="send" size={16} color={colors.white} />
                   )}
+                  <Text className="text-white font-sansBold text-sm">
+                    {enviando ? 'Enviando…' : 'Enviar Propuesta de Subcontratación'}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Progreso de la obra: solo si esta empresa es la adjudicataria y la
+              obra está en curso. Admin ve el mismo historial de solo lectura
+              en su propia pantalla de detalle. */}
+          {postulacionExistente?.estado === 'aceptada' && obra.estado === 'en_curso' && (
+            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+              <Text className="text-ink text-sm font-sansBold mb-3">Progreso de la obra</Text>
+
+              {errorAvance !== null && (
+                <View className="bg-errorTint rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
+                  <Feather name="alert-circle" size={17} color={colors.error} />
+                  <Text className="text-error text-sm flex-1">{errorAvance}</Text>
+                </View>
+              )}
+
+              <Text className="text-ink text-xs font-sansSemiBold mb-1">¿Qué se ha hecho esta semana?</Text>
+              <View className="bg-surface border border-border rounded-xl px-3 mb-2">
+                <TextInput
+                  value={descripcionAvance}
+                  onChangeText={setDescripcionAvance}
+                  multiline
+                  numberOfLines={3}
+                  placeholder="Ej: Cimentación terminada, izado de la primera planta..."
+                  placeholderTextColor={colors.inkSubtle}
+                  editable={!enviandoAvance}
+                  className="py-3 text-ink text-sm"
+                  style={{ minHeight: 70, textAlignVertical: 'top' }}
+                />
+              </View>
+              <View className="flex-row items-center gap-2 mb-3">
+                <View className="flex-1 flex-row items-center bg-surface border border-border rounded-xl px-3">
+                  <Feather name="percent" size={15} color={colors.inkSubtle} />
+                  <TextInput
+                    value={porcentajeAvance}
+                    onChangeText={setPorcentajeAvance}
+                    keyboardType="number-pad"
+                    placeholder="% completado (opcional)"
+                    placeholderTextColor={colors.inkSubtle}
+                    editable={!enviandoAvance}
+                    className="flex-1 py-2.5 pl-2 text-ink text-sm"
+                  />
+                </View>
+                <Pressable
+                  onPress={handleRegistrarAvance}
+                  disabled={enviandoAvance}
+                  className="bg-action rounded-xl px-4 py-2.5 flex-row items-center gap-1.5"
+                >
+                  {enviandoAvance ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Feather name="check" size={15} color={colors.white} />
+                  )}
+                  <Text className="text-white text-xs font-sansBold">Registrar</Text>
                 </Pressable>
               </View>
-            );
-          })}
+
+              {avances.length === 0 ? (
+                <Text className="text-inkMuted text-xs">
+                  Todavía no hay ningún avance registrado en esta obra.
+                </Text>
+              ) : (
+                <View className="gap-2">
+                  {avances.map((avance) => (
+                    <View key={avance.id} className="bg-canvas border border-border rounded-xl p-3">
+                      <View className="flex-row justify-between items-start" style={{ gap: 8 }}>
+                        <Text className="text-ink text-sm flex-1">{avance.descripcion}</Text>
+                        {avance.porcentaje_avance !== null && (
+                          <View className="bg-actionTint rounded-md px-2 py-0.5">
+                            <Text className="text-action text-xs font-sansBold">
+                              {avance.porcentaje_avance}%
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text className="text-inkMuted text-[13px] mt-1">
+                        {new Date(avance.created_at).toLocaleDateString('es-ES', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
         </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

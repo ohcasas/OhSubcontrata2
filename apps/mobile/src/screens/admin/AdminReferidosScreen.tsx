@@ -152,7 +152,7 @@ export default function AdminReferidosScreen({ embebida = false }: { embebida?: 
 
   return (
     <View className="flex-1 bg-canvas">
-      {!embebida && <ScreenHeader title="3B Recomienda" subtitle={`${referencias.length} referencias`} />}
+      {!embebida && <ScreenHeader title="Recomienda" subtitle={`${referencias.length} referencias`} />}
 
       {error !== null && (
         <View className="bg-errorTint mx-4 mt-3 rounded-lg px-3 py-2 flex-row items-center gap-2">

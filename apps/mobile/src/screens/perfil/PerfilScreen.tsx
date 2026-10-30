@@ -25,6 +25,8 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import MisEspecialidades from '../../components/MisEspecialidades';
 import CuentaCobro from '../../components/CuentaCobro';
+import UsuariosBloqueados from '../../components/UsuariosBloqueados';
+import { olvidarBloqueos } from '../../services/moderacion';
 import { usePagosActivos } from '../../services/pagosActivos';
 import PerfilPorRol from './PerfilPorRol';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
@@ -394,6 +396,7 @@ export default function PerfilScreen() {
             }
             // La fila de auth.users ya no existe: cerrar sesión limpia el
             // token local y RootNavigator vuelve solo a Login.
+            olvidarBloqueos();
             await supabase.auth.signOut();
           },
         },
@@ -490,7 +493,7 @@ export default function PerfilScreen() {
             <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
               <Feather name="home" size={16} color={colors.action} />
               <Text className="text-ink text-lg font-sansBold mt-1">{empresa.obras_completadas}</Text>
-              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Obras OH</Text>
+              <Text className="text-inkMuted text-[12px] uppercase font-sansBold mt-0.5">Obras 3B</Text>
             </View>
             <View className="flex-1 bg-surface border border-border rounded-xl p-3 items-center">
               <Feather
@@ -801,6 +804,7 @@ export default function PerfilScreen() {
           )}
         </Pressable>
 
+        <UsuariosBloqueados />
         <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)} className="items-center py-2">
           <Text className="text-inkMuted text-xs underline">Política de privacidad</Text>
         </Pressable>

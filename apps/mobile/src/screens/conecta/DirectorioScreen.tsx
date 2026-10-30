@@ -7,6 +7,8 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import BuscadorFiltros from '../../components/BuscadorFiltros';
 import { coincide } from '../../utils/texto';
+import MenuDenuncia from '../../components/MenuDenuncia';
+import { useBloqueados } from '../../services/moderacion';
 
 type Ficha = {
   profile_id: string;
@@ -46,6 +48,7 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
   const [errorForm, setErrorForm] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
   const [filtroRol, setFiltroRol] = useState('todos');
+  const bloqueados = useBloqueados();
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -111,6 +114,7 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
 
   const visibles = fichas.filter(
     (f) =>
+      !bloqueados.has(f.profile_id) &&
       (filtroRol === 'todos' || f.rol === filtroRol) &&
       coincide(busqueda, f.nombre_mostrar, f.categoria, f.descripcion, f.zona_cobertura),
   );
@@ -318,10 +322,20 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
               <View key={ficha.profile_id} className="bg-surface rounded-xl border border-border p-3.5">
                 <View className="flex-row justify-between items-start">
                   <Text className="text-ink text-sm font-sansBold flex-1 pr-2">{ficha.nombre_mostrar}</Text>
-                  <View className="bg-actionTint rounded-md px-2 py-0.5">
-                    <Text className="text-action text-[10px] font-sansBold">
-                      {ETIQUETA_ROL[ficha.rol] ?? ficha.rol}
-                    </Text>
+                  <View className="flex-row items-center gap-1">
+                    <View className="bg-actionTint rounded-md px-2 py-0.5">
+                      <Text className="text-action text-[10px] font-sansBold">
+                        {ETIQUETA_ROL[ficha.rol] ?? ficha.rol}
+                      </Text>
+                    </View>
+                    {ficha.profile_id !== userId && (
+                      <MenuDenuncia
+                        tipo="ficha_directorio"
+                        objetoId={ficha.profile_id}
+                        usuarioId={ficha.profile_id}
+                        nombre={ficha.nombre_mostrar}
+                      />
+                    )}
                   </View>
                 </View>
                 {ficha.categoria !== null && <Text className="text-inkMuted text-xs mt-1">{ficha.categoria}</Text>}

@@ -17,6 +17,7 @@ import { formatearMoneda } from '../../utils/moneda';
 import BarraEtiquetas from '../../components/BarraEtiquetas';
 import ChipsEtiquetas from '../../components/ChipsEtiquetas';
 import { cargarEtiquetas, etiquetasDeObras, misEtiquetasIds, type Etiqueta } from '../../services/etiquetas';
+import { useBloqueados } from '../../services/moderacion';
 
 const COLOR_NIVEL: Record<NivelPartner, { texto: string; fondo: string }> = {
   bronce: { texto: colors.bronze, fondo: colors.bronzeTint },
@@ -42,6 +43,7 @@ type Obra = {
   duracion_dias: number | null;
   plazo_cierre: string | null;
   requisitos: string | null;
+  creado_por?: string | null;
 };
 
 type ResumenEmpresa = {
@@ -59,6 +61,7 @@ function formatearFecha(fechaIso: string | null): string | null {
 export default function ObrasScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+  const bloqueados = useBloqueados();
 
   const [obras, setObras] = useState<Obra[]>([]);
   const [nombre, setNombre] = useState<string | null>(null);
@@ -119,7 +122,7 @@ export default function ObrasScreen() {
       supabase
         .from('obras')
         .select(
-          'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, plazo_cierre, requisitos',
+          'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, plazo_cierre, requisitos, creado_por',
         )
         .eq('estado', 'abierta')
         .order('created_at', { ascending: false }),
@@ -229,6 +232,7 @@ export default function ObrasScreen() {
   const tieneAlguna = (obraId: string, ids: Set<string>) =>
     (etiquetasObra.get(obraId) ?? []).some((e) => ids.has(e.id));
   const visibles = obras
+    .filter((o) => o.creado_por === undefined || o.creado_por === null || !bloqueados.has(o.creado_por))
     .filter((o) => !soloGuardadas || guardadas.has(o.id))
     .filter((o) => filtroEtiquetas.size === 0 || tieneAlguna(o.id, filtroEtiquetas))
     .filter((o) => !soloMias || tieneAlguna(o.id, misEtiquetas));
@@ -272,7 +276,7 @@ export default function ObrasScreen() {
                   }}
                 />
                 <Text className="text-inkMuted text-xs flex-shrink">
-                  {empresa.homologado ? 'Subcontratista Certificado OH' : 'Homologación pendiente'}
+                  {empresa.homologado ? 'Subcontratista Certificado 3B' : 'Homologación pendiente'}
                 </Text>
               </View>
             )}

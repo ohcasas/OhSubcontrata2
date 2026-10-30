@@ -251,6 +251,7 @@
       <a href="#/metricas" data-nav="metricas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15v3M12 9v9M17 5v13"/></svg>Métricas</a>
       <a href="#/etiquetas" data-nav="etiquetas"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg>Etiquetas <span class="n hidden" id="cnt-etiquetas">0</span></a>
       <a href="#/pagos" data-nav="pagos"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pagos <span class="n hidden" id="cnt-pagos">0</span></a>
+      <a href="#/denuncias" data-nav="denuncias"><svg viewBox="0 0 24 24"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Denuncias <span class="n hidden" id="cnt-denuncias">0</span></a>
       <a href="#/correos" data-nav="correos"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>Correos</a>
       <a href="#/ajustes" data-nav="ajustes"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Requisitos</a>
       <a href="#/equipo" data-nav="equipo"><svg viewBox="0 0 24 24"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5zM9 12l2 2 4-4"/></svg>Equipo</a>
@@ -384,7 +385,7 @@ async function entrarComo(user) {
     const e = $('#error-entrar'); e.textContent = 'Este usuario no tiene acceso a la documentación.'; e.classList.remove('hidden'); return;
   }
   yo = data; $('#usuario').textContent = data.nombre_completo || data.email || '';
-  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); actualizarContadorEtiquetas(); actualizarContadorPagos(); actualizarContadoresRed(); enrutar();
+  mostrarSolo('app'); actualizarContador(); actualizarContadorPeticiones(); actualizarContadorEtiquetas(); actualizarContadorPagos(); actualizarContadorDenuncias(); actualizarContadoresRed(); enrutar();
 }
 $('#form-config').addEventListener('submit', (e) => {
   e.preventDefault(); const u = $('#cfg-url').value.trim(), k = $('#cfg-key').value.trim();
@@ -434,6 +435,7 @@ async function enrutar() {
     else if (ruta === 'equipo') await vistaEquipo(v);
     else if (ruta === 'etiquetas') await vistaEtiquetas(v);
     else if (ruta === 'pagos') await vistaPagos(v);
+    else if (ruta === 'denuncias') await vistaDenuncias(v);
     else if (ruta === 'correos') await vistaCorreos(v);
     else location.hash = '#/panel';
   } catch (e) { v.innerHTML = `<div class="error-caja">${esc(mensajeError(e))}</div>`; }
@@ -933,6 +935,47 @@ document.addEventListener('click', async (e) => {
     if (d.act === 'etq-archivar') { await rpc('panel_archivar_etiqueta', { p_id: d.id, p_archivar: d.arch === '1' }); aviso(d.arch === '1' ? 'Etiqueta archivada.' : 'Etiqueta reactivada.'); recargar(); }
   } catch (err) { aviso(mensajeError(err), true); }
 });
+
+// ───────────────────────── Denuncias ─────────────────────────
+const MOTIVO_DENUNCIA = { ofensivo: 'Ofensivo o abusivo', spam: 'Spam o publicidad', engano: 'Engaño o posible estafa', inapropiado: 'Inapropiado', otro: 'Otro motivo' };
+const TIPO_DENUNCIA = { publicacion_tablon: 'Publicación del tablón', ficha_directorio: 'Ficha del directorio', obra: 'Obra', usuario: 'Usuario' };
+const ESTADO_DENUNCIA = { pendiente: ['Pendiente', 'mal'], revisado: ['Revisada', 'ok'], descartado: ['Descartada', 'neutro'], accion_tomada: ['Contenido eliminado', 'ok'] };
+async function actualizarContadorDenuncias() {
+  try { const c = (await rpc('panel_reportes', { p_estado: 'pendiente' })).length; const n = $('#cnt-denuncias'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) { /* sin migración 0064: el contador no aparece */ }
+}
+async function vistaDenuncias(v) {
+  const todas = await rpc('panel_reportes');
+  const t = new URLSearchParams((location.hash.split('?')[1]) || '').get('t') || 'pendiente';
+  const lista = todas.filter((x) => t === 'pendiente' ? x.estado === 'pendiente' : x.estado !== 'pendiente');
+  const nPend = todas.filter((x) => x.estado === 'pendiente').length;
+  v.innerHTML = `<div class="cab"><div><h1>Denuncias</h1><p class="suave">Contenido que los usuarios han denunciado en la app. Revísalas en menos de 24 horas: descártalas, márcalas como revisadas o elimina el contenido.</p></div></div>
+    <div class="herramientas"><a class="btn ${t === 'pendiente' ? 'primario' : ''}" href="#/denuncias?t=pendiente">Pendientes (${nPend})</a><a class="btn ${t === 'resueltas' ? 'primario' : ''}" href="#/denuncias?t=resueltas">Resueltas (${todas.length - nPend})</a></div>
+    <div class="panel" id="lista"></div>`;
+  const puedeEliminar = (x) => ['publicacion_tablon', 'ficha_directorio'].includes(x.tipo);
+  const enlace = (x) => x.tipo === 'obra' ? `<a href="#/obra/${esc(x.objeto_id)}">Abrir la obra</a>` : x.tipo === 'usuario' || x.tipo === 'ficha_directorio' ? '' : '';
+  $('#lista').innerHTML = htmlTabla('denuncias-' + t, [
+    { t: 'Contenido', f: (x) => `<b>${esc(TIPO_DENUNCIA[x.tipo] || x.tipo)}</b><span class="sub">${esc(x.objeto_titulo || 'Ya no existe')}</span>${enlace(x) ? `<span class="sub">${enlace(x)}</span>` : ''}` },
+    { t: 'Motivo', f: (x) => `${esc(MOTIVO_DENUNCIA[x.motivo] || x.motivo)}${x.detalle ? `<span class="sub" style="white-space:normal">${esc(x.detalle)}</span>` : ''}` },
+    { t: 'Denunciado', f: (x) => `${esc(x.denunciado_nombre || '—')}<span class="sub">${esc(x.denunciado_email || '')}</span>${Number(x.total_pendientes_objeto) > 1 && x.estado === 'pendiente' ? `<span class="sub">${esc(x.total_pendientes_objeto)} denuncias pendientes</span>` : ''}` },
+    { t: 'Denuncia', f: (x) => `${esc(x.reportante_nombre || '—')}<span class="sub">${fechaHora(x.created_at)}</span>`, s: (x) => x.created_at },
+    { t: 'Estado', f: (x) => { const e = ESTADO_DENUNCIA[x.estado] || [x.estado, 'neutro']; return `<span class="e ${e[1]}">${esc(e[0])}</span>${x.nota_admin ? `<span class="sub" style="white-space:normal">${esc(x.nota_admin)}</span>` : ''}`; } },
+    { t: '', cls: 'acc', f: (x) => x.estado !== 'pendiente' ? '' : `<button class="btn peq" data-rep="descartar" data-id="${esc(x.id)}">Descartar</button> <button class="btn peq" data-rep="revisado" data-id="${esc(x.id)}">Revisada</button>${puedeEliminar(x) ? ` <button class="btn peq primario" data-rep="eliminar_contenido" data-id="${esc(x.id)}">Eliminar contenido</button>` : ''}` }
+  ], lista, t === 'pendiente' ? 'No hay denuncias pendientes.' : 'Todavía no has resuelto ninguna denuncia.');
+  $('#lista').onclick = (e) => {
+    const b = e.target.closest('[data-rep]'); if (!b) return;
+    const accion = b.dataset.rep, id = b.dataset.id;
+    const titulos = { descartar: 'Descartar la denuncia', revisado: 'Marcar como revisada', eliminar_contenido: 'Eliminar el contenido' };
+    const ayuda = { descartar: 'La denuncia no procede: el contenido se queda como está.', revisado: 'Has revisado el contenido y no hace falta eliminarlo (o ya has actuado por otra vía).', eliminar_contenido: 'Se borra la publicación o la ficha para todos los usuarios. No se puede deshacer.' };
+    abrirVentana(`<h2>${titulos[accion]}</h2><p class="suave">${ayuda[accion]} Se resuelven también las demás denuncias pendientes sobre lo mismo.</p>
+      <label class="campo" for="d-nota">Nota interna (opcional)</label><input type="text" id="d-nota" maxlength="300" />${pieVentana('Confirmar', accion === 'eliminar_contenido' ? 'mal' : 'primario')}`, 520);
+    $('[data-cerrar]').onclick = cerrarVentana;
+    $('#v-ok').onclick = async () => {
+      $('#v-ok').disabled = true;
+      try { await rpc('panel_resolver_reporte', { p_id: id, p_accion: accion, p_nota: $('#d-nota').value.trim() || null }); cerrarVentana(); aviso('Denuncia resuelta.'); recargar(); actualizarContadorDenuncias(); }
+      catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+    };
+  };
+}
 
 // ───────────────────────── Pagos ─────────────────────────
 const ESTADO_PAGO = {
