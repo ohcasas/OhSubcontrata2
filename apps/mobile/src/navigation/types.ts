@@ -24,6 +24,7 @@ export type AuthStackParamList = {
 };
 
 export type SubcontratistaTabParamList = {
+  Mensajes: undefined;
   Obras: undefined;
   Postulaciones: undefined;
   Tablon: undefined;
@@ -33,21 +34,25 @@ export type SubcontratistaTabParamList = {
 };
 
 export type ReferidorTabParamList = {
+  Mensajes: undefined;
   Recomienda: undefined;
   Perfil: undefined;
 };
 
 export type ParticularTabParamList = {
+  Mensajes: undefined;
   Peticiones: undefined;
   Perfil: undefined;
 };
 
 export type TecnicoTabParamList = {
+  Mensajes: undefined;
   Visitas: undefined;
   Perfil: undefined;
 };
 
 export type AdminTabParamList = {
+  Mensajes: undefined;
   ObrasAdmin: undefined;
   PostulacionesAdmin: undefined;
   Gremios: undefined;
@@ -65,6 +70,8 @@ export type RootStackParamList = {
   AppConecta: undefined;
   CuentaNoActiva: undefined;
   Notificaciones: undefined;
+  Chat: { conversacionId: string; nombre: string; tipo: 'privado' | 'soporte'; otroId: string | null };
+  ChatNuevo: undefined;
   AppAdmin: undefined;
   DetalleObra: { obraId: string };
   GremioDetalle: { empresaId: string };

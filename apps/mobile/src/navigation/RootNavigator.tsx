@@ -28,6 +28,8 @@ import GremioDetalleScreen from '../screens/admin/GremioDetalleScreen';
 import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
 import TarjetaComisionFlotante from '../components/TarjetaComisionFlotante';
 import ConectaTabs from './ConectaTabs';
+import ChatScreen from '../screens/chat/ChatScreen';
+import ChatNuevoScreen from '../screens/chat/ChatNuevoScreen';
 import CuentaNoActivaScreen from '../screens/auth/CuentaNoActivaScreen';
 import MisDocumentosScreen from '../screens/documentos/MisDocumentosScreen';
 import MisTrabajadoresScreen from '../screens/documentos/MisTrabajadoresScreen';
@@ -138,7 +140,7 @@ export default function RootNavigator() {
     );
   }
 
-  // Solo las cuentas verificadas (y el personal de 3B) entran en la app. Esto es la parte
+  // Solo las cuentas verificadas (y el personal de OH) entran en la app. Esto es la parte
   // visible; lo que de verdad lo impide es la base de datos (ver migración 0034).
   const cuentaActiva = rol === 'admin' || rol === 'superadmin' || estadoCuenta === 'verificada';
 
@@ -174,6 +176,12 @@ export default function RootNavigator() {
     <Stack.Screen key="TrabajadorForm" name="TrabajadorForm" component={TrabajadorFormScreen} options={opcionesDocumentos('Datos del trabajador')} />,
   ];
 
+  // Chat: la conversación y el buscador para escribir a alguien (la bandeja es una pestaña de cada perfil).
+  const pantallasChat = [
+    <Stack.Screen key="Chat" name="Chat" component={ChatScreen} options={opcionesDocumentos('Chat')} />,
+    <Stack.Screen key="ChatNuevo" name="ChatNuevo" component={ChatNuevoScreen} options={opcionesDocumentos('Escribir a alguien')} />,
+  ];
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -198,6 +206,7 @@ export default function RootNavigator() {
         ) : rol === 'admin' || rol === 'superadmin' ? (
           <>
             <Stack.Screen name="AppAdmin" component={AdminTabs} />
+            {pantallasChat}
             <Stack.Screen
               name="GremioDetalle"
               component={GremioDetalleScreen}
@@ -225,16 +234,19 @@ export default function RootNavigator() {
           <>
             <Stack.Screen name="AppParticular" component={ParticularTabs} />
             {pantallaNotificaciones}
+            {pantallasChat}
           </>
         ) : rol === 'tecnico' ? (
           <>
             <Stack.Screen name="AppTecnico" component={TecnicoTabs} />
             {pantallaNotificaciones}
+            {pantallasChat}
           </>
         ) : rol === 'referidor' ? (
           <>
             <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
             {pantallaNotificaciones}
+            {pantallasChat}
             {pantallasDocumentos}
           </>
         ) : rol !== null && ROLES_CONECTA.includes(rol) ? (
@@ -243,6 +255,7 @@ export default function RootNavigator() {
               {() => <ConectaTabs rol={rol} userId={session!.user.id} />}
             </Stack.Screen>
             {pantallaNotificaciones}
+            {pantallasChat}
             {pantallasDocumentos}
           </>
         ) : (
@@ -260,6 +273,7 @@ export default function RootNavigator() {
               }}
             />
             {pantallaNotificaciones}
+            {pantallasChat}
             {pantallasDocumentos}
           </>
         )}

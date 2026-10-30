@@ -47,6 +47,18 @@ const config: ExpoConfig = {
       { merchantIdentifier: 'merchant.es.tresbe.conecta', enableGooglePay: true },
     ],
     [
+      'expo-image-picker',
+      {
+        photosPermission: '3B Conecta necesita acceso a tus fotos para que puedas adjuntarlas a obras, a tu perfil y a los mensajes.',
+        cameraPermission: '3B Conecta necesita la cámara para que puedas hacer fotos y enviarlas en el chat.',
+        microphonePermission: false,
+      },
+    ],
+    [
+      'expo-audio',
+      { microphonePermission: '3B Conecta necesita el micrófono para que puedas grabar y enviar mensajes de voz.' },
+    ],
+    [
       'expo-notifications',
       {
         icon: './assets/branding/adaptive-icon-foreground.png',

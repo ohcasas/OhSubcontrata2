@@ -2,6 +2,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { SubcontratistaTabParamList } from './types';
 import { colors } from '../design-system/tokens';
 import AnimatedTabBar from '../components/AnimatedTabBar';
+import MensajesScreen from '../screens/chat/MensajesScreen';
+import { useChatNoLeidos } from '../services/chat';
 import ObrasScreen from '../screens/obras/ObrasScreen';
 import PostulacionesScreen from '../screens/postulaciones/PostulacionesScreen';
 import TablonScreen from '../screens/conecta/TablonScreen';
@@ -12,6 +14,7 @@ import PerfilScreen from '../screens/perfil/PerfilScreen';
 const Tab = createBottomTabNavigator<SubcontratistaTabParamList>();
 
 const ICONOS = {
+  Mensajes: 'message-circle',
   Obras: 'briefcase',
   Postulaciones: 'file-text',
   Tablon: 'clipboard',
@@ -21,11 +24,12 @@ const ICONOS = {
 } as const;
 
 export default function SubcontratistaTabs() {
+  const noLeidos = useChatNoLeidos();
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={(props) => (
-        <AnimatedTabBar {...props} icons={ICONOS} barColor={colors.navySurface} activeColor={colors.action} />
+        <AnimatedTabBar {...props} icons={ICONOS} badges={{ Mensajes: noLeidos }} barColor={colors.navySurface} activeColor={colors.action} />
       )}
     >
       <Tab.Screen name="Obras" component={ObrasScreen} />
@@ -34,6 +38,7 @@ export default function SubcontratistaTabs() {
       <Tab.Screen name="Tablon">{() => <TablonScreen rol="subcontratista" />}</Tab.Screen>
       <Tab.Screen name="Recomienda" component={RecomiendaScreen} />
       <Tab.Screen name="Partner" component={ClubPartnerScreen} />
+      <Tab.Screen name="Mensajes" component={MensajesScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 
-export type TipoContenido = 'publicacion_tablon' | 'ficha_directorio' | 'obra' | 'usuario';
+export type TipoContenido = 'publicacion_tablon' | 'ficha_directorio' | 'obra' | 'usuario' | 'mensaje';
 
 export const MOTIVOS_DENUNCIA: { clave: string; etiqueta: string }[] = [
   { clave: 'ofensivo', etiqueta: 'Contenido ofensivo o abusivo' },

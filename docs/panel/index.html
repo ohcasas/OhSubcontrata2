@@ -938,7 +938,7 @@ document.addEventListener('click', async (e) => {
 
 // ───────────────────────── Denuncias ─────────────────────────
 const MOTIVO_DENUNCIA = { ofensivo: 'Ofensivo o abusivo', spam: 'Spam o publicidad', engano: 'Engaño o posible estafa', inapropiado: 'Inapropiado', otro: 'Otro motivo' };
-const TIPO_DENUNCIA = { publicacion_tablon: 'Publicación del tablón', ficha_directorio: 'Ficha del directorio', obra: 'Obra', usuario: 'Usuario' };
+const TIPO_DENUNCIA = { publicacion_tablon: 'Publicación del tablón', ficha_directorio: 'Ficha del directorio', obra: 'Obra', usuario: 'Usuario', mensaje: 'Mensaje de chat' };
 const ESTADO_DENUNCIA = { pendiente: ['Pendiente', 'mal'], revisado: ['Revisada', 'ok'], descartado: ['Descartada', 'neutro'], accion_tomada: ['Contenido eliminado', 'ok'] };
 async function actualizarContadorDenuncias() {
   try { const c = (await rpc('panel_reportes', { p_estado: 'pendiente' })).length; const n = $('#cnt-denuncias'); n.textContent = c; n.classList.toggle('hidden', !c); } catch (e) { /* sin migración 0064: el contador no aparece */ }
@@ -951,7 +951,7 @@ async function vistaDenuncias(v) {
   v.innerHTML = `<div class="cab"><div><h1>Denuncias</h1><p class="suave">Contenido que los usuarios han denunciado en la app. Revísalas en menos de 24 horas: descártalas, márcalas como revisadas o elimina el contenido.</p></div></div>
     <div class="herramientas"><a class="btn ${t === 'pendiente' ? 'primario' : ''}" href="#/denuncias?t=pendiente">Pendientes (${nPend})</a><a class="btn ${t === 'resueltas' ? 'primario' : ''}" href="#/denuncias?t=resueltas">Resueltas (${todas.length - nPend})</a></div>
     <div class="panel" id="lista"></div>`;
-  const puedeEliminar = (x) => ['publicacion_tablon', 'ficha_directorio'].includes(x.tipo);
+  const puedeEliminar = (x) => ['publicacion_tablon', 'ficha_directorio', 'mensaje'].includes(x.tipo);
   const enlace = (x) => x.tipo === 'obra' ? `<a href="#/obra/${esc(x.objeto_id)}">Abrir la obra</a>` : x.tipo === 'usuario' || x.tipo === 'ficha_directorio' ? '' : '';
   $('#lista').innerHTML = htmlTabla('denuncias-' + t, [
     { t: 'Contenido', f: (x) => `<b>${esc(TIPO_DENUNCIA[x.tipo] || x.tipo)}</b><span class="sub">${esc(x.objeto_titulo || 'Ya no existe')}</span>${enlace(x) ? `<span class="sub">${enlace(x)}</span>` : ''}` },

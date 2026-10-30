@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Pressable, Animated, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -16,6 +16,8 @@ type Props = BottomTabBarProps & {
   activeColor: string;
   /** Color del icono cuando la pestaña está inactiva. */
   inactiveColor?: string;
+  /** Número (p. ej. mensajes sin leer) que se muestra en un globo sobre la pestaña, por nombre de ruta. */
+  badges?: Record<string, number>;
 };
 
 const ALTURA_BARRA = 64;
@@ -42,6 +44,7 @@ export default function AnimatedTabBar({
   barColor,
   activeColor,
   inactiveColor = 'rgba(255,255,255,0.72)',
+  badges,
 }: Props) {
   const insets = useSafeAreaInsets();
   const progresos = useRef(
@@ -92,6 +95,11 @@ export default function AnimatedTabBar({
               <Animated.View style={{ opacity: opacidadIcono }}>
                 <Feather name={nombreIcono} size={22} color={inactiveColor} />
               </Animated.View>
+              {(badges?.[route.name] ?? 0) > 0 && (
+                <View pointerEvents="none" style={styles.globo}>
+                  <Text style={styles.globoTexto}>{(badges?.[route.name] ?? 0) > 99 ? '99+' : badges?.[route.name]}</Text>
+                </View>
+              )}
               <Animated.View
                 pointerEvents="none"
                 style={[
@@ -114,6 +122,20 @@ export default function AnimatedTabBar({
 }
 
 const styles = StyleSheet.create({
+  globo: {
+    position: 'absolute',
+    top: 8,
+    right: '22%',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    backgroundColor: '#B33A3A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+  },
+  globoTexto: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
   barra: {
     flexDirection: 'row',
     height: ALTURA_BARRA,

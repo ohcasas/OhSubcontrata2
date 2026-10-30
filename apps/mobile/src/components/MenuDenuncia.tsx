@@ -22,6 +22,8 @@ export default function MenuDenuncia({
   nombre,
   onBloqueado,
   color,
+  visible,
+  onCerrar,
 }: {
   tipo: TipoContenido;
   objetoId: string;
@@ -30,8 +32,13 @@ export default function MenuDenuncia({
   nombre?: string | null;
   onBloqueado?: () => void;
   color?: string;
+  /** Modo controlado: sin botón «⋯»; se abre y se cierra desde fuera (p. ej. al mantener pulsado un mensaje). */
+  visible?: boolean;
+  onCerrar?: () => void;
 }) {
-  const [abierto, setAbierto] = useState(false);
+  const controlado = visible !== undefined;
+  const [abiertoInterno, setAbierto] = useState(false);
+  const abierto = controlado ? visible : abiertoInterno;
   const [paso, setPaso] = useState<Paso>('menu');
   const [motivo, setMotivo] = useState<string | null>(null);
   const [detalle, setDetalle] = useState('');
@@ -40,6 +47,7 @@ export default function MenuDenuncia({
 
   const cerrar = () => {
     setAbierto(false);
+    onCerrar?.();
     setTimeout(() => {
       setPaso('menu');
       setMotivo(null);
@@ -89,14 +97,16 @@ export default function MenuDenuncia({
 
   return (
     <>
-      <Pressable
-        onPress={() => setAbierto(true)}
-        hitSlop={10}
-        accessibilityLabel="Más opciones: denunciar o bloquear"
-        className="p-1"
-      >
-        <Feather name="more-horizontal" size={20} color={color ?? colors.inkMuted} />
-      </Pressable>
+      {!controlado && (
+        <Pressable
+          onPress={() => setAbierto(true)}
+          hitSlop={10}
+          accessibilityLabel="Más opciones: denunciar o bloquear"
+          className="p-1"
+        >
+          <Feather name="more-horizontal" size={20} color={color ?? colors.inkMuted} />
+        </Pressable>
+      )}
 
       <Modal visible={abierto} transparent animationType="slide" onRequestClose={cerrar}>
         <Pressable onPress={cerrar} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' }} />
