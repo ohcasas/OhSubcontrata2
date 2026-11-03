@@ -1,8 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { colors } from '../design-system/tokens';
 import AnimatedTabBar from '../components/AnimatedTabBar';
-import MensajesScreen from '../screens/chat/MensajesScreen';
-import { useChatNoLeidos } from '../services/chat';
 import TablonScreen from '../screens/conecta/TablonScreen';
 import DirectorioScreen from '../screens/conecta/DirectorioScreen';
 import RecomiendaScreen from '../screens/recomienda/RecomiendaScreen';
@@ -12,7 +10,6 @@ import PerfilScreen from '../screens/perfil/PerfilScreen';
 const Tab = createBottomTabNavigator();
 
 const ICONOS = {
-  Mensajes: 'message-circle',
   Licitaciones: 'briefcase',
   Tablon: 'clipboard',
   Directorio: 'book-open',
@@ -33,12 +30,11 @@ const ICONOS = {
  * la pestaña Recomienda, porque su negocio es traer clientes (2 % de comisión).
  */
 export default function ConectaTabs({ rol, userId }: { rol: string; userId: string }) {
-  const noLeidos = useChatNoLeidos();
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={(props) => (
-        <AnimatedTabBar {...props} icons={ICONOS} badges={{ Mensajes: noLeidos }} barColor={colors.navySurface} activeColor={colors.action} />
+        <AnimatedTabBar {...props} icons={ICONOS} barColor={colors.navySurface} activeColor={colors.action} />
       )}
     >
       {(rol === 'promotor' || rol === 'constructora' || rol === 'administrador') && (
@@ -47,7 +43,6 @@ export default function ConectaTabs({ rol, userId }: { rol: string; userId: stri
       <Tab.Screen name="Tablon">{() => <TablonScreen rol={rol} userId={userId} />}</Tab.Screen>
       <Tab.Screen name="Directorio">{() => <DirectorioScreen rol={rol} userId={userId} />}</Tab.Screen>
       {rol === 'administrador' && <Tab.Screen name="Recomienda" component={RecomiendaScreen} />}
-      <Tab.Screen name="Mensajes" component={MensajesScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>
   );

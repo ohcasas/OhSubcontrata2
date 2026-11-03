@@ -195,11 +195,13 @@ export default function RecomiendaScreen() {
           </Text>
           <Pressable
             onPress={() => setMostrandoForm((v) => !v)}
-            className="bg-white rounded-xl py-3 items-center mt-4 flex-row justify-center gap-2"
+            accessibilityLabel={mostrandoForm ? 'Cancelar' : 'Recomendar a alguien'}
+            className="bg-white rounded-xl mt-4 flex-row items-center justify-center gap-2"
+            style={{ minHeight: 48, paddingHorizontal: 16 }}
           >
             <Feather name={mostrandoForm ? 'x' : 'user-plus'} size={16} color={colors.action} />
             <Text className="text-action font-sansBold text-sm">
-              {mostrandoForm ? 'Cancelar' : 'Conozco a alguien que quiere construir'}
+              {mostrandoForm ? 'Cancelar' : 'Recomendar a alguien'}
             </Text>
           </Pressable>
         </View>

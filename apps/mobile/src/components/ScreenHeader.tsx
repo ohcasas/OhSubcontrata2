@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { View, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BotonMensajes from './BotonMensajes';
 
 type Props = {
   title: string;
@@ -37,7 +38,10 @@ export default function ScreenHeader({ title, subtitle, rightElement }: Props) {
             </Text>
           )}
         </View>
-        {rightElement}
+        <View className="flex-row items-center gap-2">
+          <BotonMensajes />
+          {rightElement}
+        </View>
       </View>
     </View>
   );

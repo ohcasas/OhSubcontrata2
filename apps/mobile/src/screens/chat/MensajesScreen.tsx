@@ -1,9 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 import { View, Text, Pressable, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../../design-system/tokens';
-import ScreenHeader from '../../components/ScreenHeader';
 import { misConversaciones, refrescarNoLeidos, type Conversacion } from '../../services/chat';
 
 function iniciales(nombre: string): string {
@@ -52,24 +51,26 @@ export default function MensajesScreen() {
     }, [cargar]),
   );
 
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => navigation.navigate('ChatNuevo')}
+          accessibilityLabel="Nuevo mensaje"
+          hitSlop={8}
+          className="w-9 h-9 rounded-full bg-action items-center justify-center"
+        >
+          <Feather name="edit-2" size={17} color={colors.white} />
+        </Pressable>
+      ),
+    });
+  }, [navigation]);
+
   const abrir = (c: Conversacion) =>
     navigation.navigate('Chat', { conversacionId: c.id, nombre: c.nombre, tipo: c.tipo, otroId: c.otro_id });
 
   return (
     <View className="flex-1 bg-canvas">
-      <ScreenHeader
-        title="Mensajes"
-        rightElement={
-          <Pressable
-            onPress={() => navigation.navigate('ChatNuevo')}
-            accessibilityLabel="Nuevo mensaje"
-            className="w-11 h-11 rounded-full bg-action items-center justify-center"
-          >
-            <Feather name="edit-2" size={20} color={colors.white} />
-          </Pressable>
-        }
-      />
-
       {cargando ? (
         <ActivityIndicator color={colors.action} className="mt-10" />
       ) : (

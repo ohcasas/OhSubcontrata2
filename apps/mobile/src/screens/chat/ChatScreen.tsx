@@ -228,6 +228,11 @@ export default function ChatScreen() {
     >
       {cargando ? (
         <ActivityIndicator color={colors.action} className="mt-10" />
+      ) : visibles.length === 0 && errorCarga === null ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <Feather name="message-circle" size={32} color={colors.inkSubtle} />
+          <Text className="text-inkMuted text-sm text-center mt-3">Escribe el primer mensaje.</Text>
+        </View>
       ) : (
         <FlatList
           data={visibles}
@@ -237,11 +242,6 @@ export default function ChatScreen() {
           contentContainerStyle={{ padding: 12 }}
           ListHeaderComponent={
             errorCarga !== null ? <Text className="text-error text-sm text-center py-2">{errorCarga}</Text> : null
-          }
-          ListEmptyComponent={
-            <Text className="text-inkMuted text-sm text-center" style={{ transform: [{ scaleY: -1 }], marginTop: 40 }}>
-              Escribe el primer mensaje.
-            </Text>
           }
         />
       )}

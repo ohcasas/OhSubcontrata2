@@ -28,6 +28,7 @@ import GremioDetalleScreen from '../screens/admin/GremioDetalleScreen';
 import AdminObraDetalleScreen from '../screens/admin/AdminObraDetalleScreen';
 import TarjetaComisionFlotante from '../components/TarjetaComisionFlotante';
 import ConectaTabs from './ConectaTabs';
+import MensajesScreen from '../screens/chat/MensajesScreen';
 import ChatScreen from '../screens/chat/ChatScreen';
 import ChatNuevoScreen from '../screens/chat/ChatNuevoScreen';
 import CuentaNoActivaScreen from '../screens/auth/CuentaNoActivaScreen';
@@ -176,8 +177,9 @@ export default function RootNavigator() {
     <Stack.Screen key="TrabajadorForm" name="TrabajadorForm" component={TrabajadorFormScreen} options={opcionesDocumentos('Datos del trabajador')} />,
   ];
 
-  // Chat: la conversación y el buscador para escribir a alguien (la bandeja es una pestaña de cada perfil).
+  // Chat: la conversación y el buscador para escribir a alguien (la bandeja se abre desde el icono de mensajes de la cabecera).
   const pantallasChat = [
+    <Stack.Screen key="Mensajes" name="Mensajes" component={MensajesScreen} options={opcionesDocumentos('Mensajes')} />,
     <Stack.Screen key="Chat" name="Chat" component={ChatScreen} options={opcionesDocumentos('Chat')} />,
     <Stack.Screen key="ChatNuevo" name="ChatNuevo" component={ChatNuevoScreen} options={opcionesDocumentos('Escribir a alguien')} />,
   ];
