@@ -25,6 +25,8 @@ import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { esPrioritaria, textoDuracion } from '../../utils/plazos';
 import { formatearMoneda } from '../../utils/moneda';
 import ChipsEtiquetas from '../../components/ChipsEtiquetas';
+import MenuDenuncia from '../../components/MenuDenuncia';
+import PlanosObra from '../../components/PlanosObra';
 import { etiquetasDeObras, type Etiqueta } from '../../services/etiquetas';
 
 type Obra = {
@@ -39,6 +41,7 @@ type Obra = {
   presupuesto: number;
   moneda: string;
   origen: string;
+  creado_por: string | null;
   puntos_bonus: number | null;
   imagen_url: string | null;
   fecha_inicio: string | null;
@@ -139,7 +142,7 @@ export default function DetalleObraScreen() {
     const { data: obraData, error: errorObra } = await supabase
       .from('obras')
       .select(
-        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, origen, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
+        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, origen, creado_por, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
       )
       .eq('id', obraId)
       .single();
@@ -381,6 +384,7 @@ export default function DetalleObraScreen() {
               <View className="bg-surface border border-border rounded-lg px-2.5 py-1">
                 <Text className="text-inkMuted text-[12px] font-mono">REF: {obra.referencia}</Text>
               </View>
+              <MenuDenuncia tipo="obra" objetoId={obra.id} usuarioId={obra.creado_por} nombre={null} onBloqueado={() => navigation.goBack()} />
               {postulacionExistente === null && obra.estado === 'abierta' && empresaId !== null && (
                 <Pressable onPress={toggleGuardada} hitSlop={8} accessibilityLabel="Guardar oferta">
                   <Ionicons
@@ -446,7 +450,7 @@ export default function DetalleObraScreen() {
             {obra.puntos_bonus !== null && obra.puntos_bonus > 0 && (
               <View className="bg-actionTint rounded-lg px-2.5 py-1.5 flex-row items-center gap-1">
                 <Feather name="award" size={14} color={colors.action} />
-                <Text className="text-action text-xs font-sansBold">+{obra.puntos_bonus} pts Club OH</Text>
+                <Text className="text-action text-xs font-sansBold">+{obra.puntos_bonus} pts Club 3B</Text>
               </View>
             )}
           </View>
@@ -503,6 +507,8 @@ export default function DetalleObraScreen() {
               <Text className="text-inkMuted text-sm leading-relaxed">{obra.descripcion}</Text>
             </View>
           )}
+
+          <PlanosObra obraId={obra.id} />
 
           {/* Postulación: ya enviada, o formulario */}
           {postulacionExistente !== null ? (
