@@ -3,7 +3,7 @@
  * Todo pasa por funciones de la base de datos (chat_*): ahí se comprueban los permisos, los bloqueos y las cuentas
  * verificadas. Las fotos y los audios van a un almacén privado y se muestran con enlaces temporales.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import { subirArchivoPrivado, obtenerUrlFirmada } from './storage';
 
@@ -166,37 +166,65 @@ export function useMensajes(conversacionId: string) {
   return { mensajes, cargando, error, recargar };
 }
 
-// --- Contador de mensajes sin leer (pestaña Mensajes) ---
+// --- Contador de mensajes sin leer (botón de mensajes de la cabecera) ---
+// Hay un botón por pantalla, así que la conexión en tiempo real y el reloj son UNO SOLO y compartido:
+// se abren con el primer botón que aparece y se cierran cuando desaparece el último.
 const oyentesNoLeidos = new Set<(n: number) => void>();
 let noLeidosActual = 0;
+let canalNoLeidos: ReturnType<typeof supabase.channel> | null = null;
+let relojNoLeidos: ReturnType<typeof setInterval> | null = null;
 
 export async function refrescarNoLeidos(): Promise<void> {
-  const { data, error } = await supabase.rpc('chat_no_leidos');
-  if (error) return;
-  noLeidosActual = Number(data ?? 0);
-  for (const f of oyentesNoLeidos) f(noLeidosActual);
+  try {
+    const { data, error } = await supabase.rpc('chat_no_leidos');
+    if (error) return;
+    noLeidosActual = Number(data ?? 0);
+    for (const f of oyentesNoLeidos) f(noLeidosActual);
+  } catch {
+    // sin conexión: se queda el último valor
+  }
+}
+
+function abrirConexionNoLeidos(): void {
+  if (relojNoLeidos === null) relojNoLeidos = setInterval(refrescarNoLeidos, 30000);
+  if (canalNoLeidos === null) {
+    try {
+      // Cada mensaje nuevo que me llega actualiza el contador (la base de datos solo envía los de mis conversaciones)
+      canalNoLeidos = supabase
+        .channel(`chat-no-leidos-${Date.now()}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_mensajes' }, () => {
+          refrescarNoLeidos();
+        })
+        .subscribe();
+    } catch {
+      canalNoLeidos = null; // queda el reloj de respaldo
+    }
+  }
+  refrescarNoLeidos();
+}
+
+function cerrarConexionNoLeidos(): void {
+  if (relojNoLeidos !== null) clearInterval(relojNoLeidos);
+  relojNoLeidos = null;
+  if (canalNoLeidos !== null) {
+    try {
+      supabase.removeChannel(canalNoLeidos);
+    } catch {
+      // nada que hacer
+    }
+    canalNoLeidos = null;
+  }
 }
 
 export function useChatNoLeidos(): number {
   const [n, setN] = useState(noLeidosActual);
-  const montado = useRef(true);
   useEffect(() => {
-    montado.current = true;
     oyentesNoLeidos.add(setN);
-    refrescarNoLeidos();
-    const reloj = setInterval(refrescarNoLeidos, 30000);
-    // Cada mensaje nuevo que me llega actualiza el contador (la base de datos solo envía los de mis conversaciones)
-    const canal = supabase
-      .channel('chat-no-leidos')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_mensajes' }, () => {
-        refrescarNoLeidos();
-      })
-      .subscribe();
+    setN(noLeidosActual);
+    if (oyentesNoLeidos.size === 1) abrirConexionNoLeidos();
     return () => {
-      montado.current = false;
       oyentesNoLeidos.delete(setN);
-      clearInterval(reloj);
-      supabase.removeChannel(canal);
+      if (oyentesNoLeidos.size === 0) cerrarConexionNoLeidos();
     };
   }, []);
   return n;
