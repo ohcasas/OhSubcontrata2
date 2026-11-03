@@ -8,9 +8,11 @@ import {
   Modal,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -56,6 +58,16 @@ export default function ChatScreen() {
   const privado = tipo === 'privado';
 
   const [yo, setYo] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
+  const [tecladoAbierto, setTecladoAbierto] = useState(false);
+  useEffect(() => {
+    const a = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setTecladoAbierto(true));
+    const b = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setTecladoAbierto(false));
+    return () => {
+      a.remove();
+      b.remove();
+    };
+  }, []);
   const { mensajes, cargando, error: errorCarga, recargar } = useMensajes(conversacionId);
   const bloqueados = useBloqueados();
 
@@ -222,7 +234,7 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior="padding"
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       style={{ flex: 1, backgroundColor: colors.canvas }}
     >
@@ -248,7 +260,7 @@ export default function ChatScreen() {
 
       {aviso !== null && <Text className="text-error text-[13px] px-4 pb-1">{aviso}</Text>}
 
-      <View className="bg-surface border-t border-border px-3 pt-2.5" style={{ paddingBottom: Platform.OS === 'ios' ? 28 : 12 }}>
+      <View className="bg-surface border-t border-border px-3 pt-2.5" style={{ paddingBottom: tecladoAbierto ? 10 : Platform.OS === 'ios' ? 28 : Math.max(12, insets.bottom + 8) }}>
         {grabando ? (
           <View className="flex-row items-center gap-3">
             <Pressable
