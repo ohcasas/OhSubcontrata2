@@ -251,6 +251,8 @@
       <a href="#/metricas" data-nav="metricas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15v3M12 9v9M17 5v13"/></svg>Métricas</a>
       <a href="#/etiquetas" data-nav="etiquetas"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg>Etiquetas <span class="n hidden" id="cnt-etiquetas">0</span></a>
       <a href="#/pagos" data-nav="pagos"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pagos <span class="n hidden" id="cnt-pagos">0</span></a>
+      <a href="#/precios" data-nav="precios"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</a>
+      <a href="#/reglas" data-nav="reglas"><svg viewBox="0 0 24 24"><path d="M19 5 5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>Reglas de comisión</a>
       <a href="#/denuncias" data-nav="denuncias"><svg viewBox="0 0 24 24"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Denuncias <span class="n hidden" id="cnt-denuncias">0</span></a>
       <a href="#/correos" data-nav="correos"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>Correos</a>
       <a href="#/ajustes" data-nav="ajustes"><svg viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>Requisitos</a>
@@ -435,6 +437,8 @@ async function enrutar() {
     else if (ruta === 'equipo') await vistaEquipo(v);
     else if (ruta === 'etiquetas') await vistaEtiquetas(v);
     else if (ruta === 'pagos') await vistaPagos(v);
+    else if (ruta === 'precios') await vistaPrecios(v);
+    else if (ruta === 'reglas') await vistaReglas(v);
     else if (ruta === 'denuncias') await vistaDenuncias(v);
     else if (ruta === 'correos') await vistaCorreos(v);
     else location.hash = '#/panel';
@@ -1726,6 +1730,7 @@ async function vistaObras(v) {
   if (q.get('nueva')) { history.replaceState(null, '', '#/obras'); ventanaObra(null); }
 }
 
+const zonaObra = () => ({ comunidad_autonoma: $('#ob-com').value.trim() || null, provincia: $('#ob-prov').value.trim() || null, municipio: $('#ob-mun').value.trim() || null, tipo_obra: $('#ob-tipo').value.trim() || null, complejidad: $('#ob-compl').value || null });
 async function ventanaObra(o) {
   const n = !o; o = o || {};
   let etqCat = [], etqSel = new Set();
@@ -1743,6 +1748,11 @@ async function ventanaObra(o) {
     <div style="grid-column:1/-1"><label class="campo">Etiquetas del trabajo ${n ? '*' : ''} <span class="suave">(máximo 5; los oficios con estas etiquetas ven la obra)</span></label><div id="ob-etq">${pintarEtq() || '<span class="suave">No hay etiquetas activas. Créalas en el apartado Etiquetas.</span>'}</div></div>
     <div><label class="campo" for="ob-esp">Especialidad (texto libre)</label><input type="text" id="ob-esp" value="${esc(o.especialidad_requerida || '')}" placeholder="Si lo dejas vacío se usan las etiquetas" /></div>
     <div><label class="campo" for="ob-ubi">Ubicación</label><input type="text" id="ob-ubi" value="${esc(o.ubicacion || '')}" /></div>
+    <div><label class="campo" for="ob-com">Comunidad autónoma</label><input type="text" id="ob-com" value="${esc(o.comunidad_autonoma || '')}" placeholder="Para calcular precio y comisión" /></div>
+    <div><label class="campo" for="ob-prov">Provincia</label><input type="text" id="ob-prov" value="${esc(o.provincia || '')}" /></div>
+    <div><label class="campo" for="ob-mun">Municipio</label><input type="text" id="ob-mun" value="${esc(o.municipio || '')}" /></div>
+    <div><label class="campo" for="ob-tipo">Tipo de obra</label><input type="text" id="ob-tipo" value="${esc(o.tipo_obra || '')}" placeholder="Reforma, obra nueva…" /></div>
+    <div><label class="campo" for="ob-compl">Complejidad</label><select id="ob-compl"><option value="">Sin indicar</option>${['baja','media','alta'].map((k) => `<option value="${k}" ${o.complejidad === k ? 'selected' : ''}>${k[0].toUpperCase() + k.slice(1)}</option>`).join('')}</select></div>
     ${n ? `<div><label class="campo" for="ob-pts">Puntos bonus</label><input type="text" inputmode="numeric" id="ob-pts" placeholder="0" /></div>` : ''}
     <div><label class="campo" for="ob-dur">Duración (días)</label><input type="text" inputmode="numeric" id="ob-dur" value="${esc(o.duracion_dias ?? '')}" /></div>
     ${n ? `<div><label class="campo" for="ob-plazo">Plazo para ofertas (días desde hoy)</label><input type="text" inputmode="decimal" id="ob-plazo" placeholder="Vacío = sin plazo" /></div>` : ''}
@@ -1788,7 +1798,7 @@ async function ventanaObra(o) {
         if (f) { try { imagen = await subirFotoObra(f); } catch (e) { throw new Error('No se ha podido subir la foto. Puedes publicar sin foto y añadirla después.'); } }
         const { data, error } = await sb.from('obras').insert({
           titulo, referencia: $('#ob-ref').value.trim(), presupuesto: pres, moneda: 'EUR', especialidad_requerida: especialidad,
-          ubicacion: $('#ob-ubi').value.trim() || null, puntos_bonus: pts !== null ? Math.round(pts) : 0, duracion_dias: dur !== null ? Math.round(dur) : null,
+          ubicacion: $('#ob-ubi').value.trim() || null, ...zonaObra(), puntos_bonus: pts !== null ? Math.round(pts) : 0, duracion_dias: dur !== null ? Math.round(dur) : null,
           plazo_cierre: plazo !== null && plazo > 0 ? new Date(Date.now() + plazo * 86400000).toISOString() : null,
           descripcion: $('#ob-desc').value.trim() || null, requisitos: $('#ob-req').value.trim() || null, estado: 'abierta', imagen_url: imagen
         }).select('id').single();
@@ -1800,7 +1810,7 @@ async function ventanaObra(o) {
         cerrarVentana(); aviso('Obra publicada.' + avisoEtq, !!avisoEtq); location.hash = '#/obra/' + data.id;
       } else {
         const { error } = await sb.from('obras').update({
-          titulo, ...(o.origen === 'particular' ? {} : { presupuesto: pres }), especialidad_requerida: especialidad, ubicacion: $('#ob-ubi').value.trim() || null,
+          titulo, ...(o.origen === 'particular' ? {} : { presupuesto: pres }), especialidad_requerida: especialidad, ubicacion: $('#ob-ubi').value.trim() || null, ...zonaObra(),
           duracion_dias: dur !== null ? Math.round(dur) : null, descripcion: $('#ob-desc').value.trim() || null, requisitos: $('#ob-req').value.trim() || null
         }).eq('id', o.id);
         if (error) throw error;
@@ -1833,7 +1843,7 @@ async function vistaObra(v, id) {
     <div>
       <div class="panel" style="overflow:hidden"><div class="obra-foto">${fotoObra(o)}</div>
         <div class="cuerpo"><button class="btn peq" data-act="ob-foto">${o.imagen_url ? 'Cambiar foto' : 'Añadir foto'}</button><input type="file" id="ob-foto-nueva" accept="image/*" class="hidden" />
-        ${listaDatos([['Presupuesto', euros(o.presupuesto, o.moneda)], ['Ubicación', esc(o.ubicacion || '—')], ['Especialidad', esc(o.especialidad_requerida || '—')],
+        ${listaDatos([['Presupuesto', euros(o.presupuesto, o.moneda)], ['Ubicación', esc(o.ubicacion || '—')], ['Zona (comunidad / provincia / municipio)', esc([o.comunidad_autonoma, o.provincia, o.municipio].filter(Boolean).join(' / ') || '—')], ['Tipo de obra y complejidad', esc([o.tipo_obra, o.complejidad].filter(Boolean).join(' · ') || '—')], ['Especialidad', esc(o.especialidad_requerida || '—')],
           ['Duración', o.duracion_dias ? o.duracion_dias + ' días' : '—'], ['Puntos bonus', esc(o.puntos_bonus ?? 0)], ['Plazo de ofertas', esc(o.plazo_cierre ? fechaHora(o.plazo_cierre) : 'Sin plazo')],
           ['Empresa adjudicataria', empAdj ? esc(empAdj.nombre) : '—'], ['Creada', fecha(o.created_at)]])}</div></div>
       <div class="panel" style="margin-top:16px"><header><h2>Planos (PDF)</h2></header><div class="cuerpo">
@@ -1863,11 +1873,13 @@ async function vistaObra(v, id) {
       <div class="panel" style="margin-top:16px"><header><h2>Avances (${avances.length})</h2></header>${htmlTabla('o-avances', [
         { t: 'Fecha', f: (a) => fechaHora(a.created_at) }, { t: 'Avance', cls: 'der', f: (a) => a.porcentaje_avance != null ? a.porcentaje_avance + ' %' : '—' }, { t: 'Descripción', f: (a) => esc(a.descripcion) }
       ], avances, 'La empresa todavía no ha registrado avances.')}</div>`}
+      <div class="panel" id="precio-obra" style="margin-top:16px"></div>
       <div id="obra-pago"></div>
       <div class="panel zona-mal" style="margin-top:16px"><div class="cuerpo" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="suave">Eliminar la obra borra también sus ofertas. No se puede deshacer.</span><button class="btn mal" data-act="ob-eliminar">Eliminar obra</button></div></div>
     </div>
   </div>`;
   if (!esPeticion) cargarPagoObra(id);
+  pintarPrecioObra(o);
   $('#ob-plano-nuevo').addEventListener('change', async (e) => {
     const archivos = Array.from(e.target.files || []); e.target.value = ''; if (!archivos.length) return;
     try {
@@ -2378,6 +2390,524 @@ document.addEventListener('click', (ev) => {
 
 
 arrancar();
+
+// ───────────────────────── Precios, comisiones y simulador (migración 0070) ─────────────────────────
+const n2 = (n, d = 2) => (n == null || n === '' || isNaN(Number(n))) ? '—' : Number(n).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+const e2 = (n) => (n == null || n === '' || isNaN(Number(n))) ? '—' : n2(n) + ' €';
+const eC = (c) => (c == null || c === '' || isNaN(Number(c))) ? '—' : n2(Number(c) / 100) + ' €';
+const BADGE_CONF = { alta: ['ok', 'Confianza alta'], media: ['aviso', 'Confianza media'], baja: ['mal', 'Confianza baja'], sin_datos: ['mal', 'Sin datos suficientes'] };
+const AMBITOS = { nacional: 'Nacional', comunidad: 'Comunidad autónoma', provincia: 'Provincia', municipio: 'Municipio' };
+const AMB_REGLA = { excepcion: 'Excepción (una obra)', municipio: 'Municipio', provincia: 'Provincia', comunidad: 'Comunidad autónoma', nacional: 'Nacional' };
+const MODELOS = { profesional: 'Comisión descontada al profesional', comprador: 'Comisión a cargo del comprador', compartida: 'Comisión compartida' };
+const TIPOS_FUENTE = { cype: 'CYPE', bedec: 'BEDEC / ITeC', autonomica: 'Base autonómica', provincial: 'Base provincial', profesional: 'Presupuesto o factura real', comercial: 'Tarifa de proveedor', propia: 'Dato propio' };
+const REGIONES = { eee: 'Tarjeta del EEE', uk: 'Tarjeta del Reino Unido', internacional: 'Tarjeta internacional' };
+const optSel = (obj, sel) => Object.entries(obj).map(([k, v]) => `<option value="${esc(k)}" ${k === sel ? 'selected' : ''}>${esc(v)}</option>`).join('');
+const valNum = (id) => { const t = ($(id).value || '').trim().replace(',', '.'); if (t === '') return null; const x = Number(t); return isNaN(x) ? NaN : x; };
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+const pestanasHash = () => new URLSearchParams((location.hash.split('?')[1]) || '').get('t');
+function pestanasHtml(base, lista, actual) { return `<div class="herramientas">${lista.map(([k, n]) => `<a class="btn ${k === actual ? 'primario' : ''}" href="#/${base}?t=${k}">${esc(n)}</a>`).join('')}</div>`; }
+
+// ── Resultado de un cálculo (se usa en la calculadora, en la obra y en la ventana de justificación) ──
+function htmlResultadoCalculo(r) {
+  if (!r) return '';
+  const t = r.totales || {}; const cf = BADGE_CONF[r.confianza] || BADGE_CONF.sin_datos; const c = r.comision || {}; const s = r.simulacion;
+  const partidas = (r.partidas || []).map((p) => p.estado !== 'ok'
+    ? `<tr><td data-l="Partida"><b>${esc(p.descripcion)}</b></td><td colspan="5"><span class="e mal">Necesita revisión manual</span><span class="sub">${esc(p.motivo || '')}</span></td></tr>`
+    : `<tr><td data-l="Partida"><b>${esc(p.descripcion)}</b><span class="sub">${n2(p.medicion, 2)} ${esc(p.unidad)}</span></td>
+        <td class="der" data-l="Unitario (bajo – ref. – alto)">${n2(p.precio_unitario_bajo)} – <b>${n2(p.precio_unitario_referencia)}</b> – ${n2(p.precio_unitario_alto)}</td>
+        <td class="der" data-l="Importe bajo">${e2(p.importe_bajo)}</td><td class="der" data-l="Importe de referencia"><b>${e2(p.importe_referencia)}</b></td><td class="der" data-l="Importe alto">${e2(p.importe_alto)}</td>
+        <td data-l="Confianza"><span class="e ${(BADGE_CONF[p.confianza] || [])[0] || 'neutro'}">${esc(((BADGE_CONF[p.confianza] || [])[1]) || '')}</span><span class="sub">${p.num_referencias} referencia(s), ${p.num_fuentes} fuente(s)</span></td></tr>
+      <tr><td colspan="6" style="padding-top:0"><details><summary class="suave peq">Ver referencias usadas</summary>${(p.referencias || []).map((x) => `<div class="peq" style="padding:4px 0;border-top:1px solid var(--linea2)">
+        <b>${esc(x.fuente)}</b> · ${esc(x.partida)} · ${n2(x.precio)} €/${esc(x.unidad)} · ${esc(x.ambito)} · precio de ${fecha(x.fecha_precio)}, consultado el ${fecha(x.fecha_consulta)} · parecido ${n2(x.similitud)}
+        ${x.alcance ? ` · ${esc(x.alcance)}` : ''}${x.enlace ? ` · <a href="${esc(x.enlace)}" target="_blank" rel="noopener">enlace</a>` : ''}</div>`).join('')}${p.aviso ? `<p class="suave peq">${esc(p.aviso)}</p>` : ''}</details></td></tr>`).join('');
+  const adic = (t.costes_adicionales_detalle || []).map((x) => `<div class="peq">${esc(x.concepto)}: ${e2(x.importe)}</div>`).join('');
+  const sim = s ? `<div class="sec-panel"><h3>Reparto estimado (simulación, no se cobra nada)</h3>${listaDatos([
+      ['Modelo', esc(MODELOS[s.modelo] || s.modelo)], ['Paga el cliente', eC(s.cliente_paga_cents)], ['Recibe la subcontrata', eC(s.subcontrata_recibe_cents)],
+      ['Comisión de 3B Conecta', `${eC(s.comision_cents)} (${n2(s.comision_pct)} %)`],
+      ['Coste estimado de Stripe', `${eC(s.stripe && s.stripe.coste_cents)}${s.stripe && s.stripe.aviso ? `<span class="sub aviso-t">${esc(s.stripe.aviso)}</span>` : ''}`],
+      ['Ingreso neto estimado de 3B', `<b>${eC(s.ingreso_neto_3b_cents)}</b>`]])}</div>` : '';
+  return `<div class="panel" style="margin-top:14px"><div class="sec-panel">
+      <p class="suave peq" style="margin:0 0 10px">${esc(r.aviso_legal || '')}</p>
+      <div class="acciones-rapidas" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+        <div class="peq"><span class="suave">Precio bajo</span><br><b style="font-size:18px">${e2(t.precio_bajo)}</b></div>
+        <div class="peq"><span class="suave">Precio de referencia</span><br><b style="font-size:18px">${e2(t.precio_referencia)}</b></div>
+        <div class="peq"><span class="suave">Precio alto</span><br><b style="font-size:18px">${e2(t.precio_alto)}</b></div>
+        <div class="peq"><span class="suave">Precio recomendado</span><br><b style="font-size:20px">${t.precio_recomendado != null ? e2(t.precio_recomendado) : '<span class="mal-t">Sin calcular</span>'}</b></div>
+      </div>
+      <p style="margin:10px 0 0"><span class="e ${cf[0]}">${esc(cf[1])}</span> ${r.revision_manual ? '<span class="e mal">Hay partidas que necesitan revisión manual: el total es parcial</span>' : ''} <span class="suave peq">Calculado el ${fecha(r.fecha_calculo)}</span></p></div>
+    <div class="tabla-caja"><table class="t"><thead><tr><th>Partida</th><th class="der">Unitario (bajo – ref. – alto)</th><th class="der">Bajo</th><th class="der">Referencia</th><th class="der">Alto</th><th>Confianza</th></tr></thead><tbody>${partidas}</tbody></table></div>
+    <div class="sec-panel"><h3>Desglose</h3>${listaDatos([
+      ['Materiales (según referencias con desglose)', e2(t.materiales)], ['Mano de obra (según referencias con desglose)', e2(t.mano_obra)],
+      ['Partidas sin desglose en la fuente', e2(t.sin_desglose)], ['Costes adicionales', `${e2(t.costes_adicionales)}${adic}`]])}</div>
+    <div class="sec-panel"><h3>Comisión recomendada de 3B Conecta</h3>
+      ${c.pct != null ? `<p style="margin:0 0 6px"><b style="font-size:18px">${n2(c.pct)} %</b> ${c.provisional ? '<span class="e aviso">Recomendación provisional</span>' : ''}</p>` : `<p class="mal-t" style="margin:0 0 6px">Sin comisión recomendada.</p>`}
+      ${c.aviso ? `<p class="aviso-t peq" style="margin:0 0 6px">${esc(c.aviso)}</p>` : ''}<ul class="peq" style="margin:0;padding-left:18px">${(c.motivos || []).map((m) => `<li>${esc(m)}</li>`).join('')}</ul></div>
+    ${sim}
+    <div class="sec-panel"><h3>Justificación del cálculo</h3><ul class="peq" style="margin:0;padding-left:18px">${(r.justificacion || []).map((m) => `<li>${esc(m)}</li>`).join('')}</ul></div></div>`;
+}
+
+// ── Formulario de cálculo ──
+const filaPartida = (p = {}) => `<div class="cl-fila" style="display:grid;grid-template-columns:minmax(0,3fr) 80px 110px 32px;gap:6px;margin-bottom:6px">
+  <input type="text" list="cl-partidas" data-c="descripcion" placeholder="Partida (ej. Tabique de pladur simple)" value="${esc(p.descripcion || '')}" aria-label="Partida" />
+  <input type="text" data-c="unidad" placeholder="m2" value="${esc(p.unidad || '')}" aria-label="Unidad" />
+  <input type="text" inputmode="decimal" data-c="medicion" placeholder="Medición" value="${esc(p.medicion ?? '')}" aria-label="Medición" />
+  <button type="button" class="btn peq" data-act="cl-quitar" aria-label="Quitar partida">×</button></div>`;
+const filaAjuste = (a = {}) => `<div class="cl-fila" style="display:grid;grid-template-columns:minmax(0,3fr) 90px 32px;gap:6px;margin-bottom:6px">
+  <input type="text" data-c="motivo" placeholder="Motivo del ajuste (obligatorio)" value="${esc(a.motivo || '')}" aria-label="Motivo" />
+  <input type="text" inputmode="decimal" data-c="pct" placeholder="± %" value="${esc(a.pct ?? '')}" aria-label="Porcentaje" />
+  <button type="button" class="btn peq" data-act="cl-quitar" aria-label="Quitar ajuste">×</button></div>`;
+const filaAdic = (a = {}) => `<div class="cl-fila" style="display:grid;grid-template-columns:minmax(0,3fr) 110px 32px;gap:6px;margin-bottom:6px">
+  <input type="text" data-c="concepto" placeholder="Concepto (ej. Transporte)" value="${esc(a.concepto || '')}" aria-label="Concepto" />
+  <input type="text" inputmode="decimal" data-c="importe" placeholder="Importe €" value="${esc(a.importe ?? '')}" aria-label="Importe" />
+  <button type="button" class="btn peq" data-act="cl-quitar" aria-label="Quitar coste">×</button></div>`;
+function htmlFormCalculo(e = {}) {
+  const partidas = (e.partidas && e.partidas.length) ? e.partidas : [{}];
+  return `<datalist id="cl-partidas">${(window.__partidasConocidas || []).map((x) => `<option value="${esc(x)}"></option>`).join('')}</datalist>
+  <div class="form-rejilla">
+    <div><label class="campo" for="cl-com">Comunidad autónoma</label><input type="text" id="cl-com" value="${esc(e.comunidad || '')}" placeholder="Castilla-La Mancha" /></div>
+    <div><label class="campo" for="cl-prov">Provincia</label><input type="text" id="cl-prov" value="${esc(e.provincia || '')}" placeholder="Albacete" /></div>
+    <div><label class="campo" for="cl-mun">Municipio</label><input type="text" id="cl-mun" value="${esc(e.municipio || '')}" placeholder="Albacete" /></div>
+    <div><label class="campo" for="cl-esp">Especialidad</label><input type="text" id="cl-esp" value="${esc(e.especialidad || '')}" placeholder="Pladuristas" /></div>
+    <div><label class="campo" for="cl-tipo">Tipo de obra</label><input type="text" id="cl-tipo" value="${esc(e.tipo_obra || '')}" placeholder="Reforma, obra nueva…" /></div>
+    <div><label class="campo" for="cl-compl">Complejidad</label><select id="cl-compl">${optSel({ baja: 'Baja', media: 'Media', alta: 'Alta' }, e.complejidad || 'media')}</select></div>
+    <div><label class="campo" for="cl-modelo">Modelo de comisión (simulación)</label><select id="cl-modelo">${optSel(MODELOS, e.modelo_comision || 'profesional')}</select></div>
+    <div><label class="campo" for="cl-region">Tarjeta (para el coste de Stripe)</label><select id="cl-region">${optSel(REGIONES, e.region_tarjeta || 'eee')}</select></div>
+  </div>
+  <label class="campo">Partidas y mediciones *</label><div id="cl-partidas-fil">${partidas.map(filaPartida).join('')}</div>
+  <button type="button" class="btn peq" data-act="cl-add-partida">+ Añadir partida</button>
+  <label class="campo">Ajustes justificados <span class="suave">(opcional: cada uno necesita su motivo)</span></label><div id="cl-ajustes-fil">${(e.ajustes || []).map(filaAjuste).join('')}</div>
+  <button type="button" class="btn peq" data-act="cl-add-ajuste">+ Añadir ajuste</button>
+  <label class="campo">Costes adicionales <span class="suave">(opcional)</span></label><div id="cl-adic-fil">${(e.costes_adicionales || []).map(filaAdic).join('')}</div>
+  <button type="button" class="btn peq" data-act="cl-add-adic">+ Añadir coste</button>
+  <div style="margin-top:16px"><button type="button" class="btn primario" data-act="cl-calcular">CALCULAR PRECIO AUTOMÁTICAMENTE</button></div>
+  <div id="cl-error" class="error-caja hidden" style="margin-top:10px"></div><div id="cl-res"></div>`;
+}
+function leerEntradaCalculo() {
+  const filas = (id) => [...document.querySelectorAll(`#${id} .cl-fila`)].map((f) => Object.fromEntries([...f.querySelectorAll('[data-c]')].map((i) => [i.dataset.c, i.value.trim()])));
+  const num = (x, c) => { if (x === '' || x == null) return null; const v = Number(String(x).replace(',', '.')); if (isNaN(v)) throw new Error(`«${x}» no es un número válido (${c}).`); return v; };
+  const partidas = filas('cl-partidas-fil').filter((p) => p.descripcion || p.unidad || p.medicion).map((p) => ({ descripcion: p.descripcion, unidad: p.unidad, medicion: num(p.medicion, 'medición') }));
+  if (!partidas.length) throw new Error('Añade al menos una partida con su unidad y su medición.');
+  return {
+    comunidad: $('#cl-com').value.trim(), provincia: $('#cl-prov').value.trim(), municipio: $('#cl-mun').value.trim(), especialidad: $('#cl-esp').value.trim(),
+    tipo_obra: $('#cl-tipo').value.trim(), complejidad: $('#cl-compl').value, modelo_comision: $('#cl-modelo').value, region_tarjeta: $('#cl-region').value, partidas,
+    ajustes: filas('cl-ajustes-fil').filter((a) => a.motivo || a.pct).map((a) => ({ motivo: a.motivo, pct: num(a.pct, 'ajuste') ?? 0 })),
+    costes_adicionales: filas('cl-adic-fil').filter((a) => a.concepto || a.importe).map((a) => ({ concepto: a.concepto, importe: num(a.importe, 'importe') ?? 0 }))
+  };
+}
+async function cargarPartidasConocidas() {
+  try { const { data } = await sb.from('precios_referencia').select('partida').eq('vigente', true).limit(2000); window.__partidasConocidas = [...new Set((data || []).map((x) => x.partida))].sort(); } catch (e) { window.__partidasConocidas = []; }
+}
+async function ventanaCalculo(obra, entradaPrevia) {
+  await cargarPartidasConocidas();
+  const e = entradaPrevia || { comunidad: obra.comunidad_autonoma, provincia: obra.provincia, municipio: obra.municipio, especialidad: obra.especialidad_requerida, tipo_obra: obra.tipo_obra, complejidad: obra.complejidad };
+  window.__calc = { obra, res: null, entrada: null };
+  abrirVentana(`<h2>Calcular el precio de «${esc(obra.titulo)}»</h2><p class="suave">Se calcula con las referencias de precios que hay cargadas. Es un precio orientativo: no se publica ni se cobra nada hasta que lo apruebes.</p>${htmlFormCalculo(e)}
+    <div class="pie-modal"><button class="btn" data-cerrar>Cerrar</button><button class="btn primario" data-act="cl-guardar" id="cl-guardar" disabled>Guardar como borrador</button></div>`, 980);
+  $('[data-cerrar]').onclick = cerrarVentana;
+}
+
+// ── Panel «Precio recomendado» dentro de la obra ──
+async function pintarPrecioObra(o) {
+  const cont = $('#precio-obra'); if (!cont) return;
+  const { data, error } = await sb.from('calculos_precio').select('*').eq('obra_id', o.id).in('estado', ['borrador', 'aprobado']).order('created_at', { ascending: false });
+  if (error) { cont.innerHTML = `<header><h2>Precio recomendado</h2></header><div class="cuerpo"><p class="mal-t peq">No se ha podido cargar: ${esc(mensajeError(error))}</p></div>`; return; }
+  window.__calculosObra = data || [];
+  const fila = (c) => `<div class="sec-panel"><p style="margin:0 0 6px"><span class="e ${c.estado === 'aprobado' ? 'ok' : 'aviso'}">${c.estado === 'aprobado' ? 'Aprobado' : 'Borrador pendiente de aprobar'}</span> <span class="suave peq">versión ${c.version} · ${fecha(c.created_at)}</span></p>
+    ${listaDatos([['Precio recomendado', c.precio_recomendado != null ? e2(c.precio_recomendado) : '<span class="mal-t">Sin calcular (revisión manual)</span>'], c.estado === 'aprobado' ? ['Precio aprobado', `<b>${e2(c.precio_final)}</b>${c.motivo_modificacion ? `<span class="sub">${esc(c.motivo_modificacion)}</span>` : ''}`] : ['Rango', `${e2(c.precio_bajo)} – ${e2(c.precio_alto)}`], ['Comisión recomendada', c.comision_pct != null ? n2(c.comision_pct) + ' %' : '—'], ['Confianza', esc((BADGE_CONF[c.confianza] || [])[1] || '—')]])}
+    <div style="margin-top:8px"><button class="btn peq" data-act="pc-ver" data-id="${esc(c.id)}">Ver cálculo y justificación</button>
+    ${c.estado === 'borrador' ? ` <button class="btn peq primario" data-act="pc-aprobar" data-id="${esc(c.id)}">Aprobar</button> <button class="btn peq" data-act="pc-recalcular" data-id="${esc(c.id)}">Recalcular</button> <button class="btn peq mal" data-act="pc-descartar" data-id="${esc(c.id)}">Descartar</button>` : ` <button class="btn peq" data-act="pc-recalcular" data-id="${esc(c.id)}">Calcular de nuevo</button>`}</div></div>`;
+  cont.innerHTML = `<header><h2>Precio recomendado</h2></header>
+    ${(data || []).length ? (data || []).map(fila).join('') : '<div class="sec-panel"><p class="suave" style="margin:0">Todavía no se ha calculado el precio de esta obra.</p></div>'}
+    <div class="sec-panel"><button class="btn primario" data-act="pc-calcular">CALCULAR PRECIO AUTOMÁTICAMENTE</button>
+    <p class="suave peq" style="margin:8px 0 0">El presupuesto indicado por el cliente no se toca. Esto es una recomendación de 3B que queda guardada con su justificación.</p></div>`;
+}
+
+// ── Acciones de calculadora, obra y precios ──
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act^="cl-"], [data-act^="pc-"]'); if (!b) return;
+  const d = b.dataset; const errCl = (x) => { const c = $('#cl-error'); if (c) { c.textContent = mensajeError(x); c.classList.remove('hidden'); } else aviso(mensajeError(x), true); };
+  try {
+    if (d.act === 'cl-quitar') return b.closest('.cl-fila').remove();
+    if (d.act === 'cl-add-partida') return $('#cl-partidas-fil').insertAdjacentHTML('beforeend', filaPartida());
+    if (d.act === 'cl-add-ajuste') return $('#cl-ajustes-fil').insertAdjacentHTML('beforeend', filaAjuste());
+    if (d.act === 'cl-add-adic') return $('#cl-adic-fil').insertAdjacentHTML('beforeend', filaAdic());
+    if (d.act === 'cl-calcular') {
+      const c = $('#cl-error'); if (c) c.classList.add('hidden');
+      let entrada; try { entrada = leerEntradaCalculo(); } catch (x) { return errCl(x); }
+      b.disabled = true; b.textContent = 'Calculando…';
+      try {
+        const res = await rpc('panel_calcular_precio', { p_entrada: entrada });
+        window.__calc = Object.assign(window.__calc || {}, { res, entrada });
+        $('#cl-res').innerHTML = htmlResultadoCalculo(res);
+        const g = $('#cl-guardar'); if (g) g.disabled = false;
+      } catch (x) { errCl(x); }
+      b.disabled = false; b.textContent = 'CALCULAR PRECIO AUTOMÁTICAMENTE'; return;
+    }
+    if (d.act === 'cl-guardar') {
+      const k = window.__calc; if (!k || !k.obra || !k.entrada) return;
+      b.disabled = true;
+      try { await rpc('panel_guardar_calculo', { p_obra_id: k.obra.id, p_entrada: k.entrada }); } catch (x) { b.disabled = false; return errCl(x); }
+      cerrarVentana(); aviso('Cálculo guardado como borrador. Revísalo y apruébalo cuando estés conforme.'); return pintarPrecioObra(k.obra);
+    }
+    if (d.act === 'pc-calcular') return ventanaCalculo(window.__obra, null);
+    const c = (window.__calculosObra || []).find((x) => x.id === d.id);
+    if (d.act === 'pc-recalcular' && c) return ventanaCalculo(window.__obra, c.entrada);
+    if (d.act === 'pc-ver' && c) { abrirVentana(`<h2>Cálculo y justificación (versión ${c.version})</h2>${htmlResultadoCalculo(c.resultado)}<div class="pie-modal"><button class="btn" data-cerrar>Cerrar</button></div>`, 980); $('[data-cerrar]').onclick = cerrarVentana; return; }
+    if (d.act === 'pc-descartar' && c) { await rpc('panel_descartar_calculo', { p_calculo_id: c.id }); aviso('Borrador descartado.'); return pintarPrecioObra(window.__obra); }
+    if (d.act === 'pc-aprobar' && c) {
+      abrirVentana(`<h2>Aprobar el precio</h2><p class="suave">Aprobar guarda este precio como el recomendado de 3B para la obra. No se publica a las empresas ni se cobra nada.</p>
+        <label class="campo" for="pc-precio">Precio que apruebas (€)</label><input type="text" inputmode="decimal" id="pc-precio" value="${esc(c.precio_recomendado ?? '')}" />
+        <span class="suave peq">${c.precio_recomendado != null ? 'Recomendado: ' + e2(c.precio_recomendado) + '. Si lo cambias, escribe el motivo.' : 'No hay precio recomendado (hay partidas por revisar): escribe el precio y el motivo.'}</span>
+        <label class="campo" for="pc-motivo">Motivo del cambio</label><textarea id="pc-motivo" style="min-height:60px"></textarea>${pieVentana('Aprobar precio', 'primario')}`, 520);
+      $('[data-cerrar]').onclick = cerrarVentana;
+      $('#v-ok').onclick = async () => {
+        const p = valNum('#pc-precio'); if (p === null || isNaN(p) || p <= 0) return errorVentana('Escribe un precio válido.');
+        $('#v-ok').disabled = true;
+        try { await rpc('panel_aprobar_calculo', { p_calculo_id: c.id, p_precio_final: p, p_motivo: $('#pc-motivo').value.trim() || null }); }
+        catch (x) { $('#v-ok').disabled = false; return errorVentana(x); }
+        cerrarVentana(); aviso('Precio aprobado.'); pintarPrecioObra(window.__obra);
+      };
+    }
+  } catch (x) { aviso(mensajeError(x), true); }
+});
+
+// ── Vista «Precios» ──
+async function vistaPrecios(v) {
+  const t = pestanasHash() || 'referencias';
+  v.innerHTML = `<div class="cab"><div><h1>Precios</h1><p class="suave">Referencias de precios de construcción con su fuente, enlace y fecha. El sistema nunca inventa precios: si no hay referencias comparables, pide revisión manual.</p></div></div>
+    ${pestanasHtml('precios', [['referencias', 'Referencias'], ['fuentes', 'Fuentes'], ['ajustes', 'Ajustes del cálculo'], ['calculadora', 'Calculadora']], t)}<div id="precios-cuerpo"></div>`;
+  if (t === 'fuentes') return pintarFuentes();
+  if (t === 'ajustes') return pintarAjustesPrecios();
+  if (t === 'calculadora') { await cargarPartidasConocidas(); window.__calc = { obra: null }; $('#precios-cuerpo').innerHTML = `<div class="panel"><div class="cuerpo"><p class="suave" style="margin-top:0">Prueba un cálculo suelto sin guardarlo en ninguna obra.</p>${htmlFormCalculo({})}</div></div>`; return; }
+  return pintarReferencias();
+}
+async function pintarReferencias() {
+  const [rr, aj] = await Promise.all([sb.from('precios_referencia').select('*, precios_fuentes(nombre)').order('created_at', { ascending: false }).limit(2000), sb.from('ajustes_precios').select('vigencia_meses').eq('id', true).maybeSingle()]);
+  if (rr.error) throw rr.error;
+  const meses = (aj.data && aj.data.vigencia_meses) || 24; const limite = new Date(); limite.setMonth(limite.getMonth() - meses);
+  window.__refs = rr.data || [];
+  $('#precios-cuerpo').innerHTML = `<div class="herramientas"><input type="search" id="pr-buscar" placeholder="Buscar partida, fuente o ámbito" aria-label="Buscar" />
+    <button class="btn primario" data-act="pr-ref-nueva">Añadir referencia</button><button class="btn" data-act="pr-importar">Importar CSV</button><button class="btn" data-act="pr-plantilla">Descargar plantilla CSV</button>
+    <input type="file" id="pr-csv" accept=".csv,text/csv" class="hidden" /></div><div class="panel" id="pr-lista"></div>`;
+  const pintar = () => {
+    const q = ($('#pr-buscar').value || '').toLowerCase();
+    const filas = window.__refs.filter((r) => !q || [r.partida, r.precios_fuentes && r.precios_fuentes.nombre, r.ambito_valor, r.especialidad, r.partida_codigo].join(' ').toLowerCase().includes(q));
+    $('#pr-lista').innerHTML = htmlTabla('refs', [
+      { t: 'Partida', f: (r) => `<b>${esc(r.partida)}</b><span class="sub">${esc([r.partida_codigo, r.especialidad].filter(Boolean).join(' · '))}</span>`, s: (r) => r.partida.toLowerCase() },
+      { t: 'Precio', cls: 'der', f: (r) => `<b>${n2(r.precio_unitario)} €</b><span class="sub">por ${esc(r.unidad)}${r.alcance ? ' · ' + esc(r.alcance) : ''}</span>`, s: (r) => Number(r.precio_unitario) },
+      { t: 'Ámbito', f: (r) => `${esc(AMBITOS[r.ambito_tipo])}${r.ambito_valor ? `<span class="sub">${esc(r.ambito_valor)}</span>` : ''}`, s: (r) => r.ambito_tipo },
+      { t: 'Fuente', f: (r) => `${esc((r.precios_fuentes || {}).nombre || '—')}${r.enlace ? `<span class="sub"><a href="${esc(r.enlace)}" target="_blank" rel="noopener">enlace</a></span>` : ''}` },
+      { t: 'Fechas', f: (r) => `Precio de ${fecha(r.fecha_precio)}<span class="sub">Consultado el ${fecha(r.fecha_consulta)}</span>`, s: (r) => r.fecha_precio },
+      { t: 'Estado', f: (r) => !r.vigente ? '<span class="e neutro">Histórica</span>' : new Date(r.fecha_precio) < limite ? `<span class="e aviso">Antigua</span><span class="sub">No se usa (más de ${meses} meses)</span>` : '<span class="e ok">Vigente</span>' },
+      { t: '', cls: 'acc', f: (r) => `<button class="btn peq" data-act="pr-ref-editar" data-id="${esc(r.id)}">Editar</button> <button class="btn peq" data-act="pr-ref-vigencia" data-id="${esc(r.id)}">${r.vigente ? 'Marcar histórica' : 'Marcar vigente'}</button> <button class="btn peq mal" data-act="pr-ref-borrar" data-id="${esc(r.id)}">Borrar</button>` }
+    ], filas, window.__refs.length ? 'Ninguna referencia coincide con la búsqueda.' : 'Todavía no hay referencias de precios. Añade la primera o importa un CSV: sin referencias, el cálculo pide revisión manual.');
+  };
+  $('#pr-buscar').addEventListener('input', pintar); pintar();
+}
+async function ventanaReferencia(r) {
+  const { data: fuentes, error } = await sb.from('precios_fuentes').select('id, nombre').eq('activa', true).order('nombre'); if (error) throw error;
+  const n = !r; r = r || { ambito_tipo: 'nacional', incluye_materiales: true, incluye_mano_obra: true, fecha_consulta: hoyISO() };
+  abrirVentana(`<h2>${n ? 'Añadir referencia de precio' : 'Editar referencia'}</h2><p class="suave">Anota de dónde sale el precio y cuándo lo consultaste. Un precio sin fuente no es una referencia.</p>
+  <div class="form-rejilla">
+    <div style="grid-column:1/-1"><label class="campo" for="rf-fuente">Fuente *</label><select id="rf-fuente">${(fuentes || []).map((f) => `<option value="${esc(f.id)}" ${f.id === r.fuente_id ? 'selected' : ''}>${esc(f.nombre)}</option>`).join('')}</select></div>
+    <div style="grid-column:1/-1"><label class="campo" for="rf-partida">Partida *</label><input type="text" id="rf-partida" value="${esc(r.partida || '')}" placeholder="Tabique de placa de yeso laminado simple" /></div>
+    <div><label class="campo" for="rf-codigo">Código de la partida</label><input type="text" id="rf-codigo" value="${esc(r.partida_codigo || '')}" /></div>
+    <div><label class="campo" for="rf-esp">Especialidad</label><input type="text" id="rf-esp" value="${esc(r.especialidad || '')}" placeholder="Pladuristas" /></div>
+    <div><label class="campo" for="rf-unidad">Unidad *</label><input type="text" id="rf-unidad" value="${esc(r.unidad || '')}" placeholder="m2, m3, ml, ud, kg, h…" /></div>
+    <div><label class="campo" for="rf-precio">Precio unitario (€) *</label><input type="text" inputmode="decimal" id="rf-precio" value="${esc(r.precio_unitario ?? '')}" /></div>
+    <div><label class="campo" for="rf-mat">De ello, materiales (€)</label><input type="text" inputmode="decimal" id="rf-mat" value="${esc(r.precio_materiales ?? '')}" /></div>
+    <div><label class="campo" for="rf-mo">De ello, mano de obra (€)</label><input type="text" inputmode="decimal" id="rf-mo" value="${esc(r.precio_mano_obra ?? '')}" /></div>
+    <div><label class="campo" for="rf-amb">Ámbito geográfico *</label><select id="rf-amb">${optSel(AMBITOS, r.ambito_tipo)}</select></div>
+    <div><label class="campo" for="rf-ambv">Lugar del ámbito</label><input type="text" id="rf-ambv" value="${esc(r.ambito_valor || '')}" placeholder="Albacete (vacío si es nacional)" /></div>
+    <div><label class="campo" for="rf-fp">Fecha del precio *</label><input type="date" id="rf-fp" value="${esc(r.fecha_precio || '')}" /></div>
+    <div><label class="campo" for="rf-fc">Fecha de consulta *</label><input type="date" id="rf-fc" value="${esc(r.fecha_consulta || '')}" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="rf-alcance">Alcance incluido</label><input type="text" id="rf-alcance" value="${esc(r.alcance || '')}" placeholder="Qué incluye la partida" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="rf-enlace">Enlace de la fuente</label><input type="text" id="rf-enlace" value="${esc(r.enlace || '')}" placeholder="https://…" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="rf-obs">Observaciones</label><textarea id="rf-obs" style="min-height:50px">${esc(r.observaciones || '')}</textarea></div>
+  </div>${pieVentana(n ? 'Añadir' : 'Guardar', 'primario')}`, 700);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const precio = valNum('#rf-precio'), mat = valNum('#rf-mat'), mo = valNum('#rf-mo');
+    if (![precio, mat, mo].every((x) => x === null || !isNaN(x))) return errorVentana('Los precios deben ser números.');
+    if (!$('#rf-partida').value.trim() || !$('#rf-unidad').value.trim()) return errorVentana('La partida y la unidad son obligatorias.');
+    if (precio === null || precio <= 0) return errorVentana('Escribe un precio unitario mayor que cero.');
+    if (!$('#rf-fp').value || !$('#rf-fc').value) return errorVentana('Indica la fecha del precio y la fecha de consulta.');
+    if ($('#rf-amb').value !== 'nacional' && !$('#rf-ambv').value.trim()) return errorVentana('Indica el lugar del ámbito (provincia, municipio…).');
+    const fila = { fuente_id: $('#rf-fuente').value, partida: $('#rf-partida').value.trim(), partida_codigo: $('#rf-codigo').value.trim() || null, especialidad: $('#rf-esp').value.trim() || null, unidad: $('#rf-unidad').value.trim(),
+      precio_unitario: precio, precio_materiales: mat, precio_mano_obra: mo, ambito_tipo: $('#rf-amb').value, ambito_valor: $('#rf-ambv').value.trim() || null, fecha_precio: $('#rf-fp').value, fecha_consulta: $('#rf-fc').value,
+      alcance: $('#rf-alcance').value.trim() || null, enlace: $('#rf-enlace').value.trim() || null, observaciones: $('#rf-obs').value.trim() || null };
+    $('#v-ok').disabled = true;
+    const { error: er } = n ? await sb.from('precios_referencia').insert(fila) : await sb.from('precios_referencia').update(fila).eq('id', r.id);
+    if (er) { $('#v-ok').disabled = false; return errorVentana(er); }
+    cerrarVentana(); aviso(n ? 'Referencia añadida.' : 'Referencia guardada.'); enrutar();
+  };
+}
+// CSV
+const CSV_COLS = ['fuente', 'partida_codigo', 'partida', 'especialidad', 'unidad', 'precio_unitario', 'precio_materiales', 'precio_mano_obra', 'ambito_tipo', 'ambito_valor', 'alcance', 'observaciones', 'enlace', 'fecha_precio', 'fecha_consulta'];
+function parseCSV(txt) {
+  const sep = (txt.split('\n')[0].match(/;/g) || []).length > (txt.split('\n')[0].match(/,/g) || []).length ? ';' : ',';
+  const filas = []; let f = [], c = '', q = false;
+  for (let i = 0; i < txt.length; i++) {
+    const ch = txt[i];
+    if (q) { if (ch === '"') { if (txt[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+    else if (ch === '"') q = true; else if (ch === sep) { f.push(c); c = ''; } else if (ch === '\n') { f.push(c); filas.push(f); f = []; c = ''; } else if (ch !== '\r') c += ch;
+  }
+  if (c !== '' || f.length) { f.push(c); filas.push(f); }
+  return filas.filter((x) => x.some((y) => y.trim() !== ''));
+}
+const numCSV = (s) => { s = String(s || '').trim().replace(/€|\s/g, ''); if (s === '') return null; if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.'); else s = s.replace(',', '.'); const x = Number(s); return isNaN(x) ? NaN : x; };
+const fechaCSV = (s) => { s = String(s || '').trim(); let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return s; m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null; };
+async function importarCSV(archivo) {
+  const filas = parseCSV(await archivo.text()); if (filas.length < 2) throw new Error('El archivo no tiene filas de datos.');
+  const cab = filas[0].map((x) => x.trim().toLowerCase().replace(/^﻿/, '')); const falta = ['fuente', 'partida', 'unidad', 'precio_unitario', 'fecha_precio', 'fecha_consulta'].filter((c) => !cab.includes(c));
+  if (falta.length) throw new Error('Faltan columnas en el CSV: ' + falta.join(', ') + '. Descarga la plantilla para ver el formato.');
+  const { data: fuentes } = await sb.from('precios_fuentes').select('id, nombre'); const porNombre = new Map((fuentes || []).map((f) => [f.nombre.toLowerCase(), f.id]));
+  const ok = [], errores = [];
+  filas.slice(1).forEach((fila, i) => {
+    const o = Object.fromEntries(cab.map((c, j) => [c, (fila[j] || '').trim()])); const lin = i + 2; const fallo = (m) => errores.push(`Línea ${lin}: ${m}`);
+    const fid = porNombre.get((o.fuente || '').toLowerCase()); if (!fid) return fallo(`la fuente «${o.fuente}» no existe (créala antes en Fuentes)`);
+    const precio = numCSV(o.precio_unitario); if (precio == null || isNaN(precio) || precio <= 0) return fallo('precio no válido');
+    const mat = numCSV(o.precio_materiales), mo = numCSV(o.precio_mano_obra); if (isNaN(mat) || isNaN(mo)) return fallo('materiales o mano de obra no válidos');
+    const fp = fechaCSV(o.fecha_precio), fc = fechaCSV(o.fecha_consulta); if (!fp || !fc) return fallo('fechas no válidas (usa AAAA-MM-DD o DD/MM/AAAA)');
+    if (!o.partida || !o.unidad) return fallo('falta la partida o la unidad');
+    const amb = (o.ambito_tipo || 'nacional').toLowerCase(); if (!AMBITOS[amb]) return fallo('ámbito no válido (nacional, comunidad, provincia o municipio)'); if (amb !== 'nacional' && !o.ambito_valor) return fallo('falta el lugar del ámbito');
+    ok.push({ fuente_id: fid, partida: o.partida, partida_codigo: o.partida_codigo || null, especialidad: o.especialidad || null, unidad: o.unidad, precio_unitario: precio, precio_materiales: mat, precio_mano_obra: mo, ambito_tipo: amb, ambito_valor: amb === 'nacional' ? null : o.ambito_valor,
+      alcance: o.alcance || null, observaciones: o.observaciones || null, enlace: o.enlace || null, fecha_precio: fp, fecha_consulta: fc });
+  });
+  abrirVentana(`<h2>Importar referencias</h2><p>Se importarán <b>${ok.length}</b> referencia(s).${errores.length ? ` Hay <b>${errores.length}</b> fila(s) con errores que no se importarán:` : ''}</p>
+    ${errores.length ? `<ul class="peq mal-t" style="max-height:180px;overflow:auto">${errores.slice(0, 30).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}${pieVentana('Importar ' + ok.length, 'primario')}`, 620);
+  $('[data-cerrar]').onclick = cerrarVentana; if (!ok.length) $('#v-ok').disabled = true;
+  $('#v-ok').onclick = async () => {
+    $('#v-ok').disabled = true;
+    for (let i = 0; i < ok.length; i += 200) { const { error } = await sb.from('precios_referencia').insert(ok.slice(i, i + 200)); if (error) { $('#v-ok').disabled = false; return errorVentana(error); } }
+    cerrarVentana(); aviso(ok.length + ' referencias importadas.'); enrutar();
+  };
+}
+async function pintarFuentes() {
+  const { data, error } = await sb.from('precios_fuentes').select('*').order('nombre'); if (error) throw error; window.__fuentes = data || [];
+  $('#precios-cuerpo').innerHTML = `<div class="herramientas"><button class="btn primario" data-act="pr-fuente-nueva">Añadir fuente</button></div><div class="panel">${htmlTabla('fuentes', [
+    { t: 'Fuente', f: (x) => `<b>${esc(x.nombre)}</b><span class="sub">${esc(TIPOS_FUENTE[x.tipo] || x.tipo)}</span>` },
+    { t: 'Enlace', f: (x) => x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.url)}</a>` : '<span class="suave">—</span>' },
+    { t: 'Licencia y condiciones', f: (x) => esc(x.licencia || '—') + (x.notas ? `<span class="sub">${esc(x.notas)}</span>` : '') },
+    { t: 'Estado', f: (x) => x.activa ? '<span class="e ok">Activa</span>' : '<span class="e neutro">Inactiva</span>' },
+    { t: '', cls: 'acc', f: (x) => `<button class="btn peq" data-act="pr-fuente-editar" data-id="${esc(x.id)}">Editar</button>` }], window.__fuentes, 'No hay fuentes.')}</div>`;
+}
+function ventanaFuente(x) {
+  const n = !x; x = x || { tipo: 'profesional', activa: true };
+  abrirVentana(`<h2>${n ? 'Añadir fuente' : 'Editar fuente'}</h2><div class="form-rejilla">
+    <div><label class="campo" for="fu-nombre">Nombre *</label><input type="text" id="fu-nombre" value="${esc(x.nombre || '')}" /></div>
+    <div><label class="campo" for="fu-tipo">Tipo *</label><select id="fu-tipo">${optSel(TIPOS_FUENTE, x.tipo)}</select></div>
+    <div style="grid-column:1/-1"><label class="campo" for="fu-url">Enlace</label><input type="text" id="fu-url" value="${esc(x.url || '')}" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="fu-lic">Licencia y condiciones de uso</label><input type="text" id="fu-lic" value="${esc(x.licencia || '')}" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="fu-notas">Notas</label><input type="text" id="fu-notas" value="${esc(x.notas || '')}" /></div>
+    <div><label class="campo"><input type="checkbox" id="fu-activa" ${x.activa ? 'checked' : ''} /> Activa (se usa en los cálculos)</label></div></div>${pieVentana(n ? 'Añadir' : 'Guardar', 'primario')}`, 620);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    if (!$('#fu-nombre').value.trim()) return errorVentana('Escribe el nombre de la fuente.');
+    const fila = { nombre: $('#fu-nombre').value.trim(), tipo: $('#fu-tipo').value, url: $('#fu-url').value.trim() || null, licencia: $('#fu-lic').value.trim() || null, notas: $('#fu-notas').value.trim() || null, activa: $('#fu-activa').checked };
+    $('#v-ok').disabled = true; const { error } = n ? await sb.from('precios_fuentes').insert(fila) : await sb.from('precios_fuentes').update(fila).eq('id', x.id);
+    if (error) { $('#v-ok').disabled = false; return errorVentana(/duplicate|unique/i.test(error.message) ? 'Ya existe una fuente con ese nombre.' : error); }
+    cerrarVentana(); aviso('Fuente guardada.'); enrutar();
+  };
+}
+async function pintarAjustesPrecios() {
+  const { data: a, error } = await sb.from('ajustes_precios').select('*').eq('id', true).maybeSingle(); if (error) throw error;
+  const campo = (id, t, val, ayuda) => `<div><label class="campo" for="${id}">${t}</label><input type="text" inputmode="decimal" id="${id}" value="${esc(val ?? '')}" />${ayuda ? `<span class="suave peq">${ayuda}</span>` : ''}</div>`;
+  $('#precios-cuerpo').innerHTML = `<div class="panel"><div class="cuerpo"><p class="suave" style="margin-top:0">Son parámetros del método de cálculo, no precios de mercado. Los factores de complejidad y los costes adicionales empiezan neutros (1,00 y 0 %): defínelos tú cuando tengas un criterio justificado.</p><div class="form-rejilla">
+    ${campo('aj-vig', 'Antigüedad máxima de una referencia (meses)', a.vigencia_meses, 'Las más antiguas no se usan como precio actual.')}${campo('aj-sim', 'Parecido mínimo del nombre de la partida (0,1–1)', a.umbral_similitud)}
+    ${campo('aj-pm', 'Peso de una referencia del municipio', a.peso_municipio)}${campo('aj-pp', 'Peso de una referencia de la provincia', a.peso_provincia)}${campo('aj-pc', 'Peso de una referencia de la comunidad', a.peso_comunidad)}${campo('aj-pn', 'Peso de una referencia nacional', a.peso_nacional)}
+    ${campo('aj-fb', 'Factor de complejidad baja', a.factor_complejidad_baja, '1,00 = sin ajuste')}${campo('aj-fm', 'Factor de complejidad media', a.factor_complejidad_media)}${campo('aj-fa', 'Factor de complejidad alta', a.factor_complejidad_alta)}
+    ${campo('aj-gg', 'Gastos generales (% sobre las partidas)', a.pct_gastos_generales, '0 = no se añaden')}${campo('aj-bi', 'Beneficio industrial (% sobre las partidas)', a.pct_beneficio_industrial, '0 = no se añade')}
+  </div><div id="aj-error" class="error-caja hidden" style="margin-top:12px"></div><div style="margin-top:14px"><button class="btn primario" data-act="pr-ajustes-guardar">Guardar ajustes</button></div></div></div>`;
+}
+
+// ── Vista «Reglas de comisión» ──
+async function vistaReglas(v) {
+  const t = pestanasHash() || 'reglas';
+  v.innerHTML = `<div class="cab"><div><h1>Reglas de comisión</h1><p class="suave">Porcentajes de comisión de 3B Conecta por zona, especialidad e importe, con su justificación. Prioridad: excepción aprobada de una obra, municipio, provincia, comunidad y regla nacional. Una comisión puesta a mano en una obra o empresa sigue mandando sobre las reglas.</p></div></div>
+    ${pestanasHtml('reglas', [['reglas', 'Reglas'], ['simulador', 'Simulador'], ['stripe', 'Tarifas de Stripe'], ['mercado', 'Ajuste de mercado'], ['historial', 'Historial de cambios']], t)}<div id="reglas-cuerpo"></div>`;
+  if (t === 'stripe') return pintarTarifas();
+  if (t === 'simulador') return pintarSimulador();
+  if (t === 'mercado') return pintarMercado();
+  if (t === 'historial') return pintarHistorial();
+  const { data, error } = await sb.from('reglas_comision').select('*, obras(titulo, referencia)').order('activa', { ascending: false }).order('created_at', { ascending: false }); if (error) throw error;
+  window.__reglas = data || [];
+  const alcance = (r) => r.ambito === 'excepcion' ? `Obra ${esc((r.obras && (r.obras.referencia || r.obras.titulo)) || '')}` : r.ambito === 'municipio' ? esc(r.municipio + (r.provincia ? ' (' + r.provincia + ')' : '')) : r.ambito === 'provincia' ? esc(r.provincia) : r.ambito === 'comunidad' ? esc(r.comunidad) : 'Todo el territorio';
+  $('#reglas-cuerpo').innerHTML = `<div class="herramientas"><button class="btn primario" data-act="rg-nueva">Crear regla</button>${window.__reglas.length ? '' : '<button class="btn" data-act="rg-hipotesis">Cargar hipótesis iniciales (desactivadas)</button>'}</div>
+    <div class="panel">${htmlTabla('reglas', [
+      { t: 'Alcance', f: (r) => `<b>${esc(AMB_REGLA[r.ambito])}</b><span class="sub">${alcance(r)}</span>`, s: (r) => r.ambito },
+      { t: 'Condiciones', f: (r) => `${r.especialidad ? esc(r.especialidad) : 'Cualquier especialidad'}${r.tipo_obra ? ' · ' + esc(r.tipo_obra) : ''}<span class="sub">${r.importe_min != null || r.importe_max != null ? 'Importe ' + (r.importe_min != null ? n2(r.importe_min, 0) : '0') + ' – ' + (r.importe_max != null ? n2(r.importe_max, 0) + ' €' : 'sin límite') : 'Cualquier importe'}</span>` },
+      { t: 'Comisión', cls: 'der', f: (r) => `<b>${n2(r.pct)} %</b>${r.pct_min != null || r.pct_max != null ? `<span class="sub">rango ${r.pct_min != null ? n2(r.pct_min) : '0'}–${r.pct_max != null ? n2(r.pct_max) : '50'} %</span>` : ''}`, s: (r) => Number(r.pct) },
+      { t: 'Vigencia', f: (r) => r.vigente_desde || r.vigente_hasta ? `${r.vigente_desde ? fecha(r.vigente_desde) : 'siempre'} → ${r.vigente_hasta ? fecha(r.vigente_hasta) : 'sin fin'}` : '<span class="suave">Sin fechas</span>' },
+      { t: 'Motivo', f: (r) => esc(r.motivo) },
+      { t: 'Estado', f: (r) => r.activa ? '<span class="e ok">Activa</span>' : '<span class="e neutro">Desactivada</span>' },
+      { t: '', cls: 'acc', f: (r) => `<button class="btn peq" data-act="rg-editar" data-id="${esc(r.id)}">Editar</button> <button class="btn peq" data-act="rg-activar" data-id="${esc(r.id)}">${r.activa ? 'Desactivar' : 'Activar'}</button> <button class="btn peq mal" data-act="rg-borrar" data-id="${esc(r.id)}">Borrar</button>` }
+    ], window.__reglas, 'Todavía no hay reglas. Sin reglas, se sigue usando la comisión general de Pagos.')}</div>`;
+}
+async function ventanaRegla(r) {
+  const { data: obras } = await sb.from('obras').select('id, titulo, referencia').order('created_at', { ascending: false }).limit(300);
+  const n = !r; r = r || { ambito: 'provincia', activa: true };
+  abrirVentana(`<h2>${n ? 'Crear regla de comisión' : 'Editar regla'}</h2><p class="suave">Una regla activa cambia la comisión de las obras nuevas a las que se aplica. Dos reglas activas con el mismo alcance no pueden solaparse.</p><div class="form-rejilla">
+    <div><label class="campo" for="rg-amb">Ámbito *</label><select id="rg-amb">${optSel(AMB_REGLA, r.ambito)}</select></div>
+    <div id="rg-obra-c"><label class="campo" for="rg-obra">Obra (solo excepción)</label><select id="rg-obra"><option value="">—</option>${(obras || []).map((o) => `<option value="${esc(o.id)}" ${o.id === r.obra_id ? 'selected' : ''}>${esc((o.referencia || '') + ' · ' + o.titulo)}</option>`).join('')}</select></div>
+    <div><label class="campo" for="rg-com">Comunidad autónoma</label><input type="text" id="rg-com" value="${esc(r.comunidad || '')}" /></div>
+    <div><label class="campo" for="rg-prov">Provincia</label><input type="text" id="rg-prov" value="${esc(r.provincia || '')}" /></div>
+    <div><label class="campo" for="rg-mun">Municipio</label><input type="text" id="rg-mun" value="${esc(r.municipio || '')}" /></div>
+    <div><label class="campo" for="rg-esp">Especialidad (vacío = todas)</label><input type="text" id="rg-esp" value="${esc(r.especialidad || '')}" /></div>
+    <div><label class="campo" for="rg-tipo">Tipo de obra (vacío = todos)</label><input type="text" id="rg-tipo" value="${esc(r.tipo_obra || '')}" /></div>
+    <div><label class="campo" for="rg-imin">Importe mínimo (€)</label><input type="text" inputmode="decimal" id="rg-imin" value="${esc(r.importe_min ?? '')}" /></div>
+    <div><label class="campo" for="rg-imax">Importe máximo (€)</label><input type="text" inputmode="decimal" id="rg-imax" value="${esc(r.importe_max ?? '')}" /></div>
+    <div><label class="campo" for="rg-pct">Comisión (%) *</label><input type="text" inputmode="decimal" id="rg-pct" value="${esc(r.pct ?? '')}" /></div>
+    <div><label class="campo" for="rg-pmin">Mínimo permitido (%)</label><input type="text" inputmode="decimal" id="rg-pmin" value="${esc(r.pct_min ?? '')}" /></div>
+    <div><label class="campo" for="rg-pmax">Máximo permitido (%)</label><input type="text" inputmode="decimal" id="rg-pmax" value="${esc(r.pct_max ?? '')}" /></div>
+    <div><label class="campo" for="rg-desde">Vigente desde</label><input type="date" id="rg-desde" value="${esc(r.vigente_desde || '')}" /></div>
+    <div><label class="campo" for="rg-hasta">Vigente hasta</label><input type="date" id="rg-hasta" value="${esc(r.vigente_hasta || '')}" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="rg-motivo">Motivo de la regla * <span class="suave">(aparece en la justificación de la comisión)</span></label><input type="text" id="rg-motivo" value="${esc(r.motivo || '')}" placeholder="Ej. Costes de captación y operativos superiores en la zona" /></div>
+    <div><label class="campo"><input type="checkbox" id="rg-activa" ${r.activa ? 'checked' : ''} /> Activa</label></div></div>${pieVentana(n ? 'Crear regla' : 'Guardar', 'primario')}`, 760);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const pct = valNum('#rg-pct'), pmin = valNum('#rg-pmin'), pmax = valNum('#rg-pmax'), imin = valNum('#rg-imin'), imax = valNum('#rg-imax');
+    if (pct === null || isNaN(pct) || pct < 0 || pct > 50) return errorVentana('La comisión debe estar entre 0 y 50 %.');
+    if ([pmin, pmax, imin, imax].some((x) => x !== null && isNaN(x))) return errorVentana('Revisa los números: mínimos, máximos e importes.');
+    if (!$('#rg-motivo').value.trim()) return errorVentana('Escribe el motivo de la regla: es lo que justifica el porcentaje.');
+    const fila = { ambito: $('#rg-amb').value, obra_id: $('#rg-amb').value === 'excepcion' ? ($('#rg-obra').value || null) : null, comunidad: $('#rg-com').value.trim() || null, provincia: $('#rg-prov').value.trim() || null, municipio: $('#rg-mun').value.trim() || null,
+      especialidad: $('#rg-esp').value.trim() || null, tipo_obra: $('#rg-tipo').value.trim() || null, importe_min: imin, importe_max: imax, pct, pct_min: pmin, pct_max: pmax, motivo: $('#rg-motivo').value.trim(),
+      activa: $('#rg-activa').checked, vigente_desde: $('#rg-desde').value || null, vigente_hasta: $('#rg-hasta').value || null };
+    if (fila.ambito === 'excepcion' && !fila.obra_id) return errorVentana('Elige la obra a la que se aplica la excepción.');
+    if (fila.ambito === 'municipio' && !fila.municipio) return errorVentana('Indica el municipio.'); if (fila.ambito === 'provincia' && !fila.provincia) return errorVentana('Indica la provincia.'); if (fila.ambito === 'comunidad' && !fila.comunidad) return errorVentana('Indica la comunidad autónoma.');
+    $('#v-ok').disabled = true; const { error } = n ? await sb.from('reglas_comision').insert(fila) : await sb.from('reglas_comision').update(fila).eq('id', r.id);
+    if (error) { $('#v-ok').disabled = false; return errorVentana(error); }
+    cerrarVentana(); aviso('Regla guardada.'); enrutar();
+  };
+}
+async function pintarTarifas() {
+  const { data, error } = await sb.from('tarifas_stripe').select('*').order('concepto').order('nombre'); if (error) throw error; window.__tarifas = data || [];
+  $('#reglas-cuerpo').innerHTML = `<div class="panel"><div class="cuerpo"><p class="suave" style="margin:0">Las tarifas se usan para estimar el coste de cada operación. Las de la página oficial de Stripe España están cargadas <b>sin verificar</b>: confírmalas con las condiciones de tu cuenta de Stripe y márcalas como verificadas. Mientras no lo estén, el simulador avisa de que el coste es una estimación. Cuando haya datos reales de una operación, se usarán en lugar de la estimación.</p></div></div>
+    <div class="herramientas" style="margin-top:12px"><button class="btn primario" data-act="rg-tarifa-nueva">Añadir tarifa</button></div><div class="panel">${htmlTabla('tarifas', [
+    { t: 'Tarifa', f: (x) => `<b>${esc(x.nombre)}</b><span class="sub">${esc(x.concepto)}${x.region_tarjeta ? ' · ' + esc(REGIONES[x.region_tarjeta]) : ''}${x.tipo_tarjeta ? ' · ' + esc(x.tipo_tarjeta) : ''}</span>` },
+    { t: 'Coste', cls: 'der', f: (x) => `${n2(x.pct, 2)} % + ${n2(x.fijo_cents / 100)} €` },
+    { t: 'Fuente', f: (x) => `${x.fuente_url ? `<a href="${esc(x.fuente_url)}" target="_blank" rel="noopener">${esc(x.fuente_url)}</a>` : '—'}<span class="sub">Consultada el ${fecha(x.fecha_consulta)}${x.notas ? ' · ' + esc(x.notas) : ''}</span>` },
+    { t: 'Estado', f: (x) => `${x.verificada ? '<span class="e ok">Verificada</span>' : '<span class="e aviso">Sin verificar</span>'}${x.activa ? '' : '<span class="sub">Inactiva</span>'}` },
+    { t: '', cls: 'acc', f: (x) => `<button class="btn peq" data-act="rg-tarifa-editar" data-id="${esc(x.id)}">Editar</button>` }], window.__tarifas, 'No hay tarifas.')}</div>`;
+}
+function ventanaTarifa(x) {
+  const n = !x; x = x || { concepto: 'procesamiento', region_tarjeta: 'eee', activa: true, moneda: 'EUR' };
+  abrirVentana(`<h2>${n ? 'Añadir tarifa de Stripe' : 'Editar tarifa'}</h2><div class="form-rejilla">
+    <div style="grid-column:1/-1"><label class="campo" for="ta-nombre">Nombre *</label><input type="text" id="ta-nombre" value="${esc(x.nombre || '')}" /></div>
+    <div><label class="campo" for="ta-conc">Concepto</label><select id="ta-conc">${optSel({ procesamiento: 'Procesamiento de tarjeta', connect: 'Stripe Connect', otros: 'Otros' }, x.concepto)}</select></div>
+    <div><label class="campo" for="ta-reg">Tarjeta</label><select id="ta-reg">${optSel(REGIONES, x.region_tarjeta)}</select></div>
+    <div><label class="campo" for="ta-tipo">Tipo de tarjeta</label><select id="ta-tipo">${optSel({ '': 'Cualquiera', estandar: 'Estándar', premium: 'Premium' }, x.tipo_tarjeta || '')}</select></div>
+    <div><label class="campo" for="ta-pct">Porcentaje (%) *</label><input type="text" inputmode="decimal" id="ta-pct" value="${esc(x.pct ?? '')}" /></div>
+    <div><label class="campo" for="ta-fijo">Tarifa fija (€) *</label><input type="text" inputmode="decimal" id="ta-fijo" value="${esc(x.fijo_cents != null ? x.fijo_cents / 100 : '')}" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="ta-url">Enlace de la fuente</label><input type="text" id="ta-url" value="${esc(x.fuente_url || '')}" /></div>
+    <div><label class="campo" for="ta-fecha">Fecha de consulta</label><input type="date" id="ta-fecha" value="${esc(x.fecha_consulta || hoyISO())}" /></div>
+    <div style="grid-column:1/-1"><label class="campo" for="ta-notas">Notas</label><input type="text" id="ta-notas" value="${esc(x.notas || '')}" /></div>
+    <div><label class="campo"><input type="checkbox" id="ta-ver" ${x.verificada ? 'checked' : ''} /> Verificada con mi cuenta de Stripe</label></div>
+    <div><label class="campo"><input type="checkbox" id="ta-act" ${x.activa ? 'checked' : ''} /> Activa</label></div></div>${pieVentana(n ? 'Añadir' : 'Guardar', 'primario')}`, 640);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    const pct = valNum('#ta-pct'), fijo = valNum('#ta-fijo'); if (pct === null || isNaN(pct) || pct < 0 || fijo === null || isNaN(fijo) || fijo < 0) return errorVentana('Indica el porcentaje y la tarifa fija (pueden ser 0).');
+    if (!$('#ta-nombre').value.trim()) return errorVentana('Escribe un nombre.');
+    const fila = { nombre: $('#ta-nombre').value.trim(), concepto: $('#ta-conc').value, region_tarjeta: $('#ta-reg').value || null, tipo_tarjeta: $('#ta-tipo').value || null, pct, fijo_cents: Math.round(fijo * 100), fuente_url: $('#ta-url').value.trim() || null, fecha_consulta: $('#ta-fecha').value || null, notas: $('#ta-notas').value.trim() || null, verificada: $('#ta-ver').checked, activa: $('#ta-act').checked };
+    $('#v-ok').disabled = true; const { error } = n ? await sb.from('tarifas_stripe').insert(fila) : await sb.from('tarifas_stripe').update(fila).eq('id', x.id);
+    if (error) { $('#v-ok').disabled = false; return errorVentana(error); }
+    cerrarVentana(); aviso('Tarifa guardada.'); enrutar();
+  };
+}
+function pintarSimulador() {
+  $('#reglas-cuerpo').innerHTML = `<div class="panel"><div class="cuerpo"><p class="suave" style="margin-top:0">Simula cuánto paga el cliente, cuánto recibe la subcontrata y cuánto le queda a 3B Conecta. Solo simula: no activa cobros reales. La base de la comisión es el importe que escribas (sin IVA, salvo que tus condiciones comerciales digan otra cosa).</p>
+    <div class="form-rejilla">
+      <div><label class="campo" for="si-imp">Precio de la obra (€) *</label><input type="text" inputmode="decimal" id="si-imp" /></div>
+      <div><label class="campo" for="si-pct">Comisión (%) *</label><input type="text" inputmode="decimal" id="si-pct" /></div>
+      <div><label class="campo" for="si-com">Comunidad autónoma</label><input type="text" id="si-com" /></div><div><label class="campo" for="si-prov">Provincia</label><input type="text" id="si-prov" /></div>
+      <div><label class="campo" for="si-mun">Municipio</label><input type="text" id="si-mun" /></div><div><label class="campo" for="si-esp">Especialidad</label><input type="text" id="si-esp" /></div>
+      <div><label class="campo" for="si-modelo">Modelo</label><select id="si-modelo">${optSel(MODELOS, 'profesional')}</select></div>
+      <div><label class="campo" for="si-reparto">Si es compartida: % a cargo del comprador</label><input type="text" inputmode="decimal" id="si-reparto" value="50" /></div>
+      <div><label class="campo" for="si-region">Tarjeta</label><select id="si-region">${optSel(REGIONES, 'eee')}</select></div>
+      <div><label class="campo" for="si-tipo">Tipo de tarjeta</label><select id="si-tipo">${optSel({ estandar: 'Estándar', premium: 'Premium' }, 'estandar')}</select></div>
+      <div><label class="campo" for="si-otros">Otros costes (€)</label><input type="text" inputmode="decimal" id="si-otros" placeholder="0" /></div></div>
+    <div id="si-error" class="error-caja hidden" style="margin-top:12px"></div>
+    <div style="margin-top:14px"><button class="btn" data-act="rg-sim-recomendar">Consultar comisión recomendada</button> <button class="btn primario" data-act="rg-sim-calcular">Simular operación</button></div>
+    <div id="si-res" style="margin-top:14px"></div></div></div>`;
+}
+async function pintarMercado() {
+  const { data: m, error } = await sb.from('ajustes_comision_mercado').select('*').eq('id', true).maybeSingle(); if (error) throw error;
+  const campo = (id, t, val, ayuda) => `<div><label class="campo" for="${id}">${t}</label><input type="text" inputmode="decimal" id="${id}" value="${esc(val ?? '')}" />${ayuda ? `<span class="suave peq">${ayuda}</span>` : ''}</div>`;
+  $('#reglas-cuerpo').innerHTML = `<div class="panel"><div class="cuerpo"><p class="suave" style="margin-top:0">Opcional. La justificación de cada comisión siempre muestra los datos reales de la zona (obras publicadas y empresas homologadas de la especialidad). Si activas este ajuste, además suma puntos a la comisión cuando la demanda es alta o hay pocos profesionales, siempre dentro del rango de la regla.</p>
+    <label class="campo"><input type="checkbox" id="me-activo" ${m.activo ? 'checked' : ''} /> Aplicar el ajuste de mercado</label><div class="form-rejilla">
+    ${campo('me-vent', 'Ventana de demanda (días)', m.ventana_dias)}${campo('me-obras', 'Demanda alta: obras mínimas en la ventana', m.obras_minimas_demanda_alta)}${campo('me-pd', 'Puntos que se suman por demanda alta', m.puntos_demanda_alta)}
+    ${campo('me-emp', 'Escasez: empresas homologadas como máximo', m.empresas_maximas_escasez)}${campo('me-pe', 'Puntos que se suman por escasez', m.puntos_escasez)}</div>
+    <div id="me-error" class="error-caja hidden" style="margin-top:12px"></div><div style="margin-top:14px"><button class="btn primario" data-act="rg-mercado-guardar">Guardar</button></div></div></div>`;
+}
+async function pintarHistorial() {
+  const { data, error } = await sb.from('config_precios_historial').select('*').order('cuando', { ascending: false }).limit(200); if (error) throw error;
+  const ids = [...new Set((data || []).map((x) => x.quien).filter(Boolean))]; let nombres = {};
+  if (ids.length) { const { data: ps } = await sb.from('profiles').select('id, nombre_completo').in('id', ids); (ps || []).forEach((p) => { nombres[p.id] = p.nombre_completo; }); }
+  const resumen = (x) => { const a = x.antes || {}, d = x.despues || {}; if (x.accion === 'modificar') { const c = Object.keys(d).filter((k) => !['updated_at'].includes(k) && JSON.stringify(a[k]) !== JSON.stringify(d[k])); return c.map((k) => `${k}: ${JSON.stringify(a[k])} → ${JSON.stringify(d[k])}`).join('; ') || 'Sin cambios relevantes'; } const o = x.accion === 'crear' ? d : a; return [o.nombre, o.partida, o.motivo, o.pct != null ? o.pct + ' %' : null].filter(Boolean).join(' · '); };
+  $('#reglas-cuerpo').innerHTML = `<div class="panel">${htmlTabla('hist', [
+    { t: 'Cuándo', f: (x) => fechaHora(x.cuando), s: (x) => x.cuando }, { t: 'Quién', f: (x) => esc(nombres[x.quien] || (x.quien ? String(x.quien).slice(0, 8) : '—')) },
+    { t: 'Qué', f: (x) => `${esc({ crear: 'Creó', modificar: 'Modificó', borrar: 'Borró' }[x.accion])} · ${esc(x.tabla)}` }, { t: 'Detalle', f: (x) => `<span class="peq">${esc(resumen(x))}</span>` }], data || [], 'Todavía no hay cambios registrados.')}</div>`;
+}
+
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-act^="pr-"], [data-act^="rg-"]'); if (!b) return; const d = b.dataset;
+  const hallar = (lista, id) => (window[lista] || []).find((x) => x.id === id);
+  try {
+    if (d.act === 'pr-ref-nueva') return ventanaReferencia(null);
+    if (d.act === 'pr-ref-editar') return ventanaReferencia(hallar('__refs', d.id));
+    if (d.act === 'pr-ref-vigencia') { const r = hallar('__refs', d.id); const { error } = await sb.from('precios_referencia').update({ vigente: !r.vigente }).eq('id', d.id); if (error) throw error; aviso('Referencia actualizada.'); return enrutar(); }
+    if (d.act === 'pr-ref-borrar') { const r = hallar('__refs', d.id); if (!confirm(`¿Borrar la referencia «${r.partida}»? Queda anotado en el historial.`)) return; const { error } = await sb.from('precios_referencia').delete().eq('id', d.id); if (error) throw error; aviso('Referencia borrada.'); return enrutar(); }
+    if (d.act === 'pr-importar') { const f = $('#pr-csv'); f.value = ''; f.onchange = async () => { try { if (f.files[0]) await importarCSV(f.files[0]); } catch (x) { aviso(mensajeError(x), true); } }; return f.click(); }
+    if (d.act === 'pr-plantilla') { const blob = new Blob(['﻿' + CSV_COLS.join(';') + '\n'], { type: 'text/csv;charset=utf-8' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'plantilla_referencias_precios.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); return; }
+    if (d.act === 'pr-fuente-nueva') return ventanaFuente(null);
+    if (d.act === 'pr-fuente-editar') return ventanaFuente(hallar('__fuentes', d.id));
+    if (d.act === 'pr-ajustes-guardar') {
+      const g = (id) => valNum(id); const v = { vigencia_meses: g('#aj-vig'), umbral_similitud: g('#aj-sim'), peso_municipio: g('#aj-pm'), peso_provincia: g('#aj-pp'), peso_comunidad: g('#aj-pc'), peso_nacional: g('#aj-pn'),
+        factor_complejidad_baja: g('#aj-fb'), factor_complejidad_media: g('#aj-fm'), factor_complejidad_alta: g('#aj-fa'), pct_gastos_generales: g('#aj-gg'), pct_beneficio_industrial: g('#aj-bi') };
+      const er = $('#aj-error'); er.classList.add('hidden');
+      if (Object.values(v).some((x) => x === null || isNaN(x))) { er.textContent = 'Rellena todos los campos con números.'; return er.classList.remove('hidden'); }
+      v.vigencia_meses = Math.round(v.vigencia_meses); v.updated_at = new Date().toISOString();
+      const { error } = await sb.from('ajustes_precios').update(v).eq('id', true); if (error) { er.textContent = mensajeError(error); return er.classList.remove('hidden'); }
+      return aviso('Ajustes guardados.');
+    }
+    if (d.act === 'rg-nueva') return ventanaRegla(null);
+    if (d.act === 'rg-editar') return ventanaRegla(hallar('__reglas', d.id));
+    if (d.act === 'rg-activar') { const r = hallar('__reglas', d.id); const { error } = await sb.from('reglas_comision').update({ activa: !r.activa }).eq('id', d.id); if (error) throw error; aviso(r.activa ? 'Regla desactivada.' : 'Regla activada.'); return enrutar(); }
+    if (d.act === 'rg-borrar') { const r = hallar('__reglas', d.id); if (!confirm('¿Borrar esta regla? Queda anotado en el historial. Si solo quieres dejar de usarla, desactívala.')) return; const { error } = await sb.from('reglas_comision').delete().eq('id', d.id); if (error) throw error; aviso('Regla borrada.'); return enrutar(); }
+    if (d.act === 'rg-hipotesis') {
+      const m = 'Hipótesis de trabajo inicial: pendiente de validar con datos de la zona'; const base = (x) => Object.assign({ activa: false, motivo: m }, x);
+      const { error } = await sb.from('reglas_comision').insert([base({ ambito: 'provincia', provincia: 'Albacete', pct: 4 }), base({ ambito: 'provincia', provincia: 'Valencia', pct: 5 }), base({ ambito: 'municipio', municipio: 'Gandía', provincia: 'Valencia', pct: 8 }),
+        base({ ambito: 'provincia', provincia: 'Madrid', pct: 6 }), base({ ambito: 'provincia', provincia: 'Alicante', pct: 6 })]);
+      if (error) throw error; aviso('Hipótesis cargadas, desactivadas. Revísalas y actívalas cuando las valides.'); return enrutar();
+    }
+    if (d.act === 'rg-tarifa-nueva') return ventanaTarifa(null);
+    if (d.act === 'rg-tarifa-editar') return ventanaTarifa(hallar('__tarifas', d.id));
+    if (d.act === 'rg-mercado-guardar') {
+      const g = (id) => valNum(id); const er = $('#me-error'); er.classList.add('hidden');
+      const v = { activo: $('#me-activo').checked, ventana_dias: g('#me-vent'), obras_minimas_demanda_alta: g('#me-obras'), puntos_demanda_alta: g('#me-pd'), empresas_maximas_escasez: g('#me-emp'), puntos_escasez: g('#me-pe') };
+      if ([v.ventana_dias, v.puntos_demanda_alta, v.puntos_escasez].some((x) => x === null || isNaN(x)) || [v.obras_minimas_demanda_alta, v.empresas_maximas_escasez].some((x) => x !== null && isNaN(x))) { er.textContent = 'Revisa los números.'; return er.classList.remove('hidden'); }
+      v.updated_at = new Date().toISOString(); const { error } = await sb.from('ajustes_comision_mercado').update(v).eq('id', true); if (error) { er.textContent = mensajeError(error); return er.classList.remove('hidden'); }
+      return aviso('Ajuste guardado.');
+    }
+    if (d.act === 'rg-sim-recomendar' || d.act === 'rg-sim-calcular') {
+      const er = $('#si-error'); er.classList.add('hidden'); const falla = (m) => { er.textContent = m; er.classList.remove('hidden'); };
+      const imp = valNum('#si-imp'); if (imp === null || isNaN(imp) || imp <= 0) return falla('Escribe el precio de la obra.');
+      if (d.act === 'rg-sim-recomendar') {
+        const r = await rpc('panel_comision_recomendada', { p_ctx: { comunidad: $('#si-com').value.trim(), provincia: $('#si-prov').value.trim(), municipio: $('#si-mun').value.trim(), especialidad: $('#si-esp').value.trim(), importe: imp } });
+        if (r.pct != null) $('#si-pct').value = String(r.pct).replace('.', ',');
+        $('#si-res').innerHTML = `<div class="panel"><div class="sec-panel"><h3>Comisión recomendada</h3>${r.pct != null ? `<p style="margin:0 0 6px"><b style="font-size:18px">${n2(r.pct)} %</b> ${r.provisional ? '<span class="e aviso">Recomendación provisional</span>' : ''}</p>` : ''}${r.aviso ? `<p class="aviso-t peq">${esc(r.aviso)}</p>` : ''}<ul class="peq" style="margin:0;padding-left:18px">${(r.motivos || []).map((m) => `<li>${esc(m)}</li>`).join('')}</ul></div></div>`;
+        return;
+      }
+      const pct = valNum('#si-pct'); if (pct === null || isNaN(pct) || pct < 0 || pct > 50) return falla('La comisión debe estar entre 0 y 50 %.');
+      const s = await rpc('panel_simular_operacion', { p_importe: imp, p_pct: pct, p_modelo: $('#si-modelo').value, p_region: $('#si-region').value, p_tipo: $('#si-tipo').value, p_reparto_comprador_pct: valNum('#si-reparto') ?? 50, p_otros_costes: valNum('#si-otros') ?? 0 });
+      $('#si-res').innerHTML = `<div class="panel"><div class="sec-panel">${listaDatos([['Modelo', esc(MODELOS[s.modelo])], ['Precio de la obra', eC(s.importe_obra_cents)], ['Paga el cliente', `<b>${eC(s.cliente_paga_cents)}</b>`], ['Recibe la subcontrata', `<b>${eC(s.subcontrata_recibe_cents)}</b>`],
+        ['Comisión de 3B Conecta', `${eC(s.comision_cents)} (${n2(s.comision_pct)} %) · a cargo del comprador ${eC(s.comision_a_cargo_comprador_cents)}, del profesional ${eC(s.comision_a_cargo_profesional_cents)}`],
+        ['Coste estimado de Stripe', `${eC(s.stripe && s.stripe.coste_cents)}${s.stripe && s.stripe.tarifa ? `<span class="sub">${esc(s.stripe.tarifa)}: ${n2(s.stripe.pct)} % + ${n2((s.stripe.fijo_cents || 0) / 100)} €</span>` : ''}${s.stripe && s.stripe.aviso ? `<span class="sub aviso-t">${esc(s.stripe.aviso)}</span>` : ''}`],
+        ['Otros costes', eC(s.otros_costes_cents)], ['Ingreso neto estimado de 3B', `<b>${eC(s.ingreso_neto_3b_cents)}</b>`]])}<p class="suave peq" style="margin:10px 0 0">${esc(s.nota)} El coste de Stripe lo asume 3B (cargos y transferencias separados).</p></div></div>`;
+    }
+  } catch (x) { aviso(mensajeError(x), true); }
+});
+
 </script>
 </body>
 </html>
