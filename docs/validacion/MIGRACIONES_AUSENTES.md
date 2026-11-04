@@ -1,0 +1,15 @@
+# Migraciones ausentes o dañadas en Git
+
+Investigación sobre todo el historial de `origin/main` (clon completo, 53+ commits después de `--unshallow`).
+
+| Migración | Estado en Git | Qué se sabe | Qué hacer |
+|---|---|---|---|
+| **0039** | Existe pero **truncada** desde el commit `1cb268a`: la última función (`cambiar_estado_licitacion(uuid, estado_obra)`) termina en `end if; end if; end;` sin el cierre `$$;` | No hay versión anterior completa en ningún commit ni rama. El único fallo detectado es el cierre final; el resto compila | **No modificada.** Dos opciones: (a) el script de pruebas añade `$$;` en una copia temporal; (b) comparar con el SQL realmente ejecutado en producción (Supabase → Database → Migrations/Query history) y, si coincide, restaurar el original. Dependen de ella: `cambiar_estado_licitacion` y los webhooks de recomendaciones/cuentas/licitaciones |
+| **0005** | **Nunca existió en Git** (ningún commit). El README la documenta | Probablemente se aplicó a mano y se perdió o se fusionó con otra. Las migraciones posteriores aplican sin ella (0 errores) | Exportar de producción el esquema (`supabase db dump --schema public`) y comparar con el esquema reconstruido; recuperar el contenido real, no reescribirlo |
+| **0022** | **Nunca existió en Git**. El README la describe como corrección de seguridad | Análisis sobre el esquema reconstruido: funciones de negocio con `if auth_role() not in ('admin','superadmin')` eran ejecutables por `anon`; sin sesión `auth_role()` es NULL, el `if` no se cumple y la comprobación se salta. Probado: `anon` llegaba hasta «Canje no encontrado», «Obra no encontrada», etc. | Cubierto en el esquema reconstruido por la nueva **0072** (quita EXECUTE a `anon`/`public` en 6 funciones; no cambia su lógica). **Pendiente**: comprobar en PRODUCCIÓN con la consulta 2 de `auditoria_catalogo_rls.sql` si ya estaba corregido allí |
+| **0061** | Nunca en Git; el README no la cita. Superada por la 0069 | — | Nada |
+| 007 | `007_profiles_email.sql` = errata de 0007 | Con orden alfabético se aplica después de la 0071 | Aplicar siempre con orden natural (`sort -V`). No renombrar sin decidirlo |
+| `seguridad/prueba_seguridad_1_catalogo.sql`, `_2_roles.sql` | Descritas en el README, **nunca existieron en Git** | Su contenido es desconocido | Se aporta `supabase/pruebas/auditoria_catalogo_rls.sql`, nuevo y distinto; no pretende ser el original |
+
+## Diferencia entre el esquema reconstruido y el esperado
+Con las 68 migraciones de Git (0039 con cierre) + 0071 + 0072: **0 errores**, todas las tablas con RLS, ninguna función SECURITY DEFINER sin `search_path`, ninguna ejecutable por `anon`. Lo que no se puede garantizar desde el repositorio: que producción tenga exactamente este esquema (0005, 0022 y cambios manuales hechos en el SQL Editor). La única forma fiable es comparar con un volcado de producción en solo lectura.

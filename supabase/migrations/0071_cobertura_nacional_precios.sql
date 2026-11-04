@@ -50,7 +50,7 @@ begin
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists %I on %I', t || '_leer', t);
     execute format('create policy %I on %I for select to authenticated using (true)', t || '_leer', t);
-    execute format('revoke insert, update, delete on %I from anon, authenticated', t);
+    execute format('revoke insert, update, delete, truncate on %I from anon, authenticated', t);
     execute format('grant select on %I to authenticated', t);
   end loop;
 end $$;
@@ -8808,6 +8808,23 @@ $$;
 drop trigger if exists trg_calculos_precio_inmutable on calculos_precio;
 create trigger trg_calculos_precio_inmutable before update on calculos_precio
   for each row execute function trg_calculos_precio_inmutable();
+
+-- Tampoco se pueden borrar los cálculos aprobados ni los sustituidos (son el historial). Se permite borrar borradores y descartados,
+-- y el borrado en cascada cuando se elimina la obra entera.
+create or replace function trg_calculos_precio_no_borrar()
+returns trigger
+language plpgsql
+as $$
+begin
+  if old.estado in ('aprobado', 'sustituido') and exists (select 1 from obras where id = old.obra_id) then
+    raise exception 'Un cálculo aprobado o sustituido forma parte del historial y no se borra.';
+  end if;
+  return old;
+end;
+$$;
+drop trigger if exists trg_calculos_precio_no_borrar on calculos_precio;
+create trigger trg_calculos_precio_no_borrar before delete on calculos_precio
+  for each row execute function trg_calculos_precio_no_borrar();
 
 
 -- ---------------------------------------------------------------------------
