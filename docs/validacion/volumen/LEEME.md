@@ -10,7 +10,7 @@ Antes: en el proyecto de PRUEBAS, en Fuentes, crear «Tarifa de proveedor» con 
 | Tipo de fila generada | % | Resultado esperado |
 |---|---|---|
 | Válidas (municipio por código INE) | 70 % | Importadas, con `ambito_codigo` |
-| Duplicadas exactas de una válida | 6 % | **Se importan** (hoy no hay detección de duplicados: ver informe) |
+| Duplicadas exactas de una válida | 6 % | **Se omiten** y se avisa: «N fila(s) repetidas…» (misma fuente, partida, unidad, lugar, fecha y precio) |
 | Lugar inexistente («Atlantis») | 4 % | Error «no reconozco …» |
 | Ambigua («Moya») | 2 % | Error «Hay varios municipios llamados …» |
 | Fuente sin licencia (CYPE) | 4 % | Error de licencia |
@@ -19,6 +19,6 @@ Antes: en el proyecto de PRUEBAS, en Fuentes, crear «Tarifa de proveedor» con 
 | Desglose mayor que el total | 3 % | Error de desglose |
 | Fuente inexistente | 2 % | Error «la fuente … no existe» |
 
-Resultado en local (Postgres 16 + PostgREST, 4.850 filas): análisis 5,9 s, guardado 1,9 s, 3.800 importadas (3.500 + 300 duplicadas), 1.050 con error (los esperados), lote registrado, 0 errores de página. **Repetir en el proyecto de pruebas real (latencia de red distinta) y anotar tiempos.**
+Resultado esperado y comprobado (4.850 filas): se importan 3.500, se omiten 300 repetidas y se rechazan 1.050 con motivo. Al reimportar el mismo archivo: 0 nuevas, 3.800 repetidas y el botón de importar desactivado. Mismo precio con otra fecha, o mismo texto con otro precio, NO cuenta como repetida. En local: análisis ≈6 s, guardado ≈2 s; en el Supabase de Docker de Ainhoa, guardado ≈3 s. **Repetir en el proyecto de pruebas real (latencia de red distinta) y anotar tiempos.**
 
 Límites conocidos: el aviso de errores muestra las 40 primeras y el lote guarda las 200 primeras; el guardado va en bloques de 200 sin transacción única (si un bloque falla, los anteriores se conservan y el lote queda anotado como «Interrumpida»).

@@ -2808,7 +2808,19 @@ async function importarCSV(archivo) {
   const cab = filas[0].map((x) => x.trim().toLowerCase().replace(/^﻿/, '')); const falta = ['fuente', 'partida', 'unidad', 'precio_unitario', 'fecha_precio', 'fecha_consulta'].filter((c) => !cab.includes(c));
   if (falta.length) throw new Error('Faltan columnas en el CSV: ' + falta.join(', ') + '. Descarga la plantilla para ver el formato.');
   const { data: fuentes } = await sb.from('precios_fuentes').select('id, nombre, permite_almacenar, licencia_estado'); const porNombre = new Map((fuentes || []).map((f) => [f.nombre.toLowerCase(), f]));
-  const ok = [], errores = []; const cacheLugar = new Map(); const fuentesUsadas = new Set();
+  const ok = [], errores = []; const cacheLugar = new Map(); const fuentesUsadas = new Set(); const duplicadas = []; const vistas = new Set();
+  // Una fila es duplicada si coincide en fuente, partida, unidad, lugar, fecha y precio con otra del archivo o ya guardada.
+  const claveDup = (x) => [x.fuente_id, (x.partida_codigo || '').toLowerCase(), x.partida.toLowerCase(), x.unidad.toLowerCase(), x.ambito_tipo, x.ambito_codigo || '', x.fecha_precio, Number(x.precio_unitario).toFixed(4)].join('|');
+  const cargarExistentes = async (ids) => {
+    const set = new Set();
+    for (const id of ids) {
+      for (let desde = 0; ; desde += 1000) {
+        const { data, error } = await sb.from('precios_referencia').select('fuente_id, partida_codigo, partida, unidad, ambito_tipo, ambito_codigo, fecha_precio, precio_unitario').eq('fuente_id', id).order('id').range(desde, desde + 999);
+        if (error) throw error; (data || []).forEach((x) => set.add(claveDup(x))); if (!data || data.length < 1000) break;
+      }
+    }
+    return set;
+  };
   const resolverLugar = async (tipo, valor, cod) => {
     const k = [tipo, valor, cod].join('|'); if (cacheLugar.has(k)) return cacheLugar.get(k);
     let r; try { r = { cod: await rpc('geo_codigo_ambito', { p_tipo: tipo, p_valor: valor || null, p_codigo: cod || null }) }; } catch (x) { r = { err: mensajeError(x) }; }
@@ -2834,16 +2846,21 @@ async function importarCSV(archivo) {
       cod = g.cod; val = o.ambito_valor || null;
     }
     fuentesUsadas.add(f.id);
-    ok.push(Object.assign({ fuente_id: f.id, partida: o.partida, partida_codigo: o.partida_codigo || null, especialidad: o.especialidad || null, unidad: o.unidad, precio_unitario: precio, ambito_tipo: amb, ambito_valor: val, ambito_codigo: cod,
+    ok.push(Object.assign({ _linea: i + 1, fuente_id: f.id, partida: o.partida, partida_codigo: o.partida_codigo || null, especialidad: o.especialidad || null, unidad: o.unidad, precio_unitario: precio, ambito_tipo: amb, ambito_valor: val, ambito_codigo: cod,
       alcance: o.alcance || null, observaciones: o.observaciones || null, enlace: o.enlace || null, fecha_precio: fp, fecha_consulta: fc }, comp));
   }
-  abrirVentana(`<h2>Importar referencias</h2><p>Se importarán <b>${ok.length}</b> referencia(s).${errores.length ? ` Hay <b>${errores.length}</b> fila(s) con errores que no se importarán:` : ''}</p>
+  { // quita las repetidas (dentro del archivo o ya guardadas) antes de enseñar el resumen
+    const existentes = fuentesUsadas.size ? await cargarExistentes([...fuentesUsadas]) : new Set(); const nuevas = [];
+    for (const x of ok) { const k = claveDup(x); if (existentes.has(k) || vistas.has(k)) { duplicadas.push(x._linea); continue; } vistas.add(k); delete x._linea; nuevas.push(x); }
+    ok.length = 0; nuevas.forEach((x) => ok.push(x));
+  }
+  abrirVentana(`<h2>Importar referencias</h2><p>Se importarán <b>${ok.length}</b> referencia(s).${duplicadas.length ? ` <b>${duplicadas.length}</b> fila(s) repetidas (ya están guardadas o aparecen dos veces en el archivo) no se importarán.` : ''}${errores.length ? ` Hay <b>${errores.length}</b> fila(s) con errores que no se importarán:` : ''}</p>
     ${errores.length ? `<ul class="peq mal-t" style="max-height:180px;overflow:auto">${errores.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}<p class="suave peq">La importación queda anotada en «Importaciones CSV» con sus errores.</p>${pieVentana('Importar ' + ok.length, 'primario')}`, 640);
   $('[data-cerrar]').onclick = cerrarVentana; if (!ok.length) $('#v-ok').disabled = true;
   $('#v-ok').onclick = async () => {
     $('#v-ok').disabled = true;
     const fid = fuentesUsadas.size === 1 ? [...fuentesUsadas][0] : null;
-    const { data: lote, error: el } = await sb.from('importaciones_precios').insert({ fuente_id: fid, archivo: archivo.name, filas_total: filas.length - 1, filas_importadas: 0, filas_con_error: errores.length, errores: errores.slice(0, 200) }).select('id').single();
+    const { data: lote, error: el } = await sb.from('importaciones_precios').insert({ fuente_id: fid, archivo: archivo.name, filas_total: filas.length - 1, filas_importadas: 0, filas_con_error: errores.length, errores: errores.slice(0, 200), notas: duplicadas.length ? duplicadas.length + ' fila(s) repetidas omitidas (líneas ' + duplicadas.slice(0, 20).join(', ') + (duplicadas.length > 20 ? '…' : '') + ')' : null }).select('id').single();
     if (el) { $('#v-ok').disabled = false; return errorVentana(el); }
     let hechas = 0;
     for (let i = 0; i < ok.length; i += 200) {
