@@ -36,6 +36,12 @@ import MisDocumentosScreen from '../screens/documentos/MisDocumentosScreen';
 import MisTrabajadoresScreen from '../screens/documentos/MisTrabajadoresScreen';
 import TrabajadorDetalleScreen from '../screens/documentos/TrabajadorDetalleScreen';
 import TrabajadorFormScreen from '../screens/documentos/TrabajadorFormScreen';
+import CandidatoTabs from './CandidatoTabs';
+import EmpleoOfertaScreen from '../screens/seleccion/EmpleoOfertaScreen';
+import PostularScreen from '../screens/seleccion/PostularScreen';
+import CandidaturaDetalleScreen from '../screens/seleccion/CandidaturaDetalleScreen';
+import CandidatoAltaScreen from '../screens/seleccion/CandidatoAltaScreen';
+import { obtenerMiCandidato } from '../services/seleccion';
 import type { RootStackParamList } from './types';
 
 type Rol =
@@ -71,6 +77,8 @@ export default function RootNavigator() {
   const [motivoCuenta, setMotivoCuenta] = useState<string | null>(null);
   const [recargas, setRecargas] = useState(0);
   const [comprobando, setComprobando] = useState(false);
+  // «Trabaja con nosotros»: 'si' = candidato con datos; 'alta' = cuenta de candidato sin «Tus datos» aún.
+  const [candidato, setCandidato] = useState<'si' | 'alta' | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -102,6 +110,7 @@ export default function RootNavigator() {
       setRol(null);
       setEstadoCuenta(null);
       setMotivoCuenta(null);
+      setCandidato(null);
       return;
     }
 
@@ -110,10 +119,26 @@ export default function RootNavigator() {
       .from('profiles')
       .select('role, estado_cuenta, estado_cuenta_motivo')
       .eq('id', session.user.id)
-      .single()
-      .then(({ data, error }) => {
+      .maybeSingle()
+      .then(async ({ data, error }) => {
         if (!activo) return;
         setComprobando(false);
+        // Un candidato de «Trabaja con nosotros» NO tiene perfil del marketplace: es otra cuenta.
+        if (!error && !data) {
+          const cand = await obtenerMiCandidato(session.user.id).catch(() => null);
+          if (!activo) return;
+          if (cand) {
+            setCandidato('si');
+            setEstadoCuenta('verificada');
+            return;
+          }
+          if (session.user.user_metadata?.tipo_cuenta === 'candidato') {
+            setCandidato('alta');
+            setEstadoCuenta('verificada');
+            return;
+          }
+        }
+        setCandidato(null);
         if (error || !data) {
           // Antes aquí se asumía el rol 'subcontratista'. Ahora NO: sin poder leer la
           // cuenta no se da por buena (la base de datos tampoco dejaría leer nada).
@@ -189,6 +214,17 @@ export default function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!session ? (
           <Stack.Screen name="Auth" component={AuthStack} />
+        ) : candidato === 'alta' ? (
+          <Stack.Screen name="CandidatoAlta">
+            {() => <CandidatoAltaScreen onHecho={() => setRecargas((n) => n + 1)} />}
+          </Stack.Screen>
+        ) : candidato === 'si' ? (
+          <>
+            <Stack.Screen name="AppCandidato" component={CandidatoTabs} />
+            <Stack.Screen name="EmpleoOferta" component={EmpleoOfertaScreen} />
+            <Stack.Screen name="Postular" component={PostularScreen} />
+            <Stack.Screen name="CandidaturaDetalle" component={CandidaturaDetalleScreen} />
+          </>
         ) : !cuentaActiva ? (
           <Stack.Screen name="CuentaNoActiva">
             {() => (
@@ -196,7 +232,7 @@ export default function RootNavigator() {
                 estado={estadoCuenta === 'suspendida' ? 'suspendida' : estadoCuenta === 'error' ? 'error' : 'pendiente'}
                 motivo={motivoCuenta}
                 userId={session!.user.id}
-                rol={rol}
+                rol={rol ?? undefined}
                 comprobando={comprobando}
                 onComprobar={() => {
                   setComprobando(true);

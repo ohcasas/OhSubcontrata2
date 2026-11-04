@@ -177,6 +177,19 @@ export default function LoginScreen() {
             >
               <Text className="text-ink font-sansBold text-sm">Crear cuenta</Text>
             </Pressable>
+
+            <View className="flex-row items-center my-4">
+              <View className="flex-1 h-px bg-border" />
+              <Text className="text-inkSubtle text-xs mx-3">o</Text>
+              <View className="flex-1 h-px bg-border" />
+            </View>
+            <Pressable
+              onPress={() => navigation.navigate('EmpleoOfertas')}
+              disabled={cargando}
+              className="bg-actionTint rounded-xl py-3 items-center"
+            >
+              <Text className="text-actionDark font-sansBold text-sm">Trabaja con nosotros</Text>
+            </Pressable>
           </View>
 
           <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)}>

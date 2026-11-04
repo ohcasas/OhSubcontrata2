@@ -7,6 +7,9 @@ import RegistroScreen from '../screens/auth/RegistroScreen';
 import RegistroReferidorScreen from '../screens/auth/RegistroReferidorScreen';
 import RegistroEmpresaScreen from '../screens/auth/RegistroEmpresaScreen';
 import RegistroParticularScreen from '../screens/auth/RegistroParticularScreen';
+import EmpleoOfertasScreen from '../screens/seleccion/EmpleoOfertasScreen';
+import EmpleoOfertaScreen from '../screens/seleccion/EmpleoOfertaScreen';
+import RegistroCandidatoScreen from '../screens/seleccion/RegistroCandidatoScreen';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -20,6 +23,9 @@ export default function AuthStack() {
       <Stack.Screen name="RegistroReferidor" component={RegistroReferidorScreen} />
       <Stack.Screen name="RegistroEmpresa" component={RegistroEmpresaScreen} />
       <Stack.Screen name="RegistroParticular" component={RegistroParticularScreen} />
+      <Stack.Screen name="EmpleoOfertas" component={EmpleoOfertasScreen} />
+      <Stack.Screen name="EmpleoOferta" component={EmpleoOfertaScreen} />
+      <Stack.Screen name="RegistroCandidato" component={RegistroCandidatoScreen} />
     </Stack.Navigator>
   );
 }

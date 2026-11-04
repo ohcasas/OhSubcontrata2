@@ -4,6 +4,7 @@
  */
 
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import type { OfertaPublica, MiCandidatura } from '../services/seleccion';
 
 export type RolEmpresaColaboradora =
   | 'promotor'
@@ -21,10 +22,20 @@ export type AuthStackParamList = {
   RegistroReferidor: undefined;
   RegistroParticular: undefined;
   RegistroEmpresa: { rol: RolEmpresaColaboradora };
+  // «Trabaja con nosotros» (candidatos). Las ofertas se pueden ver sin sesión.
+  EmpleoOfertas: undefined;
+  EmpleoOferta: { oferta: OfertaPublica };
+  RegistroCandidato: undefined;
+};
+
+export type CandidatoTabParamList = {
+  MiCandidatura: undefined;
+  Ofertas: undefined;
+  MensajesCandidato: undefined;
+  MisDatos: undefined;
 };
 
 export type SubcontratistaTabParamList = {
-  Mensajes: undefined;
   Obras: undefined;
   Postulaciones: undefined;
   Tablon: undefined;
@@ -34,25 +45,21 @@ export type SubcontratistaTabParamList = {
 };
 
 export type ReferidorTabParamList = {
-  Mensajes: undefined;
   Recomienda: undefined;
   Perfil: undefined;
 };
 
 export type ParticularTabParamList = {
-  Mensajes: undefined;
   Peticiones: undefined;
   Perfil: undefined;
 };
 
 export type TecnicoTabParamList = {
-  Mensajes: undefined;
   Visitas: undefined;
   Perfil: undefined;
 };
 
 export type AdminTabParamList = {
-  Mensajes: undefined;
   ObrasAdmin: undefined;
   PostulacionesAdmin: undefined;
   Gremios: undefined;
@@ -69,8 +76,15 @@ export type RootStackParamList = {
   AppTecnico: NavigatorScreenParams<TecnicoTabParamList> | undefined;
   AppConecta: undefined;
   CuentaNoActiva: undefined;
+  // Espacio del candidato de «Trabaja con nosotros» (cuenta sin perfil del marketplace).
+  AppCandidato: undefined;
+  CandidatoAlta: undefined;
+  EmpleoOferta: { oferta: OfertaPublica };
+  Postular: { oferta: OfertaPublica };
+  CandidaturaDetalle: { candidatura: MiCandidatura };
   Notificaciones: undefined;
   Chat: { conversacionId: string; nombre: string; tipo: 'privado' | 'soporte'; otroId: string | null };
+  Mensajes: undefined;
   ChatNuevo: undefined;
   AppAdmin: undefined;
   DetalleObra: { obraId: string };
