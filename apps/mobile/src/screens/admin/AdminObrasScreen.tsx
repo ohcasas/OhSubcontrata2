@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import ScreenHeader from '../../components/ScreenHeader';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { formatearMoneda } from '../../utils/moneda';
+import { quitarAcentos } from '../../utils/lugar';
 
 type EstadoObra =
   | 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada'
@@ -68,6 +69,24 @@ export default function AdminObrasScreen() {
   const [presupuesto, setPresupuesto] = useState('');
   const [especialidad, setEspecialidad] = useState('');
   const [ubicacion, setUbicacion] = useState('');
+  const [provincia, setProvincia] = useState('');
+  const [provinciasCatalogo, setProvinciasCatalogo] = useState<string[]>([]);
+
+  // Catálogo oficial de provincias (el mismo que usa el panel). Si falla, el campo queda como texto libre.
+  useEffect(() => {
+    supabase
+      .from('geo_provincias')
+      .select('nombre')
+      .order('nombre')
+      .then(({ data }) => {
+        setProvinciasCatalogo((data ?? []).map((f) => String(f.nombre)));
+      });
+  }, []);
+  const textoProv = quitarAcentos(provincia);
+  const sugerenciasProvincia =
+    textoProv === '' || provinciasCatalogo.some((p) => quitarAcentos(p) === textoProv)
+      ? []
+      : provinciasCatalogo.filter((p) => quitarAcentos(p).includes(textoProv)).slice(0, 6);
   const [puntosBonus, setPuntosBonus] = useState('');
   const [duracionDias, setDuracionDias] = useState('');
   const [plazoDias, setPlazoDias] = useState('');
@@ -116,6 +135,7 @@ export default function AdminObrasScreen() {
     setPresupuesto('');
     setEspecialidad('');
     setUbicacion('');
+    setProvincia('');
     setPuntosBonus('');
     setDuracionDias('');
     setPlazoDias('');
@@ -169,6 +189,17 @@ export default function AdminObrasScreen() {
       return;
     }
 
+    // Provincia: opcional, pero si se escribe debe ser una del catálogo (así la obra queda bien clasificada).
+    let provinciaElegida: string | null = null;
+    if (provincia.trim() !== '') {
+      const encontrada = provinciasCatalogo.find((p) => quitarAcentos(p) === quitarAcentos(provincia));
+      if (provinciasCatalogo.length > 0 && encontrada === undefined) {
+        setErrorFormulario('Elige una provincia de la lista.');
+        return;
+      }
+      provinciaElegida = encontrada ?? provincia.trim();
+    }
+
     setPublicando(true);
 
     let imagenUrl: string | null = null;
@@ -196,6 +227,7 @@ export default function AdminObrasScreen() {
       moneda: 'EUR',
       especialidad_requerida: especialidad.trim() || null,
       ubicacion: ubicacion.trim() || null,
+      provincia: provinciaElegida,
       puntos_bonus: puntosNum !== null ? Math.round(puntosNum) : 0,
       duracion_dias: duracionNum !== null ? Math.round(duracionNum) : null,
       // El plazo se introduce en días desde ahora (admite decimales: 2 = 48 h).
@@ -341,11 +373,33 @@ export default function AdminObrasScreen() {
             <TextInput
               value={ubicacion}
               onChangeText={setUbicacion}
-              placeholder="Ubicación"
+              placeholder="Ubicación (localidad o dirección)"
               placeholderTextColor={colors.inkSubtle}
               editable={!publicando}
               className="bg-surface border border-border rounded-xl px-3 py-2.5 text-ink mb-2"
             />
+            <TextInput
+              value={provincia}
+              onChangeText={setProvincia}
+              placeholder="Provincia (empieza a escribir y elige)"
+              placeholderTextColor={colors.inkSubtle}
+              editable={!publicando}
+              autoCorrect={false}
+              className="bg-surface border border-border rounded-xl px-3 py-2.5 text-ink mb-2"
+            />
+            {sugerenciasProvincia.length > 0 && (
+              <View className="flex-row flex-wrap mb-2" style={{ gap: 6 }}>
+                {sugerenciasProvincia.map((p) => (
+                  <Pressable
+                    key={p}
+                    onPress={() => setProvincia(p)}
+                    className="rounded-full px-3 py-1.5 border bg-surface border-border"
+                  >
+                    <Text className="text-xs text-ink font-sansSemiBold">{p}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
             <View className="flex-row gap-2 mb-2">
               <TextInput
                 value={puntosBonus}

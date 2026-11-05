@@ -27,6 +27,7 @@ import { formatearMoneda } from '../../utils/moneda';
 import ChipsEtiquetas from '../../components/ChipsEtiquetas';
 import MenuDenuncia from '../../components/MenuDenuncia';
 import PlanosObra from '../../components/PlanosObra';
+import { lugarObra } from '../../utils/lugar';
 import { etiquetasDeObras, type Etiqueta } from '../../services/etiquetas';
 
 type Obra = {
@@ -36,6 +37,7 @@ type Obra = {
   descripcion: string | null;
   especialidad_requerida: string | null;
   ubicacion: string | null;
+  provincia?: string | null;
   modulos: number | null;
   m2: number | null;
   presupuesto: number;
@@ -142,7 +144,7 @@ export default function DetalleObraScreen() {
     const { data: obraData, error: errorObra } = await supabase
       .from('obras')
       .select(
-        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, origen, creado_por, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
+        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, provincia, modulos, m2, presupuesto, moneda, origen, creado_por, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
       )
       .eq('id', obraId)
       .single();
@@ -403,10 +405,10 @@ export default function DetalleObraScreen() {
               <ChipsEtiquetas etiquetas={etiquetasObra} />
             </View>
           )}
-          {obra.ubicacion !== null && (
+          {lugarObra(obra.ubicacion, obra.provincia) !== null && (
             <View className="flex-row items-center gap-1.5 mt-1.5">
               <Feather name="map-pin" size={15} color={colors.action} />
-              <Text className="text-inkMuted text-sm">{obra.ubicacion}</Text>
+              <Text className="text-inkMuted text-sm">{lugarObra(obra.ubicacion, obra.provincia)}</Text>
             </View>
           )}
 

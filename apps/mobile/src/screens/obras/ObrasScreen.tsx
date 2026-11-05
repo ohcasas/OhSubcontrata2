@@ -15,6 +15,8 @@ import type { NivelPartner } from '../../constants/niveles';
 import { esPrioritaria, msHastaCierre, textoCuentaAtras, textoDuracion } from '../../utils/plazos';
 import { formatearMoneda } from '../../utils/moneda';
 import BarraEtiquetas from '../../components/BarraEtiquetas';
+import BuscadorFiltros from '../../components/BuscadorFiltros';
+import { lugarObra } from '../../utils/lugar';
 import ChipsEtiquetas from '../../components/ChipsEtiquetas';
 import { cargarEtiquetas, etiquetasDeObras, misEtiquetasIds, type Etiqueta } from '../../services/etiquetas';
 import { useBloqueados } from '../../services/moderacion';
@@ -33,6 +35,7 @@ type Obra = {
   descripcion: string | null;
   especialidad_requerida: string | null;
   ubicacion: string | null;
+  provincia?: string | null;
   modulos: number | null;
   m2: number | null;
   presupuesto: number;
@@ -73,6 +76,7 @@ export default function ObrasScreen() {
   const [etiquetasObra, setEtiquetasObra] = useState<Map<string, Etiqueta[]>>(new Map());
   const [misEtiquetas, setMisEtiquetas] = useState<Set<string>>(new Set());
   const [filtroEtiquetas, setFiltroEtiquetas] = useState<Set<string>>(new Set());
+  const [filtroProvincia, setFiltroProvincia] = useState<string>('');
   const [soloMias, setSoloMias] = useState(false);
   const [ahora, setAhora] = useState(Date.now());
   const [cargando, setCargando] = useState(true);
@@ -122,7 +126,7 @@ export default function ObrasScreen() {
       supabase
         .from('obras')
         .select(
-          'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, modulos, m2, presupuesto, moneda, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, plazo_cierre, requisitos, creado_por',
+          'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, provincia, modulos, m2, presupuesto, moneda, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, plazo_cierre, requisitos, creado_por',
         )
         .eq('estado', 'abierta')
         .order('created_at', { ascending: false }),
@@ -235,8 +239,12 @@ export default function ObrasScreen() {
     .filter((o) => o.creado_por === undefined || o.creado_por === null || !bloqueados.has(o.creado_por))
     .filter((o) => !soloGuardadas || guardadas.has(o.id))
     .filter((o) => filtroEtiquetas.size === 0 || tieneAlguna(o.id, filtroEtiquetas))
-    .filter((o) => !soloMias || tieneAlguna(o.id, misEtiquetas));
-  const hayFiltros = filtroEtiquetas.size > 0 || soloMias;
+    .filter((o) => !soloMias || tieneAlguna(o.id, misEtiquetas))
+    .filter((o) => filtroProvincia === '' || (o.provincia ?? '') === filtroProvincia);
+  const provinciasDisponibles = Array.from(
+    new Set(obras.map((o) => (o.provincia ?? '').trim()).filter((p) => p !== '')),
+  ).sort((a, b) => a.localeCompare(b, 'es'));
+  const hayFiltros = filtroEtiquetas.size > 0 || soloMias || filtroProvincia !== '';
   const alternarFiltro = (id: string) =>
     setFiltroEtiquetas((previo) => {
       const nuevo = new Set(previo);
@@ -320,6 +328,23 @@ export default function ObrasScreen() {
         </View>
       )}
 
+      {provinciasDisponibles.length > 0 && (
+        <View className="mt-3">
+          <BuscadorFiltros
+            sinBusqueda
+            busqueda=""
+            onBusqueda={() => {}}
+            placeholder=""
+            opciones={[
+              { clave: '', etiqueta: 'Todas las provincias' },
+              ...provinciasDisponibles.map((p) => ({ clave: p, etiqueta: p })),
+            ]}
+            seleccion={filtroProvincia}
+            onSeleccion={setFiltroProvincia}
+          />
+        </View>
+      )}
+
       {etiquetas.length > 0 && (
         <View className="mt-3">
           {misEtiquetas.size > 0 && (
@@ -375,10 +400,10 @@ export default function ObrasScreen() {
                 </View>
               )}
               <View className="flex-row items-center flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                {obra.ubicacion !== null && (
+                {lugarObra(obra.ubicacion, obra.provincia) !== null && (
                   <View className="flex-row items-center gap-1">
                     <Feather name="map-pin" size={13} color={colors.inkMuted} />
-                    <Text className="text-inkMuted text-xs">{obra.ubicacion}</Text>
+                    <Text className="text-inkMuted text-xs">{lugarObra(obra.ubicacion, obra.provincia)}</Text>
                   </View>
                 )}
                 {obra.modulos !== null && (
@@ -496,10 +521,10 @@ export default function ObrasScreen() {
                 <View className="flex-1 pr-2">
                   <Text className="text-inkMuted text-xs font-mono">{item.referencia}</Text>
                   <Text className="text-ink text-base font-sansBold mt-0.5">{item.titulo}</Text>
-                  {item.ubicacion !== null && (
+                  {lugarObra(item.ubicacion, item.provincia) !== null && (
                     <View className="flex-row items-center gap-1 mt-0.5">
                       <Feather name="map-pin" size={13} color={colors.inkMuted} />
-                      <Text className="text-inkMuted text-xs">{item.ubicacion}</Text>
+                      <Text className="text-inkMuted text-xs">{lugarObra(item.ubicacion, item.provincia)}</Text>
                     </View>
                   )}
                 </View>
