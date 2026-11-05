@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import {
   View,
@@ -142,7 +142,7 @@ export default function RegistroScreen() {
         // colgada en "Comprobando enlace…" para un enlace de registro.
         // Con esto, el enlace de confirmación lleva a nuestra propia
         // página de "cuenta confirmada".
-        emailRedirectTo: 'https://ohcasas.github.io/OhSubcontrata2/confirmado.html',
+        emailRedirectTo: 'https://3bconecta.com/confirmado.html',
       },
     });
     setCargando(false);

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -217,7 +217,7 @@ export default function ClubPartnerScreen() {
               <View className="border border-border rounded-full items-center justify-center" style={{ width: 56, height: 56 }}>
                 <Feather name="award" size={24} color={colors.ink} />
               </View>
-              <Text className="text-ink text-xl font-sansBold mt-3 text-center">Club OH Partner</Text>
+              <Text className="text-ink text-xl font-sansBold mt-3 text-center">Club 3B Partner</Text>
               <View className="bg-action rounded-full items-center justify-center mt-3" style={{ width: 44, height: 44 }}>
                 <Feather name="lock" size={19} color={colors.white} />
               </View>
