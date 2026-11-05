@@ -1,0 +1,2 @@
+fuente;partida_codigo;partida;especialidad;unidad;precio_unitario;precio_mano_obra;precio_materiales;precio_maquinaria;precio_medios_auxiliares;precio_transporte;precio_otros;ambito_tipo;ambito_valor;ambito_codigo;alcance;observaciones;enlace;fecha_precio;fecha_consulta
+Presupuesto o factura real;OH-048;Tabique de placa de yeso laminado simple, 70 mm, con aislamiento;Pladuristas;m2;;;;;;;;municipio;Albacete (Albacete);;"Incluye aislamiento; sin pintura";EJEMPLO: borra esta fila. Rellena precio_unitario con un importe real (nunca uno estimado);;AAAA-MM-DD;AAAA-MM-DD
