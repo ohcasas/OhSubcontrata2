@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
         transfer_group: plan.transfer_group,
         source_transaction: cargo ?? undefined,
         metadata: { pago_id: plan.pago_id, comision_cents: String(plan.comision_cents) },
-      }, { idempotencyKey: `transfer_${plan.pago_id}` });
+      }, { idempotencyKey: `transfer_${plan.pago_id}_${plan.cuenta_oficio}` });
       transferId = t.id;
       movido = true;
     }
