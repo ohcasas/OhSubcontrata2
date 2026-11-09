@@ -19,6 +19,17 @@ Deno.serve(async (req) => {
     const { data: pago, error } = await usuario.rpc("pago_iniciar", { p_obra_id: obra_id });
     if (error) return json({ error: error.message }, 400);
 
+    // El cliente tiene que haber firmado el encargo antes de que se cree el cobro en Stripe.
+    // contrato_obtener devuelve null cuando no hay plantilla activa (entonces no se exige nada).
+    const { data: encargo, error: errContrato } = await usuario.rpc("contrato_obtener", {
+      p_pago_id: pago.pago_id,
+      p_tipo: "encargo",
+    });
+    if (errContrato) return json({ error: errContrato.message }, 400);
+    if (encargo && encargo.estado !== "firmado") {
+      return json({ requiere_firma: true, pago_id: pago.pago_id, contrato_id: encargo.id });
+    }
+
     const admin = clienteServicio();
     const { data: fila } = await admin
       .from("pagos").select("stripe_payment_intent_id").eq("id", pago.pago_id).single();

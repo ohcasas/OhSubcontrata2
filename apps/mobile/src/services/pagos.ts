@@ -82,12 +82,56 @@ export async function pagoDeObra(obraId: string): Promise<Pago | null> {
   return fila;
 }
 
-/** Crea el cobro en Stripe y devuelve el secreto que necesita la hoja de pago. */
-export async function iniciarPago(obraId: string): Promise<{ pagoId: string; clientSecret: string }> {
+/** Resultado de iniciar el pago: o hay secreto para la hoja de pago, o falta firmar el encargo. */
+export type InicioPago =
+  | { requiereFirma: false; pagoId: string; clientSecret: string }
+  | { requiereFirma: true; pagoId: string; contratoId: string };
+
+/** Crea el cobro en Stripe y devuelve el secreto que necesita la hoja de pago.
+ *  Si el cliente aún no ha firmado el encargo, devuelve requiereFirma. */
+export async function iniciarPago(obraId: string): Promise<InicioPago> {
   const { data, error } = await supabase.functions.invoke('stripe-crear-pago', { body: { obra_id: obraId } });
   if (error) throw new Error(await mensajeFuncion(error));
   if (data?.error) throw new Error(data.error);
-  return { pagoId: data.pago_id, clientSecret: data.client_secret };
+  if (data?.requiere_firma === true) {
+    return { requiereFirma: true, pagoId: data.pago_id, contratoId: data.contrato_id };
+  }
+  return { requiereFirma: false, pagoId: data.pago_id, clientSecret: data.client_secret };
+}
+
+export type TipoContrato = 'encargo' | 'conformidad';
+
+export type Contrato = {
+  id: string;
+  tipo: TipoContrato;
+  estado: 'pendiente' | 'firmado' | 'tacito' | 'anulado';
+  titulo: string;
+  cuerpo: string;
+  hash: string;
+  firmado_at: string | null;
+  firmante_nombre: string | null;
+  tramo_id: string | null;
+};
+
+/** Contrato que el cliente tiene que leer y firmar (o null si no hay plantilla activa). */
+export async function contratoObtener(pagoId: string, tipo: TipoContrato, tramoId?: string): Promise<Contrato | null> {
+  const { data, error } = await supabase.rpc('contrato_obtener', {
+    p_pago_id: pagoId,
+    p_tipo: tipo,
+    p_tramo_id: tramoId ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return (data as Contrato | null) ?? null;
+}
+
+/** Firma electrónica simple. Con la conformidad, la obra o el tramo se confirma en el mismo paso. */
+export async function firmarContrato(contratoId: string, nombre: string, acepto: boolean): Promise<void> {
+  const { error } = await supabase.rpc('firmar_contrato', {
+    p_contrato_id: contratoId,
+    p_nombre: nombre,
+    p_acepto: acepto,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function oficioTermina(pagoId: string): Promise<void> {

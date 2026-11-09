@@ -3,10 +3,11 @@ import { View, Text, TextInput, Pressable, ActivityIndicator, Alert } from 'reac
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../design-system/tokens';
 import {
-  pagoDeObra, iniciarPago, oficioTermina, clienteConfirma, reportarProblema, formatearCents,
-  tramosDePago, oficioTerminaTramo, clienteConfirmaTramo,
-  type Pago, type Tramo,
+  pagoDeObra, iniciarPago, oficioTermina, clienteConfirma, clienteConfirmaTramo, reportarProblema, formatearCents,
+  tramosDePago, oficioTerminaTramo, contratoObtener,
+  type Pago, type Tramo, type Contrato,
 } from '../services/pagos';
+import FirmaContrato from './FirmaContrato';
 import { useHojaDePago } from '../services/stripeNativo';
 import { usePagosActivos } from '../services/pagosActivos';
 
@@ -31,6 +32,7 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [reportando, setReportando] = useState(false);
   const [motivo, setMotivo] = useState('');
+  const [contrato, setContrato] = useState<Contrato | null>(null);
   const abrirHoja = useHojaDePago();
   const pagosActivos = usePagosActivos();
 
@@ -68,12 +70,42 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
 
   const pagar = () =>
     ejecutar(async () => {
-      const { clientSecret } = await iniciarPago(obraId);
-      const res = await abrirHoja(clientSecret);
+      const inicio = await iniciarPago(obraId);
+      if (inicio.requiereFirma) {
+        // Primero se firma el encargo; al firmar se vuelve a llamar a pagar().
+        const c = await contratoObtener(inicio.pagoId, 'encargo');
+        if (c === null) throw new Error('No se ha podido cargar el contrato. Inténtalo de nuevo.');
+        setContrato(c);
+        return;
+      }
+      const res = await abrirHoja(inicio.clientSecret);
       if (res.cancelado) return;
       if (!res.ok) throw new Error(res.error ?? 'No se ha podido completar el pago.');
       Alert.alert('Pago realizado', 'Tu dinero queda retenido de forma segura y se entrega al oficio según vayas confirmando el trabajo.');
     });
+
+  /** Abre el contrato de conformidad (obra completa o un tramo) para que el cliente lo firme. */
+  const abrirConformidad = (tramoId?: string) =>
+    ejecutar(async () => {
+      const c = await contratoObtener(pago!.id, 'conformidad', tramoId);
+      if (c === null) {
+        // Sin plantilla de conformidad activa no se exige firma: se confirma como antes.
+        if (tramoId) await clienteConfirmaTramo(tramoId);
+        else await clienteConfirma(pago!.id);
+        return;
+      }
+      setContrato(c);
+    });
+
+  const alFirmar = (c: Contrato) => {
+    setContrato(null);
+    if (c.tipo === 'encargo') {
+      pagar();
+    } else {
+      Alert.alert('Conformidad firmada', 'Gracias. Hemos registrado tu firma y 3B hará la comprobación final antes de pagar al oficio.');
+      cargar();
+    }
+  };
 
   if (!pagosActivos || !obraAdjudicada) return null;
   if (cargando) return <ActivityIndicator color={colors.action} style={{ marginVertical: 12 }} />;
@@ -204,16 +236,11 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
                 )}
                 {rol === 'cliente' && estado === 'retenido' && t.estado === 'terminado_oficio' && (
                   <Pressable
-                    onPress={() =>
-                      Alert.alert('Confirmar el tramo', `Confirmas que «${t.titulo}» está bien hecho. 3B hará la comprobación final antes de pagar al oficio este tramo.`, [
-                        { text: 'Volver', style: 'cancel' },
-                        { text: 'Confirmar tramo', onPress: () => ejecutar(() => clienteConfirmaTramo(t.id)) },
-                      ])
-                    }
+                    onPress={() => abrirConformidad(t.id)}
                     disabled={trabajando}
                     className="bg-action rounded-lg py-2 items-center mt-2"
                   >
-                    <Text className="text-white text-xs font-sansBold">Confirmar que está bien</Text>
+                    <Text className="text-white text-xs font-sansBold">Revisar y firmar conformidad</Text>
                   </Pressable>
                 )}
               </View>
@@ -239,16 +266,11 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
 
       {rol === 'cliente' && estado === 'terminada_oficio' && (
         <Pressable
-          onPress={() =>
-            Alert.alert('Confirmar la obra', 'Confirmas que el trabajo está bien hecho. 3B hará la comprobación final antes de pagar al oficio.', [
-              { text: 'Volver', style: 'cancel' },
-              { text: 'Confirmar obra', onPress: () => ejecutar(() => clienteConfirma(pago!.id)) },
-            ])
-          }
+          onPress={() => abrirConformidad()}
           disabled={trabajando}
           className="bg-action rounded-lg py-2.5 items-center mt-3"
         >
-          <Text className="text-white text-xs font-sansBold">Confirmar que está bien</Text>
+          <Text className="text-white text-xs font-sansBold">Revisar y firmar conformidad</Text>
         </Pressable>
       )}
 
@@ -288,6 +310,8 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
       )}
 
       {trabajando && <ActivityIndicator color={colors.action} style={{ marginTop: 8 }} />}
+
+      <FirmaContrato contrato={contrato} onCerrar={() => setContrato(null)} onFirmado={alFirmar} />
     </View>
   );
 }
