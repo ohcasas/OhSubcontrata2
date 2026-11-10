@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, ActivityIndicator, Alert } from 'reac
 import { Feather } from '@expo/vector-icons';
 import { colors } from '../design-system/tokens';
 import {
-  pagoDeObra, iniciarPago, oficioTermina, clienteConfirma, clienteConfirmaTramo, reportarProblema, formatearCents,
+  pagoDeObra, iniciarPago, oficioTermina, clienteConfirma, clienteConfirmaTramo, reportarProblema, solicitarReembolso, cancelarPago, formatearCents,
   tramosDePago, oficioTerminaTramo, contratoObtener,
   type Pago, type Tramo, type Contrato,
 } from '../services/pagos';
@@ -30,7 +30,7 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
   const [cargando, setCargando] = useState(true);
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reportando, setReportando] = useState(false);
+  const [reportando, setReportando] = useState<null | 'problema' | 'reembolso'>(null);
   const [motivo, setMotivo] = useState('');
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const abrirHoja = useHojaDePago();
@@ -191,6 +191,21 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
         </Pressable>
       )}
 
+      {rol === 'cliente' && pago !== null && pago.estado === 'pendiente' && (
+        <Pressable
+          onPress={() =>
+            Alert.alert('Cancelar el pago', 'Todavía no se te ha cobrado nada. Podrás volver a pagar cuando quieras.', [
+              { text: 'Volver', style: 'cancel' },
+              { text: 'Cancelar pago', style: 'destructive', onPress: () => ejecutar(() => cancelarPago(pago.id)) },
+            ])
+          }
+          disabled={trabajando}
+          className="mt-3 items-center"
+        >
+          <Text className="text-inkMuted text-xs font-sansSemiBold">Cancelar este pago</Text>
+        </Pressable>
+      )}
+
       {porTramos && tramos.length > 0 && !sinPagar && (
         <View className="mt-3" style={{ gap: 8 }}>
           {tramos.map((t, i) => {
@@ -274,36 +289,52 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
         </Pressable>
       )}
 
-      {puedeReportar && !reportando && (
-        <Pressable onPress={() => { setReportando(true); setMotivo(''); }} className="mt-3 items-center">
-          <Text className="text-error text-xs font-sansSemiBold">Hay un problema</Text>
-        </Pressable>
+      {puedeReportar && reportando === null && (
+        <View className="mt-3 flex-row justify-center" style={{ gap: 20 }}>
+          <Pressable onPress={() => { setReportando('problema'); setMotivo(''); }}>
+            <Text className="text-error text-xs font-sansSemiBold">Hay un problema</Text>
+          </Pressable>
+          <Pressable onPress={() => { setReportando('reembolso'); setMotivo(''); }}>
+            <Text className="text-inkMuted text-xs font-sansSemiBold">Solicitar reembolso</Text>
+          </Pressable>
+        </View>
       )}
 
-      {reportando && (
+      {reportando !== null && (
         <View className="mt-3">
-          <Text className="text-ink text-xs font-sansSemiBold mb-1">Cuéntanos qué ha pasado</Text>
+          <Text className="text-ink text-xs font-sansSemiBold mb-1">
+            {reportando === 'reembolso' ? '¿Por qué quieres que se devuelva el pago?' : 'Cuéntanos qué ha pasado'}
+          </Text>
+          {reportando === 'reembolso' && (
+            <Text className="text-inkMuted text-[12px] mb-2">
+              El pago se congela y 3B lo revisa. El reembolso no es automático: lo decide 3B tras revisar el caso.
+            </Text>
+          )}
           <View className="bg-canvas border border-border rounded-xl px-3 mb-2">
             <TextInput
               value={motivo}
               onChangeText={setMotivo}
               multiline
-              placeholder="Describe el problema con el máximo detalle"
+              placeholder={reportando === 'reembolso' ? 'Explica el motivo con el máximo detalle' : 'Describe el problema con el máximo detalle'}
               placeholderTextColor={colors.inkSubtle}
               className="py-2.5 text-ink"
               style={{ minHeight: 70 }}
             />
           </View>
           <View className="flex-row" style={{ gap: 8 }}>
-            <Pressable onPress={() => setReportando(false)} className="flex-1 border border-border rounded-lg py-2 items-center">
+            <Pressable onPress={() => setReportando(null)} className="flex-1 border border-border rounded-lg py-2 items-center">
               <Text className="text-inkMuted text-xs font-sansSemiBold">Cancelar</Text>
             </Pressable>
             <Pressable
-              onPress={() => ejecutar(async () => { await reportarProblema(pago!.id, motivo); setReportando(false); })}
+              onPress={() => ejecutar(async () => {
+                if (reportando === 'reembolso') await solicitarReembolso(pago!.id, motivo);
+                else await reportarProblema(pago!.id, motivo);
+                setReportando(null);
+              })}
               disabled={trabajando}
               className="flex-1 bg-error rounded-lg py-2 items-center"
             >
-              <Text className="text-white text-xs font-sansBold">Congelar el pago</Text>
+              <Text className="text-white text-xs font-sansBold">{reportando === 'reembolso' ? 'Solicitar y congelar el pago' : 'Congelar el pago'}</Text>
             </Pressable>
           </View>
         </View>

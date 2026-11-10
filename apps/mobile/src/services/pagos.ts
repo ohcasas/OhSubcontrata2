@@ -170,6 +170,99 @@ export async function reportarProblema(pagoId: string, motivo: string): Promise<
   if (error) throw new Error(error.message);
 }
 
+/** El cliente cancela un pago que todavía no ha pagado (anula también el cobro en Stripe). */
+export async function cancelarPago(pagoId: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('stripe-cancelar-pago', { body: { pago_id: pagoId } });
+  if (error) throw new Error(await mensajeFuncion(error));
+  if (data?.error) throw new Error(data.error);
+}
+
+/** Cliente u oficio piden devolver el pago. No mueve dinero: se congela y 3B decide. */
+export async function solicitarReembolso(pagoId: string, motivo: string): Promise<void> {
+  const { error } = await supabase.rpc('pago_solicitar_reembolso', { p_pago_id: pagoId, p_motivo: motivo });
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Historial de pagos y contratos firmados
+// ---------------------------------------------------------------------------
+
+export type TramoResumen = {
+  id: string;
+  orden: number;
+  titulo: string;
+  pct: number;
+  importe_cents: number;
+  estado: EstadoTramo;
+  liberado_at: string | null;
+  /** Solo en el historial del oficio */
+  comision_cents?: number;
+  neto_cents?: number;
+};
+
+export type ResumenPago = {
+  pago_id: string;
+  obra_id: string;
+  obra_titulo: string | null;
+  estado: EstadoPago;
+  con_tramos: boolean;
+  importe_cents: number;
+  creado_at: string;
+  pagado_at: string | null;
+  liberado_at: string | null;
+  importe_reembolso_cents: number | null;
+  reembolso_solicitado_at: string | null;
+  tramos: TramoResumen[];
+  /** Solo en el historial del oficio (comisión de 3B ya descontada en neto) */
+  comision_pct?: number | null;
+  comision_cents?: number;
+  neto_cents?: number;
+  cobrado_cents?: number;
+  retenido_cents?: number;
+  comision_cobrada_cents?: number;
+  /** Solo en el historial del cliente: lo ya entregado al oficio */
+  entregado_cents?: number;
+};
+
+export type HistorialOficio = {
+  cobrado_cents: number;
+  retenido_cents: number;
+  comision_cents: number;
+  pagos: ResumenPago[];
+};
+
+export async function historialOficio(): Promise<HistorialOficio> {
+  const { data, error } = await supabase.rpc('oficio_historial_pagos');
+  if (error) throw new Error(error.message);
+  return data as HistorialOficio;
+}
+
+export async function historialCliente(): Promise<ResumenPago[]> {
+  const { data, error } = await supabase.rpc('cliente_historial_pagos');
+  if (error) throw new Error(error.message);
+  return ((data as { pagos?: ResumenPago[] } | null)?.pagos) ?? [];
+}
+
+export type ContratoFirmado = {
+  id: string;
+  tipo: TipoContrato;
+  estado: 'firmado' | 'tacito';
+  titulo: string;
+  cuerpo: string;
+  hash: string;
+  firmante_nombre: string | null;
+  firmado_at: string | null;
+  tramo_titulo: string | null;
+  created_at: string;
+};
+
+/** Contratos firmados de un pago (los puede ver el cliente y el oficio de ese pago). */
+export async function contratosDePago(pagoId: string): Promise<ContratoFirmado[]> {
+  const { data, error } = await supabase.rpc('contratos_de_pago', { p_pago_id: pagoId });
+  if (error) throw new Error(error.message);
+  return (data as ContratoFirmado[] | null) ?? [];
+}
+
 /** Cuenta de cobro del oficio: devuelve el enlace de Stripe si falta completar el alta. */
 export async function prepararCuentaCobro(): Promise<{ activa: boolean; url: string | null }> {
   const { data, error } = await supabase.functions.invoke('stripe-onboarding', { body: {} });

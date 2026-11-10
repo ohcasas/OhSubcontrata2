@@ -251,6 +251,7 @@
       <a href="#/metricas" data-nav="metricas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15v3M12 9v9M17 5v13"/></svg>Métricas</a>
       <a href="#/etiquetas" data-nav="etiquetas"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg>Etiquetas <span class="n hidden" id="cnt-etiquetas">0</span></a>
       <a href="#/pagos" data-nav="pagos"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pagos <span class="n hidden" id="cnt-pagos">0</span></a>
+      <a href="#/contratos" data-nav="contratos"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Contratos</a>
       <a href="#/precios" data-nav="precios"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</a>
       <a href="#/reglas" data-nav="reglas"><svg viewBox="0 0 24 24"><path d="M19 5 5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>Reglas de comisión</a>
       <a href="#/denuncias" data-nav="denuncias"><svg viewBox="0 0 24 24"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Denuncias <span class="n hidden" id="cnt-denuncias">0</span></a>
@@ -269,6 +270,7 @@
 <div id="velo" class="hidden"><div id="ventana" role="dialog" aria-modal="true"></div></div>
 <div id="aviso" class="hidden" role="status"></div>
 
+<script src="contratos.js"></script>
 <script>
 // ───────────────────────── Configuración ─────────────────────────
 // Pon aquí los datos de tu proyecto (Supabase → Project Settings → API). La clave "anon" es pública por
@@ -437,6 +439,7 @@ async function enrutar() {
     else if (ruta === 'equipo') await vistaEquipo(v);
     else if (ruta === 'etiquetas') await vistaEtiquetas(v);
     else if (ruta === 'pagos') await vistaPagos(v);
+    else if (ruta === 'contratos') await vistaContratos(v);
     else if (ruta === 'precios') await vistaPrecios(v);
     else if (ruta === 'reglas') await vistaReglas(v);
     else if (ruta === 'denuncias') await vistaDenuncias(v);

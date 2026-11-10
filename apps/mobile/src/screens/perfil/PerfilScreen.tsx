@@ -25,6 +25,7 @@ import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import MisEspecialidades from '../../components/MisEspecialidades';
 import CuentaCobro from '../../components/CuentaCobro';
+import HistorialPagos from '../../components/HistorialPagos';
 import UsuariosBloqueados from '../../components/UsuariosBloqueados';
 import { olvidarBloqueos } from '../../services/moderacion';
 import { usePagosActivos } from '../../services/pagosActivos';
@@ -568,6 +569,9 @@ export default function PerfilScreen() {
         {/* A qué se dedica el oficio: sirve para enseñarle primero las obras de su especialidad */}
         {esSubcontratista && empresaId !== null && <MisEspecialidades empresaId={empresaId} />}
         {pagosActivos && esSubcontratista && empresaId !== null && <CuentaCobro empresaId={empresaId} />}
+        {pagosActivos && rol !== null && !['referidor', 'tecnico'].includes(rol) && (
+          <HistorialPagos rol={esSubcontratista ? 'oficio' : 'cliente'} />
+        )}
 
         {/* Documentación: renovar los documentos de la cuenta y gestionar a los trabajadores */}
         {rol !== null && rol !== 'particular' && rol !== 'tecnico' && (
