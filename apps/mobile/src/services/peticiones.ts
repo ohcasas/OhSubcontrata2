@@ -102,6 +102,46 @@ export async function crearPeticion(d: DatosPeticion): Promise<string> {
   return data as string;
 }
 
+export const MAX_FOTOS_PETICION = 6;
+const BUCKET_FOTOS_PETICION = 'peticiones-fotos';
+
+/**
+ * Crea la petición y, después, sube las fotos (almacén privado `peticiones-fotos`, carpeta
+ * <usuario>/<petición>) y las adjunta. La petición NUNCA se pierde por una foto: si las fotos
+ * fallan, se limpian las ya subidas y se devuelve `fotosAdjuntas: false` para avisar a la persona.
+ */
+export async function crearPeticionConFotos(
+  d: DatosPeticion,
+  fotos: FotoElegida[],
+): Promise<{ obraId: string; fotosAdjuntas: boolean }> {
+  const obraId = await crearPeticion(d);
+  if (fotos.length === 0) return { obraId, fotosAdjuntas: true };
+
+  const rutas: string[] = [];
+  try {
+    const { data } = await supabase.auth.getUser();
+    const userId = data.user?.id;
+    if (!userId) throw new Error('No has iniciado sesión.');
+    for (const f of fotos.slice(0, MAX_FOTOS_PETICION)) {
+      rutas.push(await subirArchivoPrivado(BUCKET_FOTOS_PETICION, `${userId}/${obraId}`, f.uri, f.mimeType, f.nombre));
+    }
+    const { error } = await supabase.rpc('app_adjuntar_fotos_peticion', { p_obra_id: obraId, p_rutas: rutas });
+    if (error) throw error;
+    return { obraId, fotosAdjuntas: true };
+  } catch {
+    if (rutas.length > 0) await supabase.storage.from(BUCKET_FOTOS_PETICION).remove(rutas);
+    return { obraId, fotosAdjuntas: false };
+  }
+}
+
+/** Direcciones temporales para ver las fotos de una petición propia. */
+export async function fotosDePeticion(obraId: string): Promise<string[]> {
+  const { data, error } = await supabase.rpc('app_fotos_peticion', { p_obra_id: obraId });
+  if (error) throw error;
+  const rutas = (data as string[] | null) ?? [];
+  return Promise.all(rutas.map((r) => obtenerUrlFirmada(BUCKET_FOTOS_PETICION, r)));
+}
+
 export async function responderInfo(obraId: string, mensaje: string, descripcion: string | null): Promise<void> {
   const { error } = await supabase.rpc('app_responder_info_peticion', {
     p_obra_id: obraId,

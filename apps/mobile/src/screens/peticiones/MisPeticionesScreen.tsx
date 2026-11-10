@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Switch,
   Linking,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
@@ -19,14 +20,23 @@ import { formatearMoneda } from '../../utils/moneda';
 import { URL_POLITICA_PRIVACIDAD } from '../../constants/enlaces';
 import LicitacionDetalle from '../licitaciones/LicitacionDetalle';
 import { ETIQUETA_ESTADO_OBRA, ESTILO_ESTADO_OBRA, fechaCorta, parsearImporte } from '../licitaciones/estados';
-import { crearPeticion, mensajeDeError, misPeticiones, responderInfo, type Peticion } from '../../services/peticiones';
+import {
+  crearPeticionConFotos,
+  elegirFoto,
+  MAX_FOTOS_PETICION,
+  mensajeDeError,
+  misPeticiones,
+  responderInfo,
+  type FotoElegida,
+  type Peticion,
+} from '../../services/peticiones';
 
 const ESTADOS_EN_REVISION = ['en_revision', 'pendiente_info', 'rechazada'];
 
 type Vista =
   | { tipo: 'lista' }
   | { tipo: 'nueva' }
-  | { tipo: 'enviada' }
+  | { tipo: 'enviada'; sinFotos?: boolean }
   | { tipo: 'detalle'; peticion: Peticion };
 
 /**
@@ -38,10 +48,10 @@ export default function MisPeticionesScreen() {
   const [vista, setVista] = useState<Vista>({ tipo: 'lista' });
 
   if (vista.tipo === 'nueva') {
-    return <NuevaPeticion onCancelar={() => setVista({ tipo: 'lista' })} onEnviada={() => setVista({ tipo: 'enviada' })} />;
+    return <NuevaPeticion onCancelar={() => setVista({ tipo: 'lista' })} onEnviada={(sinFotos) => setVista({ tipo: 'enviada', sinFotos })} />;
   }
   if (vista.tipo === 'enviada') {
-    return <PeticionEnviada onVolver={() => setVista({ tipo: 'lista' })} />;
+    return <PeticionEnviada sinFotos={vista.sinFotos === true} onVolver={() => setVista({ tipo: 'lista' })} />;
   }
   if (vista.tipo === 'detalle') {
     // Publicada o más allá: es la misma pantalla de las licitaciones (ofertas, adjudicar, estado de la obra)
@@ -334,7 +344,7 @@ function PeticionEnRevision({ peticion, onVolver }: { peticion: Peticion; onVolv
 }
 
 // ---------------------------------------------------------------------------
-function PeticionEnviada({ onVolver }: { onVolver: () => void }) {
+function PeticionEnviada({ onVolver, sinFotos }: { onVolver: () => void; sinFotos: boolean }) {
   return (
     <View className="flex-1 bg-canvas items-center justify-center px-6">
       <View className="w-14 h-14 rounded-full bg-successTint items-center justify-center mb-4">
@@ -345,6 +355,15 @@ function PeticionEnviada({ onVolver }: { onVolver: () => void }) {
         La revisaremos en un máximo de 3 días laborables. Si hace falta algo más, te lo pediremos por aquí o por teléfono. Cuando
         esté publicada, las empresas te enviarán su oferta.
       </Text>
+      {sinFotos && (
+        <View className="bg-warningTint rounded-xl p-3 mb-6 flex-row items-start gap-2">
+          <Feather name="image" size={15} color={colors.warning} style={{ marginTop: 1 }} />
+          <Text className="text-ink text-xs flex-1 leading-relaxed">
+            Tu petición se ha enviado, pero no hemos podido adjuntar las fotos. Cuando te contactemos podrás enseñárnoslas, o
+            escríbenos a soporte@3bconecta.com.
+          </Text>
+        </View>
+      )}
       <Pressable onPress={onVolver} className="bg-action rounded-xl py-3 px-6">
         <Text className="text-white font-sansBold text-sm">Ver mis peticiones</Text>
       </Pressable>
@@ -356,7 +375,7 @@ function PeticionEnviada({ onVolver }: { onVolver: () => void }) {
 const TIPOS_TRABAJO = ['Reforma integral', 'Baño', 'Cocina', 'Fontanería', 'Electricidad', 'Pintura', 'Carpintería', 'Tejado o cubierta', 'Otro'];
 const DIAS_ABIERTA = [7, 15, 30, 60];
 
-function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEnviada: () => void }) {
+function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEnviada: (sinFotos: boolean) => void }) {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [tipo, setTipo] = useState('');
@@ -367,8 +386,20 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
   const [dias, setDias] = useState(30);
   const [aceptaContacto, setAceptaContacto] = useState(false);
   const [aceptaVisita, setAceptaVisita] = useState(false);
+  const [fotos, setFotos] = useState<FotoElegida[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const anadirFoto = async () => {
+    setError(null);
+    if (fotos.length >= MAX_FOTOS_PETICION) return setError(`Puedes adjuntar hasta ${MAX_FOTOS_PETICION} fotos.`);
+    try {
+      const f = await elegirFoto();
+      if (f !== null) setFotos((prev) => [...prev, f].slice(0, MAX_FOTOS_PETICION));
+    } catch (e) {
+      setError(mensajeDeError(e));
+    }
+  };
 
   const enviar = async () => {
     setError(null);
@@ -383,7 +414,7 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
 
     setEnviando(true);
     try {
-      await crearPeticion({
+      const r = await crearPeticionConFotos({
         titulo,
         descripcion,
         especialidad: tipo,
@@ -395,8 +426,8 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
         requisitos: '',
         aceptaContacto,
         aceptaVisita,
-      });
-      onEnviada();
+      }, fotos);
+      onEnviada(!r.fotosAdjuntas);
     } catch (e) {
       setError(mensajeDeError(e));
       setEnviando(false);
@@ -473,6 +504,42 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
         })}
         {campo('Teléfono de contacto *', telefono, setTelefono, { placeholder: 'Ej: 612 345 678', teclado: 'phone-pad' })}
         {campo('Presupuesto orientativo (€) *', presupuesto, setPresupuesto, { placeholder: 'Ej: 6000', teclado: 'decimal-pad' })}
+
+        <Text className="text-ink text-xs font-sansSemiBold mb-1">Fotos de la obra (opcional)</Text>
+        <View className="mb-5">
+          <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+            {fotos.map((f, i) => (
+              <View key={f.uri + i} style={{ width: 84, height: 84 }}>
+                <Image source={{ uri: f.uri }} style={{ width: 84, height: 84, borderRadius: 10 }} accessibilityLabel={`Foto ${i + 1}`} />
+                <Pressable
+                  onPress={() => setFotos((prev) => prev.filter((_, j) => j !== i))}
+                  disabled={enviando}
+                  hitSlop={8}
+                  accessibilityLabel={`Quitar foto ${i + 1}`}
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-ink items-center justify-center"
+                >
+                  <Feather name="x" size={14} color={colors.white} />
+                </Pressable>
+              </View>
+            ))}
+            {fotos.length < MAX_FOTOS_PETICION && (
+              <Pressable
+                onPress={anadirFoto}
+                disabled={enviando}
+                accessibilityLabel="Añadir foto"
+                className="items-center justify-center rounded-xl border border-border bg-surface"
+                style={{ width: 84, height: 84 }}
+              >
+                <Feather name="camera" size={20} color={colors.action} />
+                <Text className="text-action text-[11px] font-sansSemiBold mt-1">Añadir</Text>
+              </Pressable>
+            )}
+          </View>
+          <Text className="text-inkMuted text-[12px] mt-2 leading-relaxed">
+            Hasta {MAX_FOTOS_PETICION} fotos en JPG, PNG o WEBP. Ayudan a que 3B entienda mejor la obra. Evita que salgan personas o
+            documentos: pueden verse el interior de tu vivienda y solo las ve 3B.
+          </Text>
+        </View>
 
         <Text className="text-ink text-xs font-sansSemiBold mb-1.5">Abierta a ofertas durante</Text>
         <View className="flex-row mb-5" style={{ gap: 6 }}>
