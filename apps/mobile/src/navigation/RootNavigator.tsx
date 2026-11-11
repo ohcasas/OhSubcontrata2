@@ -40,6 +40,8 @@ import CandidatoTabs from './CandidatoTabs';
 import EmpleoOfertaScreen from '../screens/seleccion/EmpleoOfertaScreen';
 import PostularScreen from '../screens/seleccion/PostularScreen';
 import CandidaturaDetalleScreen from '../screens/seleccion/CandidaturaDetalleScreen';
+import { ActualizarAppScreen, AvisoActualizacion } from '../screens/ActualizarAppScreen';
+import { comprobarVersionApp, type EstadoVersion } from '../services/versionApp';
 import CandidatoPendienteScreen from '../screens/seleccion/CandidatoPendienteScreen';
 import CandidatoAltaScreen from '../screens/seleccion/CandidatoAltaScreen';
 import { obtenerMiCandidato } from '../services/seleccion';
@@ -79,6 +81,11 @@ export default function RootNavigator() {
   const [recargas, setRecargas] = useState(0);
   const [comprobando, setComprobando] = useState(false);
   // «Trabaja con nosotros»: 'si' = candidato con datos; 'alta' = cuenta de candidato sin «Tus datos» aún.
+  const [version, setVersion] = useState<EstadoVersion>({ nivel: 'ok', urlTienda: null, mensaje: null });
+  const [avisoCerrado, setAvisoCerrado] = useState(false);
+  useEffect(() => {
+    comprobarVersionApp().then(setVersion);
+  }, []);
   const [candidatoNota, setCandidatoNota] = useState<string | null>(null);
   const [candidato, setCandidato] = useState<'si' | 'pendiente' | 'alta' | null>(null);
 
@@ -161,6 +168,10 @@ export default function RootNavigator() {
     };
   }, [session, recargas]);
 
+  // Version de la app demasiado antigua: nada de lo demas se ensena hasta actualizar.
+  if (version.nivel === 'obligatoria') {
+    return <ActualizarAppScreen urlTienda={version.urlTienda} mensaje={version.mensaje} />;
+  }
   if (cargando || (session !== null && estadoCuenta === null)) {
     return (
       <View className="flex-1 items-center justify-center bg-canvas">
@@ -329,6 +340,9 @@ export default function RootNavigator() {
           recomendación), nunca para el admin. */}
       {session !== null && cuentaActiva && (rol === 'subcontratista' || rol === 'referidor' || rol === 'administrador') && (
         <TarjetaComisionFlotante userId={session.user.id} />
+      )}
+      {version.nivel === 'recomendada' && !avisoCerrado && (
+        <AvisoActualizacion urlTienda={version.urlTienda} mensaje={version.mensaje} onCerrar={() => setAvisoCerrado(true)} />
       )}
     </NavigationContainer>
   );
