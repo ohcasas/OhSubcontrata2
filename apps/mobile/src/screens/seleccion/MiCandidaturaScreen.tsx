@@ -6,7 +6,7 @@ import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { colors } from '../../design-system/tokens';
 import { misCandidaturas, mensajeDeErrorSeleccion, TEXTO_ESTADO, esProcesoCerrado } from '../../services/seleccion';
 import type { MiCandidatura } from '../../services/seleccion';
-import { Aviso, BotonPrimario, Etiqueta, Tarjeta, Vacio, fechaCorta } from './ui';
+import { Aviso, BotonPrimario, BotonSecundario, Etiqueta, Tarjeta, Vacio, fechaCorta } from './ui';
 
 /** Pestaña «Mi candidatura»: lista de candidaturas con su estado. El detalle se abre al pulsar. */
 export default function MiCandidaturaScreen() {
@@ -62,8 +62,13 @@ export default function MiCandidaturaScreen() {
           {error !== null && <Aviso texto={error} />}
           {lista.length === 0 && error === null && (
             <>
-              <Vacio titulo="Todavía no has presentado ninguna candidatura" texto="Mira las ofertas abiertas y presenta la tuya." />
-              <BotonPrimario texto="Ver ofertas" onPress={() => navigation.navigate('Ofertas')} />
+              <Vacio
+                titulo="Todavía no has presentado ninguna candidatura"
+                texto="No necesitas una oferta abierta: completa tu perfil profesional y entra en la bolsa de empleo, o mira las ofertas y presenta la tuya."
+              />
+              <BotonPrimario texto="Completar mi perfil profesional" onPress={() => navigation.navigate('MisDatos')} />
+              <View className="h-2" />
+              <BotonSecundario texto="Ver ofertas" onPress={() => navigation.navigate('Ofertas')} />
             </>
           )}
           {lista.map((c) => (

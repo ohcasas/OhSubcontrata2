@@ -14,6 +14,7 @@ import {
 } from '../../services/seleccion';
 import type { Candidato } from '../../services/seleccion';
 import { Aviso, BotonPrimario, BotonSecundario, Tarjeta } from './ui';
+import PerfilProfesional from './PerfilProfesional';
 
 const URL_POLITICA = 'https://3bconecta.com/privacidad.html';
 
@@ -128,6 +129,8 @@ export default function MisDatosScreen() {
           />
           <BotonPrimario texto="Guardar cambios" onPress={guardar} cargando={ocupado === 'guardar'} desactivado={c === null} />
         </Tarjeta>
+
+        <PerfilProfesional />
 
         <Tarjeta>
           <Text className="text-ink text-base font-sansBold">Mi CV</Text>

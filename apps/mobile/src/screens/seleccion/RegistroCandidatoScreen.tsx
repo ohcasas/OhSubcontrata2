@@ -54,7 +54,7 @@ export default function RegistroCandidatoScreen() {
       <View className="flex-1 bg-canvas items-center justify-center px-6" style={{ paddingTop: insets.top }}>
         <Text className="text-ink text-2xl font-sansBold text-center">Confirma tu correo</Text>
         <Text className="text-inkMuted text-sm text-center mt-2">
-          Te hemos enviado un enlace a {email.trim()}. Ábrelo y después inicia sesión para completar tus datos y presentar tu candidatura.
+          Te hemos enviado un enlace a {email.trim()}. Ábrelo y después inicia sesión para completar tus datos y entrar en la bolsa de empleo o presentarte a una oferta.
         </Text>
         <View className="w-full mt-6">
           <BotonPrimario texto="Ir a iniciar sesión" onPress={() => navigation.navigate('Login')} />
@@ -72,7 +72,7 @@ export default function RegistroCandidatoScreen() {
           </Pressable>
           <Text className="text-ink text-2xl font-sansBold mt-2">Cuenta de candidato</Text>
           <Text className="text-inkMuted text-sm mt-1 mb-4">
-            Esta cuenta es solo para el proceso de selección. No crea ningún perfil de empresa ni de profesional.
+            Esta cuenta es solo para trabajar con 3B. No necesitas que haya una oferta abierta: puedes dejar tu perfil en la bolsa de empleo. No crea ningún perfil de empresa ni de profesional.
           </Text>
           {error !== null && <Aviso texto={error} />}
           <Text className="text-ink text-xs font-sansSemiBold mb-1">Email</Text>
@@ -105,7 +105,7 @@ export default function RegistroCandidatoScreen() {
           </View>
           <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)} className="mt-4">
             <Text className="text-inkMuted text-xs text-center">
-              Después te pediremos tus datos y tu consentimiento para el proceso. <Text className="text-action">Política de privacidad</Text>
+              Después te pediremos tus datos y tu consentimiento. <Text className="text-action">Política de privacidad</Text>
             </Text>
           </Pressable>
         </ScrollView>

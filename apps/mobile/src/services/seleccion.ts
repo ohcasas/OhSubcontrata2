@@ -220,3 +220,55 @@ export async function exportarMisDatos(): Promise<unknown> {
   if (error) throw error;
   return data;
 }
+
+// ───────────────────────── Perfil profesional y bolsa de empleo (migración 0078) ─────────────────────────
+export type FormacionItem = { tipo: 'curso' | 'certificacion'; nombre: string; entidad: string | null; anio: number | null };
+export type Disponibilidad = 'inmediata' | 'un_mes' | 'a_consultar';
+export type PerfilProfesional = {
+  oficios: string[];
+  anios_experiencia: number | null;
+  provincias: string[];
+  disponibilidad: Disponibilidad | null;
+  tiene_vehiculo: boolean;
+  en_bolsa: boolean;
+  bolsa_consentimiento_at: string | null;
+};
+
+/** Versión del texto de consentimiento de la bolsa. Si cambia el texto, cambia esta versión. */
+export const VERSION_CONSENTIMIENTO_BOLSA = 'bolsa-v1';
+
+export async function miPerfilProfesional(): Promise<{ perfil: PerfilProfesional | null; formacion: FormacionItem[] }> {
+  const { data, error } = await supabase.rpc('sel_mi_perfil_profesional');
+  if (error) throw error;
+  const d = data as { perfil: PerfilProfesional | null; formacion: FormacionItem[] | null } | null;
+  return { perfil: d?.perfil ?? null, formacion: d?.formacion ?? [] };
+}
+
+export async function guardarPerfilProfesional(d: {
+  oficios: string[];
+  anios: number | null;
+  provincias: string[];
+  disponibilidad: Disponibilidad | null;
+  vehiculo: boolean;
+  formacion: FormacionItem[];
+}): Promise<void> {
+  const { error } = await supabase.rpc('sel_guardar_perfil_profesional', {
+    p_oficios: d.oficios,
+    p_anios: d.anios,
+    p_provincias: d.provincias,
+    p_disponibilidad: d.disponibilidad,
+    p_vehiculo: d.vehiculo,
+    p_formacion: d.formacion,
+  });
+  if (error) throw error;
+}
+
+export async function entrarBolsa(): Promise<void> {
+  const { error } = await supabase.rpc('sel_entrar_bolsa', { p_version_consentimiento: VERSION_CONSENTIMIENTO_BOLSA, p_acepta: true });
+  if (error) throw error;
+}
+
+export async function salirBolsa(): Promise<void> {
+  const { error } = await supabase.rpc('sel_salir_bolsa');
+  if (error) throw error;
+}

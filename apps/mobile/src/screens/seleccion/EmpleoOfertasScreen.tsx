@@ -65,7 +65,10 @@ export default function EmpleoOfertasScreen() {
         >
           {error !== null && <Aviso texto={error} />}
           {ofertas.length === 0 && error === null && (
-            <Vacio titulo="Ahora mismo no hay ofertas abiertas" texto="Vuelve más adelante: aquí aparecen en cuanto se publican." />
+            <Vacio
+              titulo="Ahora mismo no hay ofertas abiertas"
+              texto="Aun así puedes registrarte y dejar tu perfil en la bolsa de empleo: el equipo de selección podrá contactarte cuando surja una oportunidad."
+            />
           )}
           {ofertas.map((o) => (
             <Tarjeta key={o.id} onPress={() => navigation.navigate('EmpleoOferta', { oferta: o })}>
