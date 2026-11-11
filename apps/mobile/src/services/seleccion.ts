@@ -27,6 +27,9 @@ export type Candidato = {
   localidad: string | null;
   resumen: string | null;
   cv_path: string | null;
+  /** Verificación de la documentación por el equipo de 3B. */
+  verificacion: 'pendiente' | 'verificado' | 'rechazado';
+  verificacion_nota: string | null;
 };
 
 export type MiCandidatura = {
@@ -117,7 +120,7 @@ export async function listarOfertasPublicas(): Promise<OfertaPublica[]> {
 export async function obtenerMiCandidato(userId: string): Promise<Candidato | null> {
   const { data, error } = await supabase
     .from('seleccion_candidatos')
-    .select('user_id,nombre_completo,email,telefono,localidad,resumen,cv_path')
+    .select('user_id,nombre_completo,email,telefono,localidad,resumen,cv_path,verificacion,verificacion_nota')
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;

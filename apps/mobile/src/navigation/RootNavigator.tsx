@@ -40,6 +40,7 @@ import CandidatoTabs from './CandidatoTabs';
 import EmpleoOfertaScreen from '../screens/seleccion/EmpleoOfertaScreen';
 import PostularScreen from '../screens/seleccion/PostularScreen';
 import CandidaturaDetalleScreen from '../screens/seleccion/CandidaturaDetalleScreen';
+import CandidatoPendienteScreen from '../screens/seleccion/CandidatoPendienteScreen';
 import CandidatoAltaScreen from '../screens/seleccion/CandidatoAltaScreen';
 import { obtenerMiCandidato } from '../services/seleccion';
 import type { RootStackParamList } from './types';
@@ -78,7 +79,8 @@ export default function RootNavigator() {
   const [recargas, setRecargas] = useState(0);
   const [comprobando, setComprobando] = useState(false);
   // «Trabaja con nosotros»: 'si' = candidato con datos; 'alta' = cuenta de candidato sin «Tus datos» aún.
-  const [candidato, setCandidato] = useState<'si' | 'alta' | null>(null);
+  const [candidatoNota, setCandidatoNota] = useState<string | null>(null);
+  const [candidato, setCandidato] = useState<'si' | 'pendiente' | 'alta' | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -128,7 +130,8 @@ export default function RootNavigator() {
           const cand = await obtenerMiCandidato(session.user.id).catch(() => null);
           if (!activo) return;
           if (cand) {
-            setCandidato('si');
+            setCandidato(cand.verificacion === 'verificado' ? 'si' : 'pendiente');
+            setCandidatoNota(cand.verificacion === 'rechazado' ? cand.verificacion_nota : null);
             setEstadoCuenta('verificada');
             return;
           }
@@ -217,6 +220,10 @@ export default function RootNavigator() {
         ) : candidato === 'alta' ? (
           <Stack.Screen name="CandidatoAlta">
             {() => <CandidatoAltaScreen onHecho={() => setRecargas((n) => n + 1)} />}
+          </Stack.Screen>
+        ) : candidato === 'pendiente' ? (
+          <Stack.Screen name="CandidatoPendiente">
+            {() => <CandidatoPendienteScreen nota={candidatoNota} onComprobar={() => setRecargas((n) => n + 1)} />}
           </Stack.Screen>
         ) : candidato === 'si' ? (
           <>

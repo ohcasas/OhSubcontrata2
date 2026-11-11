@@ -79,6 +79,7 @@ export type RootStackParamList = {
   // Espacio del candidato de «Trabaja con nosotros» (cuenta sin perfil del marketplace).
   AppCandidato: undefined;
   CandidatoAlta: undefined;
+  CandidatoPendiente: undefined;
   EmpleoOferta: { oferta: OfertaPublica };
   Postular: { oferta: OfertaPublica };
   CandidaturaDetalle: { candidatura: MiCandidatura };

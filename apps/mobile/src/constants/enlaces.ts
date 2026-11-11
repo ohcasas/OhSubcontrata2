@@ -13,3 +13,6 @@ export const URL_TERMINOS = 'https://3bconecta.com/terminos.html';
 export const URL_NUEVA_CONTRASENA = 'https://3bconecta.com/nueva-contrasena.html';
 /** Correo de soporte que se muestra en pantalla (cuenta pendiente o suspendida). */
 export const EMAIL_SOPORTE = 'soporte@3bconecta.com';
+
+/** Correo al que los candidatos envian su documentacion en PDF para verificarla (un unico sitio por si cambia). */
+export const EMAIL_DOCUMENTACION = 'contacto3b@3bconecta.com';
