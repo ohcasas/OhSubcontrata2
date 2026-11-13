@@ -6,7 +6,7 @@ import type { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { colors } from '../../design-system/tokens';
 import { listarOfertasPublicas, mensajeDeErrorSeleccion } from '../../services/seleccion';
 import type { OfertaPublica } from '../../services/seleccion';
-import { Aviso, Etiqueta, Tarjeta, Vacio } from './ui';
+import { Aviso, BotonPrimario, Etiqueta, Tarjeta, Vacio } from './ui';
 
 /**
  * Ofertas abiertas de «Trabaja con nosotros». Sirve sin sesión (desde el inicio de sesión)
@@ -18,6 +18,8 @@ export default function EmpleoOfertasScreen() {
   const [ofertas, setOfertas] = useState<OfertaPublica[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refrescando, setRefrescando] = useState(false);
+  // Sin sesión (pantalla del inicio de sesión) existe la ruta de registro; con sesión (pestaña del candidato) no.
+  const puedeRegistrarse = navigation.getState()?.routeNames?.includes('RegistroCandidato') ?? false;
 
   const cargar = useCallback(async () => {
     try {
@@ -69,6 +71,11 @@ export default function EmpleoOfertasScreen() {
               titulo="Ahora mismo no hay ofertas abiertas"
               texto="Aun así puedes registrarte y dejar tu perfil en la bolsa de empleo: el equipo de selección podrá contactarte cuando surja una oportunidad."
             />
+          )}
+          {puedeRegistrarse && (
+            <View className="mt-4 mb-2">
+              <BotonPrimario texto="Crear cuenta de candidato" onPress={() => navigation.navigate('RegistroCandidato')} />
+            </View>
           )}
           {ofertas.map((o) => (
             <Tarjeta key={o.id} onPress={() => navigation.navigate('EmpleoOferta', { oferta: o })}>
