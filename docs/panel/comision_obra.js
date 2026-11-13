@@ -16,11 +16,10 @@ async function vistaComisionObra(v) {
   if (f === 'propia') lista = lista.filter((x) => x.comision_propia !== null);
   if (f === 'particular' || f === 'empresa') lista = lista.filter((x) => x.origen === f);
   if (q) lista = lista.filter((x) => coNorm(x.titulo).includes(q));
-  const general = todas.length ? todas[0].comision_general : null;
   const tabs = [['todas', 'Todas'], ['propia', 'Con comisión propia'], ['particular', 'De particulares'], ['empresa', 'De empresas']];
 
   v.innerHTML = `<div class="cab"><div><h1>Comisión por obra</h1>
-    <p class="suave">Aquí fijas la comisión de una obra concreta. Tiene prioridad sobre la de la empresa y sobre la general (${esc(coPct(general))}).
+    <p class="suave">Aquí fijas la comisión de una obra concreta. Tiene prioridad sobre la de la empresa, sobre las reglas de comisión y sobre la general.
     Para las obras que publica la administración en nombre de OH Casas, pon 0 %. Solo afecta a pagos que aún no se han cobrado.</p></div></div>
     <div class="herramientas">
       ${tabs.map(([k, n]) => `<a class="btn ${k === f ? 'primario' : ''}" href="#/comision-obra?f=${k}${q ? '&q=' + encodeURIComponent(q) : ''}">${n}</a>`).join('')}
