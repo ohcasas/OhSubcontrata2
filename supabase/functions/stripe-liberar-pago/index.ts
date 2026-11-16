@@ -36,14 +36,21 @@ Deno.serve(async (req) => {
         transfer_group: plan.transfer_group,
         source_transaction: cargo ?? undefined,
         metadata: { pago_id: plan.pago_id, comision_cents: String(plan.comision_cents) },
-      }, { idempotencyKey: `transfer_${plan.pago_id}_${plan.cuenta_oficio}` });
+      }, { idempotencyKey: `transfer_${plan.pago_id}` });
       transferId = t.id;
       movido = true;
+    }
+    // Si se devuelve dinero al particular, se le devuelve también el extra del paquete (una sola vez).
+    let recargoDevuelto = 0;
+    if (plan.reembolsar_cents > 0) {
+      const { data: pg } = await clienteServicio()
+        .from("pagos").select("recargo_cents, recargo_reembolsado").eq("id", plan.pago_id).single();
+      if (pg && !pg.recargo_reembolsado && Number(pg.recargo_cents) > 0) recargoDevuelto = Number(pg.recargo_cents);
     }
     if (plan.reembolsar_cents > 0) {
       const r = await stripe.refunds.create({
         payment_intent: plan.payment_intent,
-        amount: plan.reembolsar_cents,
+        amount: plan.reembolsar_cents + recargoDevuelto,
         metadata: { pago_id: plan.pago_id },
       }, { idempotencyKey: `refund_${plan.pago_id}` });
       refundId = r.id;
@@ -56,6 +63,9 @@ Deno.serve(async (req) => {
       p_pago_id: plan.pago_id, p_transfer_id: transferId, p_refund_id: refundId,
     });
     if (e2) throw e2;
+    if (recargoDevuelto > 0) {
+      await admin.from("pagos").update({ recargo_reembolsado: true }).eq("id", plan.pago_id);
+    }
     return json({ ok: true, transfer_id: transferId, refund_id: refundId });
   } catch (e) {
     // Si Stripe falló antes de mover dinero, el pago vuelve a su estado anterior.

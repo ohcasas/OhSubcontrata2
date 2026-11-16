@@ -19,16 +19,8 @@ Deno.serve(async (req) => {
     const { data: pago, error } = await usuario.rpc("pago_iniciar", { p_obra_id: obra_id });
     if (error) return json({ error: error.message }, 400);
 
-    // El cliente tiene que haber firmado el encargo antes de que se cree el cobro en Stripe.
-    // contrato_obtener devuelve null cuando no hay plantilla activa (entonces no se exige nada).
-    const { data: encargo, error: errContrato } = await usuario.rpc("contrato_obtener", {
-      p_pago_id: pago.pago_id,
-      p_tipo: "encargo",
-    });
-    if (errContrato) return json({ error: errContrato.message }, 400);
-    if (encargo && encargo.estado !== "firmado") {
-      return json({ requiere_firma: true, pago_id: pago.pago_id, contrato_id: encargo.id });
-    }
+    // Importe que se cobra con tarjeta: la oferta más el extra del paquete (0 si no hay paquete)
+    const cobrar: number = pago.cobrar_cents ?? pago.importe_cents;
 
     const admin = clienteServicio();
     const { data: fila } = await admin
@@ -40,25 +32,25 @@ Deno.serve(async (req) => {
       if (intent.status === "canceled") {
         // El intent antiguo ya no sirve: se crea uno nuevo (la clave de idempotencia lleva el id del viejo)
         intent = await stripe.paymentIntents.create({
-          amount: pago.importe_cents,
+          amount: cobrar,
           currency: pago.moneda,
           transfer_group: pago.transfer_group,
           automatic_payment_methods: { enabled: true },
-          metadata: { pago_id: pago.pago_id, obra_id },
+          metadata: { pago_id: pago.pago_id, obra_id, recargo_cents: String(pago.recargo_cents ?? 0) },
         }, { idempotencyKey: `pi_${pago.pago_id}_tras_${fila.stripe_payment_intent_id}` });
         const { error: e2 } = await admin.from("pagos")
           .update({ stripe_payment_intent_id: intent.id }).eq("id", pago.pago_id);
         if (e2) throw e2;
-      } else if (intent.amount !== pago.importe_cents && intent.status !== "succeeded") {
-        intent = await stripe.paymentIntents.update(intent.id, { amount: pago.importe_cents });
+      } else if (intent.amount !== cobrar && intent.status !== "succeeded") {
+        intent = await stripe.paymentIntents.update(intent.id, { amount: cobrar });
       }
     } else {
       intent = await stripe.paymentIntents.create({
-        amount: pago.importe_cents,
+        amount: cobrar,
         currency: pago.moneda,
         transfer_group: pago.transfer_group,
         automatic_payment_methods: { enabled: true },
-        metadata: { pago_id: pago.pago_id, obra_id },
+        metadata: { pago_id: pago.pago_id, obra_id, recargo_cents: String(pago.recargo_cents ?? 0) },
       }, { idempotencyKey: `pi_${pago.pago_id}` });
       await admin.from("pagos")
         .update({ stripe_payment_intent_id: intent.id }).eq("id", pago.pago_id);

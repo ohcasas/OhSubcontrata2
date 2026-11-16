@@ -10,6 +10,7 @@ import {
 import FirmaContrato from './FirmaContrato';
 import { useHojaDePago } from '../services/stripeNativo';
 import { usePagosActivos } from '../services/pagosActivos';
+import { resumenCobro, type ResumenCobro } from '../services/paquetes';
 
 type Props = {
   obraId: string;
@@ -35,6 +36,7 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
   const [contrato, setContrato] = useState<Contrato | null>(null);
   const abrirHoja = useHojaDePago();
   const pagosActivos = usePagosActivos();
+  const [resumen, setResumen] = useState<ResumenCobro | null>(null);
 
   const cargar = useCallback(async () => {
     if (!pagosActivos) {
@@ -44,13 +46,15 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
     try {
       const p = await pagoDeObra(obraId);
       setPago(p);
+      const sinPagarAhora = p === null || ['pendiente', 'fallido', 'cancelado'].includes(p.estado);
+      setResumen(rol === 'cliente' && sinPagarAhora ? await resumenCobro(obraId) : null);
       setTramos(p !== null && p.con_tramos ? await tramosDePago(p.id) : []);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
     setCargando(false);
-  }, [obraId, pagosActivos]);
+  }, [obraId, pagosActivos, rol]);
 
   useEffect(() => {
     cargar();
@@ -182,6 +186,24 @@ export default function PagoObra({ obraId, rol, obraAdjudicada }: Props) {
         <Text className="text-ink text-sm font-sansBold flex-1">{titulo}</Text>
       </View>
       <Text className="text-inkMuted text-xs">{texto}</Text>
+
+      {rol === 'cliente' && sinPagar && resumen !== null && resumen.recargo_cents > 0 && (
+        <View className="bg-canvas border border-border rounded-lg p-3 mt-3" style={{ gap: 4 }}>
+          <View className="flex-row justify-between">
+            <Text className="text-inkMuted text-xs">Oferta del oficio</Text>
+            <Text className="text-ink text-xs font-sansSemiBold">{formatearCents(resumen.oferta_cents)}</Text>
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-inkMuted text-xs">Paquete {resumen.paquete_nombre}</Text>
+            <Text className="text-ink text-xs font-sansSemiBold">{formatearCents(resumen.recargo_cents)}</Text>
+          </View>
+          <View className="flex-row justify-between pt-1.5 mt-1 border-t border-border">
+            <Text className="text-ink text-xs font-sansBold">Total a pagar</Text>
+            <Text className="text-ink text-xs font-sansBold">{formatearCents(resumen.total_cents)}</Text>
+          </View>
+          <Text className="text-inkMuted text-[12px] mt-1">Si el pago se devuelve, te devolvemos también el importe del paquete.</Text>
+        </View>
+      )}
 
       {error !== null && <Text className="text-error text-xs mt-2">{error}</Text>}
 

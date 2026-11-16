@@ -17,6 +17,8 @@ import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
 import { formatearMoneda } from '../../utils/moneda';
+import PaquetesSelector from '../../components/PaquetesSelector';
+import { elegirPaquete } from '../../services/paquetes';
 import { URL_POLITICA_PRIVACIDAD } from '../../constants/enlaces';
 import LicitacionDetalle from '../licitaciones/LicitacionDetalle';
 import { ETIQUETA_ESTADO_OBRA, ESTILO_ESTADO_OBRA, fechaCorta, parsearImporte } from '../licitaciones/estados';
@@ -386,6 +388,8 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
   const [dias, setDias] = useState(30);
   const [aceptaContacto, setAceptaContacto] = useState(false);
   const [aceptaVisita, setAceptaVisita] = useState(false);
+  const [paquete, setPaquete] = useState<string | null>(null);
+  const [hayPaquetes, setHayPaquetes] = useState(false);
   const [fotos, setFotos] = useState<FotoElegida[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -427,6 +431,9 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
         aceptaContacto,
         aceptaVisita,
       }, fotos);
+      if (hayPaquetes && paquete !== null) {
+        try { await elegirPaquete(r.obraId, paquete); } catch { /* la petición ya está enviada: se podrá elegir después */ }
+      }
       onEnviada(!r.fotosAdjuntas);
     } catch (e) {
       setError(mensajeDeError(e));
@@ -553,6 +560,8 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
             </Pressable>
           ))}
         </View>
+
+        <PaquetesSelector value={paquete} onChange={setPaquete} onDisponibles={setHayPaquetes} />
 
         <View className="bg-surface border border-border rounded-xl p-3.5 mb-3">
           <View className="flex-row items-start gap-3">
