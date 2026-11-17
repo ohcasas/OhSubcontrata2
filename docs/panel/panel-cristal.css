@@ -66,3 +66,63 @@ div[style*="background:#0057ff"] { background:linear-gradient(90deg,#5cc4f0,#0a8
 #lateral nav a { transition:background .2s, color .2s, box-shadow .2s; }
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 @media (max-width:900px) { #app { padding:0; } .contenido { padding:0; } #vista { border-radius:0; min-height:100vh; padding:20px 16px 56px; } #lateral { height:100vh; top:0; border-radius:0 24px 24px 0; } }
+
+/* ===== Inicio estilo «cristal»: barra superior, gráficos, tarjetas con icono ===== */
+.contenido { display:flex; flex-direction:column; gap:14px; }
+#pc-top { display:flex; align-items:center; gap:14px; padding:10px 14px; border-radius:22px; background:var(--papel); border:1px solid rgba(255,255,255,.7); box-shadow:0 8px 28px rgba(11,31,53,.08); backdrop-filter:blur(18px) saturate(1.4); }
+#pc-buscar { flex:1; }
+#pc-q { width:100%; max-width:520px; border:0; background:rgba(11,31,53,.06); border-radius:14px; padding:11px 16px 11px 40px; font:inherit; font-size:14px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a8c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:14px center; background-size:18px; transition:box-shadow .25s, background-color .25s; }
+#pc-q:focus { outline:none; background-color:#fff; box-shadow:0 0 0 3px rgba(11,95,217,.25); }
+.pc-quien { display:flex; flex-direction:column; text-align:right; line-height:1.2; } .pc-quien span { font-weight:600; font-size:14px; } .pc-quien small { color:#6b7a8c; font-size:12px; }
+.pc-avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#5cc4f0,#0b5fd9); color:#fff; display:grid; place-items:center; font-weight:700; }
+.cab-acc { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.pc-fila { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); gap:16px; margin:16px 0; }
+.pc-fila .panel { margin:0; }
+.columnas { align-items:flex-end; }
+.columnas .col em { font-style:normal; font-size:11px; color:#6b7a8c; }
+.columnas .col i.cero { opacity:.25; }
+.pc-anillo-caja { display:flex; align-items:center; gap:22px; padding:16px; flex-wrap:wrap; justify-content:center; }
+.pc-anillo { width:150px; height:150px; border-radius:50%; display:grid; place-items:center; position:relative; flex:none; animation:pc-gira .9s cubic-bezier(.2,.8,.2,1) backwards; }
+.pc-anillo::before { content:""; position:absolute; inset:22px; border-radius:50%; background:#fff; box-shadow:inset 0 2px 8px rgba(11,31,53,.08); }
+.pc-anillo b { position:relative; font-size:28px; text-align:center; line-height:1; } .pc-anillo b small { display:block; font-size:11px; font-weight:500; color:#6b7a8c; margin-top:4px; }
+.pc-leyenda { display:flex; flex-direction:column; gap:8px; min-width:150px; }
+.pc-leyenda a { display:flex; align-items:center; gap:8px; color:inherit; text-decoration:none; font-size:14px; padding:4px 8px; border-radius:10px; transition:background .2s; }
+.pc-leyenda a:hover { background:rgba(11,31,53,.06); } .pc-leyenda i { width:10px; height:10px; border-radius:50%; } .pc-leyenda b { margin-left:auto; }
+.pc-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+@media (max-width:1100px) { .pc-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.pc-kpi { display:flex; flex-direction:column; gap:4px; padding:16px; border-radius:20px; background:var(--papel); border:1px solid rgba(255,255,255,.7); box-shadow:0 6px 20px rgba(11,31,53,.06); color:inherit; text-decoration:none;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .3s; }
+.pc-kpi:hover { transform:translateY(-4px) scale(1.015); box-shadow:0 16px 34px rgba(11,31,53,.14); }
+.pc-kpi:active { transform:scale(.97); transition-duration:.12s; }
+.pc-kpi b { font-size:26px; white-space:nowrap; } .pc-kpi b.mal { color:var(--mal); }
+.pc-kpi .pc-et { font-size:13px; font-weight:600; } .pc-kpi small { color:#6b7a8c; font-size:12px; }
+.pc-ic { width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(135deg,#e6f1ff,#cfe3ff); margin-bottom:6px; }
+.pc-ic svg { width:20px; height:20px; fill:none; stroke:#0b5fd9; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+@keyframes pc-gira { from { opacity:0; transform:rotate(-120deg) scale(.7); } to { opacity:1; transform:none; } }
+.pc-kpi { animation:pc-sube .5s cubic-bezier(.34,1.56,.64,1) backwards; }
+.pc-kpi:nth-child(2){animation-delay:.04s}.pc-kpi:nth-child(3){animation-delay:.08s}.pc-kpi:nth-child(4){animation-delay:.12s}.pc-kpi:nth-child(5){animation-delay:.16s}.pc-kpi:nth-child(6){animation-delay:.2s}.pc-kpi:nth-child(7){animation-delay:.24s}.pc-kpi:nth-child(8){animation-delay:.28s}
+
+/* ===== Peticiones como tarjetas ===== */
+#vista .obra-card { overflow:hidden; border-radius:22px; }
+
+/* ===== Animaciones tipo macOS ===== */
+:root { --muelle:cubic-bezier(.34,1.56,.64,1); --suave:cubic-bezier(.22,1,.36,1); }
+@keyframes mac-abre { 0% { opacity:0; transform:scale(.965) translateY(14px); filter:blur(8px); } 60% { filter:blur(0); } 100% { opacity:1; transform:none; filter:none; } }
+@keyframes mac-ventana { 0% { opacity:0; transform:scale(.88) translateY(18px); } 100% { opacity:1; transform:none; } }
+@keyframes mac-velo { from { opacity:0; } to { opacity:1; } }
+@keyframes mac-aviso { 0% { opacity:0; transform:translateY(-24px) scale(.92); } 100% { opacity:1; transform:none; } }
+#vista.mac-abre { animation:mac-abre .55s var(--suave); transform-origin:50% 0; }
+#velo:not(.hidden) { animation:mac-velo .25s ease; }
+#velo:not(.hidden) > #ventana { animation:mac-ventana .45s var(--muelle); }
+#aviso:not(.hidden) { animation:mac-aviso .5s var(--muelle); }
+.btn, button, .acciones-rapidas a { transition:transform .25s var(--muelle), box-shadow .25s, background .2s, filter .2s; }
+.btn:hover, button:hover { transform:translateY(-1px); } .btn:active, button:active { transform:scale(.95); transition-duration:.1s; }
+#lateral nav a { transition:transform .3s var(--muelle), background .2s, color .2s; } #lateral nav a:hover { transform:translateX(4px); } #lateral nav a:active { transform:scale(.97); }
+.panel, .obra-card { transition:transform .35s var(--muelle), box-shadow .3s; }
+.obra-card:hover { transform:translateY(-3px); }
+@media (max-width:900px) { #pc-top { display:none; } .pc-fila { grid-template-columns:1fr; } }
+@media (prefers-reduced-motion:reduce) { #vista.mac-abre, #velo > #ventana, #aviso { animation:none !important; } }
+/* Peticiones: franja de color arriba de cada tarjeta (sin fotos inventadas) */
+#vista[data-ruta="peticiones"] #pet-cola > .panel::before, #vista[data-ruta="peticiones"] .panel[style*="margin-bottom:16px"]::before { content:""; display:block; height:56px; background:linear-gradient(120deg,#3E6BF2,#5cc4f0 60%,#9fe0f5); }
+#vista[data-ruta="peticiones"] .panel[style*="margin-bottom:16px"] { overflow:hidden; }
