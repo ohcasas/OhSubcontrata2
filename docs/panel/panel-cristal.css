@@ -1,0 +1,68 @@
+/* Panel de 3B · aspecto «cristal». Solo estilos: no cambia ninguna pantalla ni dato del panel.
+   Para quitarlo, borra la línea <link rel="stylesheet" href="panel-cristal.css"> de index.html. */
+:root { --azul:#0b5fd9; --azul-hover:#0849ad; --barra:#0B1F35; --linea:rgba(11,31,53,.14); --linea2:rgba(11,31,53,.08); --cab:rgba(255,255,255,.35); --papel:rgba(255,255,255,.72); --suave:#4b5e73;
+  --vidrio:rgba(255,255,255,.58); --borde-v:rgba(255,255,255,.7); }
+html, body { background:radial-gradient(1200px 700px at 85% 100%,#1fa5a3 0%,transparent 60%),radial-gradient(900px 600px at 0% 0%,#0a2f55 0%,transparent 70%),linear-gradient(135deg,#0a3a66,#146a97 55%,#1b8fa0) fixed; color:#0B1F35; }
+#app { padding:16px; gap:16px; }
+/* Menú lateral */
+#lateral { height:calc(100vh - 32px); top:16px; border-radius:24px; background:linear-gradient(180deg,rgba(9,40,72,.84),rgba(10,60,95,.76)); border:1px solid rgba(255,255,255,.18); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); box-shadow:0 18px 40px rgba(5,25,50,.28); }
+.logo-caja { border-radius:16px; }
+.grupo-nav { color:rgba(223,234,247,.6); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+#lateral nav a { color:#dfeaf7; border-radius:12px; padding:7px 10px; }
+#lateral nav a:hover { background:rgba(255,255,255,.12); color:#fff; }
+#lateral nav a.activo { background:#0a8fd6; color:#fff; font-weight:600; box-shadow:0 6px 16px rgba(10,143,214,.45); }
+.yo { border-top-color:rgba(255,255,255,.16); color:#dfeaf7; } .yo .quien b { color:#fff; } .yo .quien span { color:rgba(223,234,247,.7); }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.35); }
+/* Zona de contenido: una hoja de cristal */
+.contenido { padding:16px 16px 16px 0; }
+#vista { max-width:none; margin:0; min-height:calc(100vh - 32px); padding:28px 30px 56px; background:var(--vidrio); border:1px solid var(--borde-v); border-radius:28px; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); box-shadow:0 18px 40px rgba(5,25,50,.25); }
+h1 { letter-spacing:-.02em; }
+/* Tarjetas */
+.panel, .resumen a, .kpis div, .acciones-rapidas a, .acciones-rapidas button, .obra-card { background:var(--papel); border:1px solid var(--borde-v); border-radius:20px; box-shadow:none; transition:transform .2s, box-shadow .2s; }
+.resumen a:hover, .kpis div:hover, .acciones-rapidas a:hover, .acciones-rapidas button:hover, .obra-card:hover { transform:translateY(-3px); border-color:#fff; box-shadow:0 12px 26px rgba(10,40,80,.16); }
+.panel > header { border-bottom:1px solid var(--linea2); padding:14px 18px; }
+.resumen a, .kpis div { padding:16px 18px; } .resumen b, .kpis b { font-size:24px; letter-spacing:-.02em; white-space:nowrap; }
+.acciones-rapidas svg { stroke:#0a6aa8; }
+/* Tablas */
+table { border-collapse:collapse; } th { background:transparent !important; color:#4b5e73; } td, th { border-color:var(--linea2) !important; }
+tbody tr:hover td { background:rgba(255,255,255,.45); }
+/* Botones y campos */
+.btn { background:rgba(255,255,255,.7); border:1px solid var(--borde-v); border-radius:12px; color:#0B1F35; }
+.btn:hover { background:#fff; }
+.btn.primario { background:var(--azul); border-color:var(--azul); color:#fff; } .btn.primario:hover { background:var(--azul-hover); }
+.btn.actual, .btn.actual:disabled { background:#0B1F35; border-color:#0B1F35; color:#fff; }
+.btn.mal { background:rgba(255,255,255,.7); }
+input:not([type=checkbox]):not([type=radio]), select, textarea { background:rgba(255,255,255,.75); border-radius:10px; border-color:var(--borde-v); }
+/* Gráficas */
+.columnas { height:190px; gap:14px; } .columnas .col i { max-width:46px; border-radius:10px 10px 0 0; background:linear-gradient(180deg,#8fd6f3,#5cc4f0); }
+.columnas .col:last-child i:not(.cero) { background:linear-gradient(180deg,#2cb1ee,#0a8fd6); } .columnas .col i.cero { background:rgba(11,31,53,.1); }
+.barrasH .pista { height:12px; border-radius:7px; background:rgba(11,31,53,.08); } .barrasH .pista i { border-radius:7px; background:linear-gradient(90deg,#5cc4f0,#0a8fd6); } .barrasH .fila.gris .pista i { background:#8A94A3; }
+.reparto { height:14px; border-radius:8px; background:rgba(11,31,53,.08); }
+div[style*="background:#E7EBEF"] { background:rgba(11,31,53,.08) !important; border-radius:8px !important; height:12px !important; }
+div[style*="background:#0057ff"] { background:linear-gradient(90deg,#5cc4f0,#0a8fd6) !important; border-radius:8px !important; height:12px !important; }
+/* Ventanas */
+#velo { backdrop-filter:blur(6px); } #velo > * { border-radius:24px; }
+/* ---- Animaciones (solo CSS; se repiten cada vez que se abre una pantalla) ---- */
+@keyframes pc-sube { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@keyframes pc-aparece { from { opacity:0; } to { opacity:1; } }
+@keyframes pc-crece-y { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+@keyframes pc-crece-x { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+@keyframes pc-pop { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:none; } }
+#vista > .cab, #vista > .herramientas, #vista > .panel { animation:pc-aparece .35s ease backwards; }
+.resumen a, .kpis div, .acciones-rapidas a, .acciones-rapidas button { animation:pc-sube .45s cubic-bezier(.2,.8,.2,1) backwards; }
+.resumen a:nth-child(2), .kpis div:nth-child(2), .acciones-rapidas > :nth-child(2) { animation-delay:.05s; }
+.resumen a:nth-child(3), .kpis div:nth-child(3), .acciones-rapidas > :nth-child(3) { animation-delay:.1s; }
+.resumen a:nth-child(4), .kpis div:nth-child(4), .acciones-rapidas > :nth-child(4) { animation-delay:.15s; }
+.resumen a:nth-child(5), .kpis div:nth-child(5) { animation-delay:.2s; }
+.resumen a:nth-child(6), .kpis div:nth-child(6) { animation-delay:.25s; }
+.resumen a:nth-child(n+7), .kpis div:nth-child(n+7) { animation-delay:.3s; }
+.columnas .col i { transform-origin:bottom; animation:pc-crece-y .8s cubic-bezier(.2,.8,.2,1) .25s backwards; }
+.columnas .col:nth-child(2) i { animation-delay:.31s; } .columnas .col:nth-child(3) i { animation-delay:.37s; } .columnas .col:nth-child(4) i { animation-delay:.43s; }
+.columnas .col:nth-child(5) i { animation-delay:.49s; } .columnas .col:nth-child(6) i { animation-delay:.55s; } .columnas .col:nth-child(n+7) i { animation-delay:.6s; }
+.barrasH .pista i, .reparto i, div[style*="background:#0057ff"] { transform-origin:left; animation:pc-crece-x .8s cubic-bezier(.2,.8,.2,1) .3s backwards; }
+.barrasH .fila:nth-child(2) .pista i { animation-delay:.36s; } .barrasH .fila:nth-child(3) .pista i { animation-delay:.42s; } .barrasH .fila:nth-child(4) .pista i { animation-delay:.48s; }
+.barrasH .fila:nth-child(n+5) .pista i { animation-delay:.54s; }
+#velo > * { animation:pc-pop .22s ease-out backwards; }
+#lateral nav a { transition:background .2s, color .2s, box-shadow .2s; }
+@media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+@media (max-width:900px) { #app { padding:0; } .contenido { padding:0; } #vista { border-radius:0; min-height:100vh; padding:20px 16px 56px; } #lateral { height:100vh; top:0; border-radius:0 24px 24px 0; } }
