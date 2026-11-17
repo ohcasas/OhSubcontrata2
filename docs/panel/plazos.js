@@ -26,6 +26,7 @@ async function vistaPlazos(v) {
     <div class="panel" style="margin-bottom:16px;border-left:4px solid #D99A1E"><div style="padding:14px 18px">
       <b>Solo cálculo.</b> Aquí se calcula y se muestra el importe estimado. No se cobra, no se descuenta ni se retiene nada automáticamente: cualquier penalización la decide una persona.
       <div class="suave">Con un 2 % diario, 50 días de retraso equivalen al 100 % del contrato. Conviene validar con asesoría legal la cláusula y si lleva un tope máximo antes de aplicarla a un pago.</div></div></div>
+    <div id="pl-avisos"></div>
     <div class="herramientas">
       ${tabs.map(([k, n]) => `<a class="btn ${k === f ? 'primario' : ''}" href="#/plazos?f=${k}${q ? '&q=' + encodeURIComponent(q) : ''}">${n}${k === 'retraso' && conRetraso ? ' (' + conRetraso + ')' : ''}</a>`).join('')}
       <input type="search" id="pl-buscar" placeholder="Buscar por título o referencia" value="${esc(params.get('q') || '')}">
@@ -47,6 +48,7 @@ async function vistaPlazos(v) {
 
   const buscar = $('#pl-buscar');
   buscar.onkeydown = (e) => { if (e.key === 'Enter') location.hash = `#/plazos?f=${f}&q=${encodeURIComponent(buscar.value.trim())}`; };
+  plAvisos();
 
   v.querySelectorAll('[data-pl]').forEach((b) => {
     b.onclick = () => {
@@ -82,4 +84,37 @@ async function vistaPlazos(v) {
       };
     };
   });
+}
+
+
+// ---- Avisos automaticos de plazos (migracion 0085). Si aun no esta aplicada, la tarjeta no aparece. ----
+async function plAvisos() {
+  const caja = document.getElementById('pl-avisos');
+  if (!caja) return;
+  let a;
+  try { a = await rpc('panel_avisos_plazos_estado'); } catch (e) { return; }
+  if (!a) return;
+  const pend = a.pendientes || [];
+  const fuera = pend.filter((p) => p.destino !== 'admin');
+  caja.innerHTML = `<div class="panel" style="margin-bottom:16px;border-left:4px solid ${a.activos ? '#16A34A' : '#94A3B8'}"><div style="padding:14px 18px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <b style="font-size:15px">Avisos automáticos de plazos: ${a.activos ? 'ACTIVADOS' : 'APAGADOS'}</b>
+      <button class="btn peq ${a.activos ? '' : 'primario'}" id="pl-av-sw">${a.activos ? 'Apagar' : 'Activar'}</button>
+      <button class="btn peq" id="pl-av-ver">Ver qué saldría hoy (${pend.length})</button>
+    </div>
+    <div class="suave" style="margin-top:6px">Avisa a la empresa adjudicada y a quien publicó la obra ${esc((a.dias_antes || []).join(', '))} días antes del fin, el día del fin y cada día de retraso. A administración le llega por la campana. Al activarlo, las empresas reciben <b>notificación y aviso en el móvil</b>. No se envían correos ni se cobra nada. Para que corra solo cada día hay que programarlo una vez (ver instrucciones del archivo 0085).</div>
+    <div id="pl-av-lista" style="display:none;margin-top:12px"></div></div></div>`;
+  document.getElementById('pl-av-ver').onclick = () => {
+    const l = document.getElementById('pl-av-lista');
+    l.style.display = l.style.display === 'none' ? 'block' : 'none';
+    l.innerHTML = pend.length ? `<div class="tabla-caja"><table class="t"><thead><tr><th>Para</th><th>Obra</th><th>Aviso</th></tr></thead><tbody>${pend.map((p) =>
+      `<tr><td>${esc(p.destino === 'admin' ? 'Administración (campana)' : p.destino_nombre)}</td><td>${esc(p.obra)}</td><td><b>${esc(p.titulo)}</b><div class="suave">${esc(p.cuerpo)}</div></td></tr>`).join('')}</tbody></table></div>`
+      : '<span class="suave">Hoy no toca avisar nada.</span>';
+  };
+  document.getElementById('pl-av-sw').onclick = async () => {
+    const quiere = !a.activos;
+    if (quiere && !confirm(`Al activar, ${fuera.length} aviso(s) de hoy llegarán a las empresas (con notificación en el móvil). ¿Activar?`)) return;
+    try { await rpc('panel_avisos_plazos_ajustar', { p_activos: quiere }); aviso(quiere ? 'Avisos activados' : 'Avisos apagados'); plAvisos(); }
+    catch (e) { aviso('No se pudo cambiar: ' + (e.message || e)); }
+  };
 }
