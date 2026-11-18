@@ -18,18 +18,23 @@
       },
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://vvghqtwwrwdtekropavo.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z2hxdHd3cndkdGVrcm9wYXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNTQ5MDMsImV4cCI6MjEwNTYzMDkwM30.LD89u9ahLTudw_h_P_d8qwUC7F8ullxocunORCXePLU"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z2hxdHd3cndkdGVrcm9wYXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNTQ5MDMsImV4cCI6MjEwNTYzMDkwM30.LD89u9ahLTudw_h_P_d8qwUC7F8ullxocunORCXePLU",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://57d03cbde48b254da97e935a72887342@o4512452545740800.ingest.de.sentry.io/4512452551835728",
+        "EXPO_PUBLIC_SENTRY_PRUEBA": "1",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://vvghqtwwrwdtekropavo.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z2hxdHd3cndkdGVrcm9wYXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNTQ5MDMsImV4cCI6MjEwNTYzMDkwM30.LD89u9ahLTudw_h_P_d8qwUC7F8ullxocunORCXePLU"
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2Z2hxdHd3cndkdGVrcm9wYXZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNTQ5MDMsImV4cCI6MjEwNTYzMDkwM30.LD89u9ahLTudw_h_P_d8qwUC7F8ullxocunORCXePLU",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://57d03cbde48b254da97e935a72887342@o4512452545740800.ingest.de.sentry.io/4512452551835728",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },
-    "submit": {
+  "submit": {
     "production": {
       "ios": {
         "appleId": "software@ohcasas.es",

@@ -40,6 +40,8 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-secure-store',
+    // Aviso de errores (Sentry). Sin DSN no hace nada; ver src/services/monitorizacion.ts
+    '@sentry/react-native/expo',
     // Stripe en iPhone: se resuelve con CocoaPods en lugar de Swift Package Manager (ver el plugin).
     './plugins/withStripeSinSPM',
     [

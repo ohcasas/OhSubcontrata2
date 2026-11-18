@@ -14,12 +14,13 @@ import {
 import RootNavigator from './src/navigation/RootNavigator';
 import PantallaCarga from './src/components/PantallaCarga';
 import { StripeRaiz } from './src/services/stripeNativo';
+import { envolverApp } from './src/services/monitorizacion';
 
 // La pantalla de carga nativa (negra) se queda puesta hasta que PantallaCarga
 // la quite, para que no haya un parpadeo entre una y otra.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default function App() {
+function App() {
   const [fuentesListas] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
@@ -41,3 +42,5 @@ export default function App() {
     </StripeRaiz>
   );
 }
+
+export default envolverApp(App);
