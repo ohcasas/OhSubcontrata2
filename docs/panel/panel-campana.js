@@ -7,8 +7,10 @@
 
   var ICONOS = {
     plazo_proximo: '⏳', plazo_hoy: '📅', plazo_retraso: '⚠️',
-    plazo_proximo_admin: '⏳', plazo_hoy_admin: '📅', plazo_retraso_admin: '⚠️'
+    plazo_proximo_admin: '⏳', plazo_hoy_admin: '📅', plazo_retraso_admin: '⚠️',
+    cuenta_nueva: '👤', peticion_nueva: '📝', documento_subido: '📄'
   };
+  var TITULO_BASE = document.title;
   var estado = { lista: [], abierto: false, expandida: null };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -33,7 +35,7 @@
       '<span id="pc-campana-n" hidden>0</span></button>' +
       '<div id="pc-campana-panel" role="dialog" aria-label="Notificaciones" hidden>' +
       '<div class="pcc-cab"><b>Notificaciones</b><button type="button" id="pcc-todas">Marcar todas como leídas</button></div>' +
-      '<div id="pcc-lista"></div></div>';
+      '<div id="pcc-lista"></div><div id="pcc-permiso"></div></div>';
     if (top) {
       var quien = top.querySelector('.pc-quien');
       top.insertBefore(cont, quien || null);
@@ -60,7 +62,15 @@
     var n = noLeidas(), ins = document.getElementById('pc-campana-n');
     if (!ins) return;
     ins.hidden = n === 0; ins.textContent = n > 9 ? '9+' : String(n);
+    document.title = (n ? '(' + n + ') ' : '') + TITULO_BASE;
     document.getElementById('pc-campana-btn').setAttribute('aria-label', n ? 'Notificaciones, ' + n + ' sin leer' : 'Notificaciones');
+    var pm = document.getElementById('pcc-permiso');
+    if (pm) {
+      var ok = 'Notification' in window;
+      pm.innerHTML = ok && Notification.permission === 'default' ? '<button type="button" id="pcc-activar">Avisarme en este equipo cuando llegue algo</button>'
+        : ok && Notification.permission === 'denied' ? '<small>Los avisos del navegador están bloqueados en este equipo. Se pueden permitir en los ajustes del sitio.</small>' : '';
+      var bt = document.getElementById('pcc-activar'); if (bt) bt.onclick = permisoEscritorio;
+    }
     var l = document.getElementById('pcc-lista');
     if (!estado.lista.length) { l.innerHTML = '<p class="pcc-vacio">No hay notificaciones. Aquí aparecerán los avisos de plazos y otros avisos del panel.</p>'; return; }
     l.innerHTML = estado.lista.map(function (x) {
@@ -84,6 +94,8 @@
     Array.prototype.forEach.call(l.querySelectorAll('a.pcc-ir'), function (a) { a.addEventListener('click', function () { alternar(false); }); });
   }
   function enlace(x) {
+    var d = x.datos || {}, e = typeof d.enlace === 'string' && /^#\//.test(d.enlace) ? d.enlace : '';
+    if (e) return '<a class="pcc-ir" href="' + esc(e) + '">Abrir en el panel</a>';
     if (/^plazo_/.test(x.tipo || '')) return '<a class="pcc-ir" href="#/plazos">Ver plazos de obra</a>';
     return '';
   }
@@ -93,9 +105,33 @@
     try {
       var r = await sb.from('notificaciones').select('id,tipo,titulo,cuerpo,datos,leida,created_at').order('created_at', { ascending: false }).limit(30);
       if (r.error) return;
+      var antes = {}; estado.lista.forEach(function (z) { antes[z.id] = 1; });
+      var primera = !estado.cargada; estado.cargada = true;
       estado.lista = r.data || [];
       pintar();
+      if (!primera) estado.lista.filter(function (z) { return !z.leida && !antes[z.id]; }).forEach(avisoEscritorio);
     } catch (e) { /* sin red: se reintenta en el siguiente ciclo */ }
+  }
+  function avisoEscritorio(n) {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted' || localStorage.getItem('pcc_avisos') === 'no') return;
+      var a = new Notification(n.titulo, { body: n.cuerpo || '', tag: n.id });
+      a.onclick = function () { window.focus(); var d = n.datos || {}; if (typeof d.enlace === 'string' && /^#\//.test(d.enlace)) location.hash = d.enlace; alternar(true); a.close(); };
+    } catch (e) { /* el navegador no lo permite */ }
+  }
+  function permisoEscritorio() {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'default') return;
+      Notification.requestPermission().then(pintar);
+    } catch (e) { /* sin soporte */ }
+  }
+  function tiempoReal() {
+    try {
+      if (!sb.channel || estado.canal) return;
+      estado.canal = sb.channel('campana-admin')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificaciones' }, function () { cargar(); })
+        .subscribe();
+    } catch (e) { /* si no hay tiempo real, queda la consulta cada minuto */ }
   }
   async function marcar(ids) {
     estado.lista.forEach(function (n) { if (ids.indexOf(n.id) >= 0) n.leida = true; });
@@ -112,8 +148,8 @@
     if (document.getElementById('pc-top') || ++intentos > 20) {
       clearInterval(espera);
       montar();
-      var t = setInterval(function () { if (typeof sb !== 'undefined' && sb) { clearInterval(t); cargar(); } }, 400);
-      setInterval(function () { if (!document.hidden) cargar(); }, 60000);
+      var t = setInterval(function () { if (typeof sb !== 'undefined' && sb) { clearInterval(t); cargar(); tiempoReal(); } }, 400);
+      setInterval(function () { cargar(); }, 45000);
     }
   }, 250);
 })();

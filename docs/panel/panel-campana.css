@@ -40,3 +40,8 @@
   #pc-campana:not(.pcc-flotante) { position: fixed; top: 12px; right: 14px; margin: 0; z-index: 60; }
 }
 @media (prefers-reduced-motion: reduce) { #pc-campana-panel, #pc-campana-n { animation: none; } .pcc-det, .pcc-flecha, #pc-campana-btn { transition: none; } }
+
+#pcc-permiso { padding: 10px 16px 14px; border-top: 1px solid var(--linea, #e5e7eb); }
+#pcc-permiso:empty { display: none; }
+#pcc-permiso button { width: 100%; min-height: 40px; border: 1px dashed #93c5fd; background: #eff6ff; color: #1d4ed8; border-radius: 10px; font: inherit; font-size: 13px; cursor: pointer; }
+#pcc-permiso small { color: #64748b; font-size: 12px; }

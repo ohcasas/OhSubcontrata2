@@ -39,3 +39,20 @@
 }
 @keyframes pm-sube { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { #ventana { animation: none; } }
+
+/* ---- Rendimiento ----
+   La animación de cambio de sección desenfocaba toda la página y el cristal borroso (backdrop-filter) se recalculaba
+   sobre una capa enorme: eso es lo que hacía lento el panel, sobre todo en móvil. Se deja el mismo efecto de entrada
+   pero solo con opacidad y desplazamiento, que van por la tarjeta gráfica sin coste. */
+@keyframes mac-abre { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: none; } }
+#vista.mac-abre { animation-duration: .3s; }
+#velo { backdrop-filter: none; background: rgba(11,31,53,.55); }
+@media (max-width: 900px) {
+  #vista, #lateral, #pc-top, .barra-movil, .panel { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  #vista { background: rgba(236,244,251,.94); }
+  #lateral { background: linear-gradient(180deg, #0a2a4a, #0a3c5f); }
+  .panel, .pc-kpi { box-shadow: 0 2px 10px rgba(11,31,53,.08); }
+  #vista.mac-abre { animation-duration: .2s; }
+}
+/* Las listas largas solo pintan lo que se ve */
+.tabla-caja tbody tr, .pc-fila > .panel { content-visibility: auto; contain-intrinsic-size: auto 72px; }
