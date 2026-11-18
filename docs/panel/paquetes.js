@@ -26,7 +26,7 @@ async function vistaPaquetes(v) {
         <button class="btn ${activos ? '' : 'primario'}" id="pq-interruptor">${activos ? 'Apagar paquetes' : 'Activar paquetes'}</button>
       </div>
     </div>
-    <div class="panel">${lista.length ? `<table class="tabla"><thead><tr><th>Paquete</th><th>Extra</th><th>Mínimo</th><th>Máximo</th><th>Revisión</th><th>Obras</th><th>Estado</th><th></th></tr></thead><tbody>
+    <div class="panel">${lista.length ? `<div class="tabla-caja"><table class="t"><thead><tr><th>Paquete</th><th>Extra</th><th>Mínimo</th><th>Máximo</th><th>Revisión</th><th>Obras</th><th>Estado</th><th></th></tr></thead><tbody>
       ${lista.map((p) => `<tr><td><b>${esc(p.nombre)}</b>${p.recomendado ? ' <span class="suave">(recomendado)</span>' : ''}<div class="suave">${esc(p.descripcion || '')}</div></td>
         <td>${Number(p.extra_pct) > 0 ? esc(PQ_PCT(p.extra_pct)) : 'Sin extra'}</td>
         <td>${Number(p.extra_pct) > 0 ? esc(PQ_EUR(p.extra_min_cents)) : '—'}</td>
@@ -35,7 +35,7 @@ async function vistaPaquetes(v) {
         <td>${esc(obras[p.codigo] || 0)}</td>
         <td>${p.activo ? 'Disponible' : 'Oculto'}</td>
         <td class="acc"><button class="btn peq" data-pq="${esc(p.codigo)}">Editar</button></td></tr>`).join('')}
-      </tbody></table>` : '<div class="vacio">No hay paquetes definidos. Aplica la migración 0082.</div>'}</div>
+      </tbody></table></div>` : '<div class="vacio">No hay paquetes definidos. Aplica la migración 0082.</div>'}</div>
     ${obras.ninguno ? `<p class="suave">${esc(obras.ninguno)} obras de particulares sin paquete elegido.</p>` : ''}`;
 
   $('#pq-interruptor').onclick = () => {

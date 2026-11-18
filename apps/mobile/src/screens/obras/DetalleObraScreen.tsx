@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking,
+  Alert,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -51,6 +52,9 @@ type Obra = {
   requisitos: string | null;
   estado: 'abierta' | 'cerrada' | 'adjudicada' | 'en_curso' | 'cancelada';
   plazo_cierre: string | null;
+  fecha_fin?: string | null;
+  fin_declarado_en?: string | null;
+  fecha_fin_real?: string | null;
 };
 
 const ETIQUETA_ESTADO_OBRA: Record<Obra['estado'], string> = {
@@ -92,6 +96,12 @@ type ArchivoAdjunto = {
 function formatearFecha(fechaIso: string | null): string | null {
   if (fechaIso === null) return null;
   return new Date(fechaIso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+}
+
+function fechaConAnio(fechaIso: string): string {
+  // Las fechas de obra vienen como AAAA-MM-DD; se fija el mediodía para que la zona horaria no mueva el día.
+  const f = fechaIso.length <= 10 ? `${fechaIso}T12:00:00` : fechaIso;
+  return new Date(f).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 const ETIQUETA_ESTADO: Record<Postulacion['estado'], string> = {
@@ -144,7 +154,7 @@ export default function DetalleObraScreen() {
     const { data: obraData, error: errorObra } = await supabase
       .from('obras')
       .select(
-        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, provincia, modulos, m2, presupuesto, moneda, origen, creado_por, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre',
+        'id, referencia, titulo, descripcion, especialidad_requerida, ubicacion, provincia, modulos, m2, presupuesto, moneda, origen, creado_por, puntos_bonus, imagen_url, fecha_inicio, duracion_dias, requisitos, estado, plazo_cierre, fecha_fin, fin_declarado_en, fecha_fin_real',
       )
       .eq('id', obraId)
       .single();
@@ -284,6 +294,33 @@ export default function DetalleObraScreen() {
     setAvances((prev) => [data as Avance, ...prev]);
     setDescripcionAvance('');
     setPorcentajeAvance('');
+  };
+
+  const [declarandoFin, setDeclarandoFin] = useState(false);
+
+  // La empresa adjudicada avisa de que ha terminado. No cierra la obra: administración confirma la fecha real.
+  const handleAvisarTerminada = () => {
+    if (!obra) return;
+    Alert.alert(
+      '¿Has terminado la obra?',
+      'Avisaremos a 3B Conecta y a quien publicó la obra. La obra no se cierra sola: administración revisará y confirmará la fecha de fin.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sí, he terminado',
+          onPress: async () => {
+            setDeclarandoFin(true);
+            const { error } = await supabase.rpc('declarar_obra_terminada', { p_obra_id: obra.id });
+            setDeclarandoFin(false);
+            if (error) {
+              Alert.alert('No se ha podido avisar', error.message);
+              return;
+            }
+            await cargarDatos();
+          },
+        },
+      ],
+    );
   };
 
   const handleEnviarPostulacion = async () => {
@@ -490,6 +527,7 @@ export default function DetalleObraScreen() {
                     ? `Inicio: ${formatearFecha(obra.fecha_inicio)}`
                     : 'Fecha por confirmar'}
                   {obra.duracion_dias !== null ? ` (${obra.duracion_dias} días)` : ''}
+                  {obra.fecha_fin ? `\nFin pactado: ${fechaConAnio(obra.fecha_fin)}` : ''}
                 </Text>
               </View>
               {obra.requisitos !== null && (
@@ -816,6 +854,39 @@ export default function DetalleObraScreen() {
                     </View>
                   ))}
                 </View>
+              )}
+            </View>
+          )}
+
+          {/* Fin de la obra: solo la empresa adjudicada. El aviso no cierra la obra; lo confirma administración. */}
+          {postulacionExistente?.estado === 'aceptada' && (obra.estado === 'en_curso' || obra.estado === 'adjudicada') && (
+            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+              <Text className="text-ink text-sm font-sansBold mb-1">Fin de la obra</Text>
+              {obra.fecha_fin ? (
+                <Text className="text-inkMuted text-xs mb-3">Fecha de fin pactada: {fechaConAnio(obra.fecha_fin)}</Text>
+              ) : (
+                <Text className="text-inkMuted text-xs mb-3">Todavía no hay una fecha de fin pactada.</Text>
+              )}
+              {obra.fin_declarado_en ? (
+                <View className="rounded-lg px-3 py-2 flex-row items-center gap-2" style={{ backgroundColor: colors.successTint }}>
+                  <Feather name="check-circle" size={17} color={colors.success} />
+                  <Text className="text-sm flex-1" style={{ color: colors.success }}>
+                    Avisaste de que has terminado el {fechaConAnio(obra.fin_declarado_en)}. 3B Conecta lo revisará y confirmará.
+                  </Text>
+                </View>
+              ) : (
+                <Pressable
+                  onPress={handleAvisarTerminada}
+                  disabled={declarandoFin}
+                  className="bg-action rounded-xl px-4 py-3 flex-row items-center justify-center gap-2"
+                >
+                  {declarandoFin ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Feather name="flag" size={16} color={colors.white} />
+                  )}
+                  <Text className="text-white text-sm font-sansBold">Avisar de que he terminado</Text>
+                </Pressable>
               )}
             </View>
           )}

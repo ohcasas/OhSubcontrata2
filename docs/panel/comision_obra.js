@@ -3,7 +3,7 @@
 // <script src="comision_obra.js"></script> y usa las utilidades del panel (rpc, esc, abrirVentana, cerrarVentana,
 // pieVentana, errorVentana, aviso, $). No cambia la sección «Comisiones» existente: usa la misma función
 // de la base de datos (panel_guardar_comision) y por tanto las mismas reglas (0–50 %, obra > empresa > general).
-const CO_ESTADO = { abierta: 'Abierta', adjudicada: 'Adjudicada', cerrada: 'Cerrada', cancelada: 'Cancelada' };
+const CO_ESTADO = { abierta: 'Abierta', adjudicada: 'Adjudicada', cerrada: 'Cerrada', cancelada: 'Cancelada', en_curso: 'En curso', en_revision: 'En revisión', pendiente_info: 'Pendiente de información', rechazada: 'Rechazada' };
 const coPct = (p) => (p === null || p === undefined) ? 'sin definir' : String(Number(p)).replace('.', ',') + ' %';
 const coNorm = (t) => String(t || '').trim().toLowerCase();
 
@@ -25,13 +25,13 @@ async function vistaComisionObra(v) {
       ${tabs.map(([k, n]) => `<a class="btn ${k === f ? 'primario' : ''}" href="#/comision-obra?f=${k}${q ? '&q=' + encodeURIComponent(q) : ''}">${n}</a>`).join('')}
       <input type="search" id="co-buscar" placeholder="Buscar obra por título" value="${esc(params.get('q') || '')}">
     </div>
-    <div class="panel">${lista.length ? `<table class="tabla"><thead><tr><th>Obra</th><th>Origen</th><th>Estado</th><th>Comisión propia</th><th>Se aplicará</th><th></th></tr></thead><tbody>
+    <div class="panel">${lista.length ? `<div class="tabla-caja"><table class="t"><thead><tr><th>Obra</th><th>Origen</th><th>Estado</th><th>Comisión propia</th><th>Se aplicará</th><th></th></tr></thead><tbody>
       ${lista.map((x) => `<tr><td><b>${esc(x.titulo)}</b></td><td>${x.origen === 'particular' ? 'Particular' : 'Empresa'}</td><td>${esc(CO_ESTADO[x.estado] || x.estado)}</td>
         <td>${esc(coPct(x.comision_propia))}</td><td><b>${esc(coPct(x.comision_aplicable))}</b></td>
         <td class="acc"><button class="btn peq" data-co="cambiar" data-i="${esc(x.id)}">Cambiar</button>
         <button class="btn peq" data-co="cero" data-i="${esc(x.id)}">0 % (OH Casas)</button>
         ${x.comision_propia !== null ? `<button class="btn peq mal" data-co="quitar" data-i="${esc(x.id)}">Quitar</button>` : ''}</td></tr>`).join('')}
-      </tbody></table>` : '<div class="vacio">No hay obras con ese filtro.</div>'}</div>
+      </tbody></table></div>` : '<div class="vacio">No hay obras con ese filtro.</div>'}</div>
     ${todas.length >= 500 ? '<p class="suave">Se muestran las 500 obras más recientes.</p>' : ''}`;
 
   const buscar = $('#co-buscar');

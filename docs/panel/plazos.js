@@ -17,9 +17,11 @@ async function vistaPlazos(v) {
   let lista = todas;
   if (f === 'retraso') lista = lista.filter((x) => Number(x.dias_retraso) > 0);
   if (f === 'sin') lista = lista.filter((x) => !x.fecha_fin);
+  if (f === 'aviso') lista = lista.filter((x) => x.fin_declarado_en && !x.fecha_fin_real);
   if (q) lista = lista.filter((x) => plNorm(x.titulo).includes(q) || plNorm(x.referencia).includes(q));
-  const tabs = [['todas', 'Todas'], ['retraso', 'Con retraso'], ['sin', 'Sin fecha de fin']];
+  const tabs = [['todas', 'Todas'], ['retraso', 'Con retraso'], ['sin', 'Sin fecha de fin'], ['aviso', 'Avisaron de fin']];
   const conRetraso = todas.filter((x) => Number(x.dias_retraso) > 0).length;
+  const conAviso = todas.filter((x) => x.fin_declarado_en && !x.fecha_fin_real).length;
 
   v.innerHTML = `<div class="cab"><div><h1>Plazos de obra</h1>
     <p class="suave">Fecha de inicio y de fin pactadas de cada obra. El retraso sobre esas fechas conlleva una penalización del <b>2 % diario sobre el valor total del contrato</b> (el porcentaje se puede ajustar por obra).</p></div></div>
@@ -28,7 +30,7 @@ async function vistaPlazos(v) {
       <div class="suave">Con un 2 % diario, 50 días de retraso equivalen al 100 % del contrato. Conviene validar con asesoría legal la cláusula y si lleva un tope máximo antes de aplicarla a un pago.</div></div></div>
     <div id="pl-avisos"></div>
     <div class="herramientas">
-      ${tabs.map(([k, n]) => `<a class="btn ${k === f ? 'primario' : ''}" href="#/plazos?f=${k}${q ? '&q=' + encodeURIComponent(q) : ''}">${n}${k === 'retraso' && conRetraso ? ' (' + conRetraso + ')' : ''}</a>`).join('')}
+      ${tabs.map(([k, n]) => `<a class="btn ${k === f ? 'primario' : ''}" href="#/plazos?f=${k}${q ? '&q=' + encodeURIComponent(q) : ''}">${n}${k === 'retraso' && conRetraso ? ' (' + conRetraso + ')' : ''}${k === 'aviso' && conAviso ? ' (' + conAviso + ')' : ''}</a>`).join('')}
       <input type="search" id="pl-buscar" placeholder="Buscar por título o referencia" value="${esc(params.get('q') || '')}">
     </div>
     <div class="panel">${lista.length ? `<div class="tabla-caja"><table class="t"><thead><tr><th>Obra</th><th>Estado</th><th>Inicio pactado</th><th>Fin pactado</th><th>Retraso</th><th>Valor del contrato</th><th>Penalización estimada</th><th></th></tr></thead><tbody>
@@ -37,7 +39,7 @@ async function vistaPlazos(v) {
         return `<tr><td><b>${esc(x.titulo)}</b><div class="suave">${esc(x.referencia)}</div></td>
         <td>${esc(PL_EST[x.estado] || x.estado)}</td>
         <td>${esc(plFecha(x.fecha_inicio))}${Number(x.dias_retraso_inicio) > 0 ? `<div class="suave mal-t">Empezó con ${esc(x.dias_retraso_inicio)} d de retraso</div>` : ''}</td>
-        <td>${esc(plFecha(x.fecha_fin))}${x.fecha_fin_real ? `<div class="suave">Terminó el ${esc(plFecha(x.fecha_fin_real))}</div>` : ''}</td>
+        <td>${esc(plFecha(x.fecha_fin))}${x.fecha_fin_real ? `<div class="suave">Terminó el ${esc(plFecha(x.fecha_fin_real))}</div>` : (x.fin_declarado_en ? `<div><b class="ok">La empresa avisó el ${esc(plFecha(x.fin_declarado_en))}</b><div class="suave">Falta confirmar la fecha real</div></div>` : '')}</td>
         <td>${x.fecha_fin ? (r > 0 ? `<b class="mal-t">${r} día${r === 1 ? '' : 's'}</b>` : 'En plazo') : '—'}</td>
         <td>${esc(PL_EUR(x.valor_contrato))}<div class="suave">${esc(x.valor_origen)}</div></td>
         <td>${r > 0 ? `<b>${esc(PL_EUR(x.penalizacion_estimada))}</b><div class="suave">${esc(PL_PCT(x.penalizacion_pct_total))} del contrato</div>` : '—'}</td>
@@ -59,7 +61,7 @@ async function vistaPlazos(v) {
           <div><label class="campo" for="pl-ini">Inicio pactado</label><input type="date" id="pl-ini" value="${esc(x.fecha_inicio ? String(x.fecha_inicio).slice(0, 10) : '')}" /></div>
           <div><label class="campo" for="pl-fin">Fin pactado</label><input type="date" id="pl-fin" value="${esc(x.fecha_fin ? String(x.fecha_fin).slice(0, 10) : '')}" /></div>
           <div><label class="campo" for="pl-ini-r">Inicio real (opcional)</label><input type="date" id="pl-ini-r" value="${esc(x.fecha_inicio_real ? String(x.fecha_inicio_real).slice(0, 10) : '')}" /></div>
-          <div><label class="campo" for="pl-fin-r">Fin real (opcional)</label><input type="date" id="pl-fin-r" value="${esc(x.fecha_fin_real ? String(x.fecha_fin_real).slice(0, 10) : '')}" /></div>
+          <div><label class="campo" for="pl-fin-r">Fin real (opcional)</label><input type="date" id="pl-fin-r" value="${esc(x.fecha_fin_real ? String(x.fecha_fin_real).slice(0, 10) : (x.fin_declarado_en ? String(x.fin_declarado_en).slice(0, 10) : ''))}" />${!x.fecha_fin_real && x.fin_declarado_en ? '<div class="suave">La empresa avisó de que terminó el ' + esc(plFecha(x.fin_declarado_en)) + '. Revisa la obra y confirma o cambia la fecha.</div>' : ''}</div>
           <div style="grid-column:1/-1"><label class="campo" for="pl-pct">Penalización por cada día de retraso (% del valor del contrato)</label>
             <input type="number" id="pl-pct" min="0" max="100" step="0.01" value="${esc(x.penalizacion_diaria_pct)}" />
             <span class="suave peq">Por defecto 2 %. Valor del contrato: ${esc(PL_EUR(x.valor_contrato))} (${esc(x.valor_origen)}).</span></div>

@@ -70,6 +70,8 @@ export default function ObrasScreen() {
   const [nombre, setNombre] = useState<string | null>(null);
   const [empresa, setEmpresa] = useState<ResumenEmpresa | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [esConstructora, setEsConstructora] = useState(false);
+  const [miId, setMiId] = useState<string | null>(null);
   const [guardadas, setGuardadas] = useState<Set<string>>(new Set());
   const [soloGuardadas, setSoloGuardadas] = useState(false);
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
@@ -101,7 +103,7 @@ export default function ObrasScreen() {
     if (usuarioId) {
       const { data: perfil } = await supabase
         .from('profiles')
-        .select('nombre_completo, empresa_id')
+        .select('nombre_completo, empresa_id, role')
         .eq('id', usuarioId)
         .single();
       // Nombre a mostrar, por orden de preferencia: el del perfil, el que se
@@ -120,6 +122,8 @@ export default function ObrasScreen() {
           : null,
       );
       empresaId = (perfil?.empresa_id as string | null | undefined) ?? null;
+      setEsConstructora(perfil?.role === 'constructora');
+      setMiId(usuarioId);
     }
 
     const [obrasRes, empresaRes, postulacionesRes, guardadasRes] = await Promise.all([
@@ -237,6 +241,7 @@ export default function ObrasScreen() {
     (etiquetasObra.get(obraId) ?? []).some((e) => ids.has(e.id));
   const visibles = obras
     .filter((o) => o.creado_por === undefined || o.creado_por === null || !bloqueados.has(o.creado_por))
+    .filter((o) => miId === null || o.creado_por !== miId)
     .filter((o) => !soloGuardadas || guardadas.has(o.id))
     .filter((o) => filtroEtiquetas.size === 0 || tieneAlguna(o.id, filtroEtiquetas))
     .filter((o) => !soloMias || tieneAlguna(o.id, misEtiquetas))
@@ -273,7 +278,7 @@ export default function ObrasScreen() {
             <Text className="text-ink text-base font-sansBold">
               {nombre !== null && nombre !== '' ? `Hola, ${nombre} 👋` : 'Hola 👋'}
             </Text>
-            {empresa !== null && (
+            {empresa !== null && !esConstructora && (
               <View className="flex-row items-center gap-1.5 mt-1">
                 <View
                   style={{
@@ -290,7 +295,7 @@ export default function ObrasScreen() {
             )}
           </View>
         </View>
-        {empresa !== null && (
+        {empresa !== null && !esConstructora && (
           <View
             className="flex-row items-center gap-1 rounded-full px-3 py-1.5"
             style={{ backgroundColor: COLOR_NIVEL[empresa.nivel_partner].fondo }}

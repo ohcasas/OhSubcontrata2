@@ -8,7 +8,7 @@
   var ICONOS = {
     plazo_proximo: '⏳', plazo_hoy: '📅', plazo_retraso: '⚠️',
     plazo_proximo_admin: '⏳', plazo_hoy_admin: '📅', plazo_retraso_admin: '⚠️',
-    cuenta_nueva: '👤', peticion_nueva: '📝', documento_subido: '📄'
+    cuenta_nueva: '👤', peticion_nueva: '📝', documento_subido: '📄', obra_terminada: '🏁'
   };
   var TITULO_BASE = document.title;
   var estado = { lista: [], abierto: false, expandida: null };
