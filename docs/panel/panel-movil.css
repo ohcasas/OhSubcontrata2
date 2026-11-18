@@ -1,0 +1,41 @@
+/* 3B Conecta · Panel en el móvil (se enlaza después de panel-cristal.css y panel-campana.css). No cambia el aspecto en ordenador. */
+@media (max-width: 900px) {
+  html, body { overflow-x: hidden; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  /* barra superior fija con menú, logo y campana */
+  .barra-movil { padding: calc(8px + env(safe-area-inset-top)) 14px 8px; min-height: 56px; background: rgba(255,255,255,.92); backdrop-filter: blur(14px); }
+  .barra-movil #btn-menu { width: 44px; height: 44px; font-size: 20px; display: grid; place-items: center; padding: 0; }
+  .barra-movil #pc-campana { position: relative !important; top: auto !important; right: auto !important; margin: 0 0 0 auto !important; z-index: 25; }
+  .barra-movil #pc-campana-panel { position: fixed; top: calc(60px + env(safe-area-inset-top)); left: 10px; right: 10px; width: auto; max-height: calc(100vh - 90px); }
+  .contenido { gap: 0 !important; }
+  #pc-top { height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: visible; }
+  /* zonas táctiles y escritura sin zoom en iPhone */
+  .btn, .btn.peq, #vista select, #vista input:not([type=checkbox]):not([type=radio]), #vista textarea, #ventana input, #ventana select, #ventana textarea { min-height: 44px; font-size: 16px; }
+  .btn.peq { padding-left: 14px; padding-right: 14px; }
+  #lateral { width: min(86vw, 320px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #lateral nav a { min-height: 44px; }
+  .herramientas { flex-wrap: wrap; gap: 8px; }
+  .herramientas input[type=search], .herramientas select { flex: 1 1 100%; }
+  .cab { flex-wrap: wrap; gap: 10px; }
+  .cab h1 { font-size: 22px; }
+  /* tablas: en tarjetas con la etiqueta de cada dato (las etiquetas las pone panel-movil.js) */
+  .tabla-caja { overflow-x: visible; }
+  .t td { padding: 5px 14px; font-size: 14px; }
+  .t td[data-l=""]::before { content: none; }
+  .t td:first-child { display: block; text-align: left; font-size: 15px; padding-top: 10px; }
+  .t td:first-child::before { content: none; }
+  .t td:last-child:not(:first-child) { justify-content: flex-start; padding-bottom: 10px; }
+  .t td:last-child:not(:first-child)::before { content: none; }
+  .pc-fila, .dos, .ficha { grid-template-columns: 1fr !important; }
+}
+/* ventanas emergentes como hoja desde abajo */
+@media (max-width: 640px) {
+  #velo { padding: 0; align-items: flex-end; }
+  #ventana { max-width: none; width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); animation: pm-sube .28s cubic-bezier(.2,.9,.3,1); -webkit-overflow-scrolling: touch; }
+  .pie-modal { position: sticky; bottom: -1px; background: inherit; padding-top: 12px; }
+  .pie-modal .btn { flex: 1 1 auto; }
+  .form-rejilla { grid-template-columns: 1fr !important; }
+  #toast, .aviso-flotante { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+@keyframes pm-sube { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #ventana { animation: none; } }
