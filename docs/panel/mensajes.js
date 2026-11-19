@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   var BUCKET = 'chat-archivos';
-  var MS = { conv: [], sel: null, msgs: [], filtro: '', canal: null, timer: null, urls: {}, vivo: 0 };
+  var MS = { conv: [], extra: [], sel: null, msgs: [], filtro: '', canal: null, timer: null, urls: {}, vivo: 0 };
 
   var ROL = { promotor: 'Promotor', constructora: 'Constructora', arquitecto: 'Arquitecto', proveedor: 'Proveedor', profesional: 'Profesional',
     administrador: 'Inmobiliaria', subcontratista: 'Subcontratista', referidor: 'Referidor', particular: 'Particular', tecnico: 'Técnico' };
@@ -68,6 +68,9 @@
   async function cargarLista() {
     var l = await rpc('chat_mis_conversaciones');
     MS.conv = (l || []).map(function (c) { c.no_leidos = Number(c.no_leidos || 0); return c; });
+    // Una conversación recién abierta (aún sin mensajes) no sale en la lista de la base de datos: se mantiene aquí hasta que tenga uno
+    MS.extra = MS.extra.filter(function (x) { return !MS.conv.some(function (c) { return c.id === x.id; }); });
+    MS.conv = MS.extra.concat(MS.conv);
     actualizarInsignia();
   }
   function actualizarInsignia() {
@@ -184,12 +187,19 @@
       try {
         var r = await rpc('chat_usuarios', { p_buscar: q === '' ? null : q, p_limite: 30 });
         $('#ms-res').innerHTML = (r || []).length ? r.map(function (p) {
-          return '<div class="ms-item" data-u="' + esc(p.id) + '"><div class="ms-av">' + esc(ini(p.nombre)) + '</div><div class="ms-txt"><b>' + esc(p.nombre) + '</b><span>' +
+          return '<div class="ms-item" data-u="' + esc(p.id) + '" data-n="' + esc(p.nombre) + '"><div class="ms-av">' + esc(ini(p.nombre)) + '</div><div class="ms-txt"><b>' + esc(p.nombre) + '</b><span>' +
             esc(ROL[p.rol] || p.rol) + (p.estado_cuenta !== 'verificada' ? ' · cuenta ' + esc(p.estado_cuenta) : '') + '</span></div></div>';
         }).join('') : '<p class="suave">Nadie coincide con esa búsqueda.</p>';
         $('#ms-res').querySelectorAll('[data-u]').forEach(function (e) {
           e.onclick = async function () {
-            try { var id = await rpc('chat_abrir', { p_usuario_id: e.dataset.u }); cerrarVentana(); await cargarLista(); await abrir(v, id); }
+            try {
+              var id = await rpc('chat_abrir', { p_usuario_id: e.dataset.u });
+              var nom = e.getAttribute('data-n') || 'Conversación';
+              if (!MS.conv.some(function (c) { return c.id === id; }) && !MS.extra.some(function (c) { return c.id === id; })) {
+                MS.extra.push({ id: id, tipo: 'soporte', otro_id: e.dataset.u, nombre: nom, ultimo_texto: null, ultimo_at: new Date().toISOString(), no_leidos: 0 });
+              }
+              cerrarVentana(); await abrir(v, id);
+            }
             catch (err) { errorVentana(err); }
           };
         });
