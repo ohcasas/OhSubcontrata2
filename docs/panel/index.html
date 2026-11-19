@@ -237,6 +237,7 @@
       <a href="#/obras" data-nav="obras"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>Obras</a>
       <a href="#/postulaciones" data-nav="postulaciones"><svg viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Postulaciones <span class="n hidden" id="cnt-postulaciones">0</span></a>
       <a href="#/peticiones" data-nav="peticiones"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Peticiones <span class="n hidden" id="cnt-peticiones">0</span></a>
+      <a href="#/mensajes" data-nav="mensajes"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 3.5 11.5 8.5 8.5 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>Mensajes <span class="n hidden" id="cnt-mensajes">0</span></a>
       <div class="grupo-nav">Oficios y Club Partner</div>
       <a href="#/gremios" data-nav="gremios"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.5 7 .9-5.2 4.8 1.4 7L12 17.8 5.8 21.2l1.4-7L2 9.4l7-.9z"/></svg>Gremios</a>
       <a href="#/recompensas" data-nav="recompensas"><svg viewBox="0 0 24 24"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>Recompensas <span class="n hidden" id="cnt-canjes">0</span></a>
@@ -282,6 +283,7 @@
 <script src="comision_obra.js"></script>
 <script src="paquetes.js"></script>
 <script src="plazos.js"></script>
+<script src="mensajes.js"></script>
 <script src="panel-animaciones.js"></script>
 <script>
 // ───────────────────────── Configuración ─────────────────────────
@@ -441,6 +443,7 @@ async function enrutar() {
     else if (ruta === 'comision-obra') await vistaComisionObra(v);
     else if (ruta === 'paquetes') await vistaPaquetes(v);
     else if (ruta === 'plazos') await vistaPlazos(v);
+    else if (ruta === 'mensajes') await vistaMensajes(v);
     else if (ruta === 'referidos') await vistaReferidos(v);
     else if (ruta === 'revision') await vistaRevision(v);
     else if (ruta === 'peticiones') await vistaPeticiones(v);
