@@ -179,7 +179,7 @@
   function nuevo(v) {
     abrirVentana('<h2>Nuevo mensaje</h2><p class="suave">Busca a la persona por su nombre o el de su empresa. Se abre un chat con Administración 3B Conecta.</p>' +
       '<input type="search" id="ms-buscar" placeholder="Buscar persona o empresa" autocomplete="off"><div id="ms-res" style="max-height:320px;overflow:auto;margin-top:8px"></div>' +
-      '<div class="pie-ventana"><button class="btn" data-cerrar>Cerrar</button></div>', 520);
+      '<div id="v-error" class="error-caja hidden" style="margin-top:8px"></div><div class="pie-modal"><button class="btn" data-cerrar>Cerrar</button></div>', 520);
     $('[data-cerrar]').onclick = cerrarVentana;
     var t = null;
     var buscar = async function () {
@@ -200,7 +200,7 @@
               }
               cerrarVentana(); await abrir(v, id);
             }
-            catch (err) { errorVentana(err); }
+            catch (err) { var x = $('#v-error'); if (x) { x.textContent = mensajeError(err); x.classList.remove('hidden'); } else { aviso(mensajeError(err), true); } }
           };
         });
       } catch (err) { $('#ms-res').innerHTML = '<p class="mal-t">' + esc(mensajeError(err)) + '</p>'; }
