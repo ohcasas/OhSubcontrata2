@@ -192,15 +192,23 @@
         }).join('') : '<p class="suave">Nadie coincide con esa búsqueda.</p>';
         $('#ms-res').querySelectorAll('[data-u]').forEach(function (e) {
           e.onclick = async function () {
+            var x = $('#v-error');
+            var dec = function (t, mal) { if (x) { x.textContent = t; x.classList.remove('hidden'); x.style.opacity = mal ? '1' : '.7'; } else if (mal) { aviso(t, true); } };
             try {
+              dec('Abriendo la conversación…', false);
               var id = await rpc('chat_abrir', { p_usuario_id: e.dataset.u });
+              console.log('[mensajes] chat abierto', id);
               var nom = e.getAttribute('data-n') || 'Conversación';
               if (!MS.conv.some(function (c) { return c.id === id; }) && !MS.extra.some(function (c) { return c.id === id; })) {
                 MS.extra.push({ id: id, tipo: 'soporte', otro_id: e.dataset.u, nombre: nom, ultimo_texto: null, ultimo_at: new Date().toISOString(), no_leidos: 0 });
               }
-              cerrarVentana(); await abrir(v, id);
-            }
-            catch (err) { var x = $('#v-error'); if (x) { x.textContent = mensajeError(err); x.classList.remove('hidden'); } else { aviso(mensajeError(err), true); } }
+              await abrir(v, id);
+              if (!v.isConnected || !v.querySelector('.ms-hilo #ms-texto')) {
+                console.log('[mensajes] no se pudo pintar el hilo', { conectado: v.isConnected, hilo: !!v.querySelector('.ms-hilo') });
+                return dec('Se ha abierto el chat, pero no se ha podido mostrar. Pulsa Ctrl+F5 y mira la conversación en la lista de la izquierda.', true);
+              }
+              cerrarVentana();
+            } catch (err) { console.log('[mensajes] error', err); dec(mensajeError(err), true); }
           };
         });
       } catch (err) { $('#ms-res').innerHTML = '<p class="mal-t">' + esc(mensajeError(err)) + '</p>'; }
