@@ -310,6 +310,17 @@ export default function RootNavigator() {
             <Stack.Screen name="AppConecta">
               {() => <ConectaTabs rol={rol} userId={session!.user.id} />}
             </Stack.Screen>
+            <Stack.Screen
+              name="DetalleObra"
+              component={DetalleObraScreen}
+              options={{
+                headerShown: true,
+                title: 'Detalle de obra',
+                headerStyle: { backgroundColor: colors.canvas },
+                headerTintColor: colors.ink,
+                headerTitleStyle: { color: colors.ink },
+              }}
+            />
             {pantallaNotificaciones}
             {pantallasChat}
             {pantallasDocumentos}
