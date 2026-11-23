@@ -30,6 +30,8 @@ import UsuariosBloqueados from '../../components/UsuariosBloqueados';
 import { olvidarBloqueos } from '../../services/moderacion';
 import { usePagosActivos } from '../../services/pagosActivos';
 import PerfilPorRol from './PerfilPorRol';
+import PerfilHero from '../../components/perfil/PerfilHero';
+import { useDatosHero } from '../../components/perfil/useDatosHero';
 import CampanaNotificaciones from '../../components/CampanaNotificaciones';
 import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../constants/enlaces';
 import { formatearMoneda } from '../../utils/moneda';
@@ -150,6 +152,7 @@ export default function PerfilScreen() {
   } | null>(null);
   const [subiendoDocumento, setSubiendoDocumento] = useState(false);
   const [abriendoDocumentoId, setAbriendoDocumentoId] = useState<string | null>(null);
+  const datosHero = useDatosHero(rol, usuarioId, perfil?.nombre_completo ?? '');
 
   const cargarTodo = useCallback(async () => {
     setError(null);
@@ -423,7 +426,7 @@ export default function PerfilScreen() {
 
   return (
     <View className="flex-1 bg-canvas">
-      <ScreenHeader title="Perfil" rightElement={<CampanaNotificaciones />} />
+      {datosHero === null && <ScreenHeader title="Perfil" rightElement={<CampanaNotificaciones />} />}
 
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
@@ -431,6 +434,15 @@ export default function PerfilScreen() {
           <RefreshControl refreshing={refrescando} onRefresh={handleRefrescar} colors={[colors.action]} />
         }
       >
+        {datosHero !== null && (
+          <View style={{ marginHorizontal: -16, marginTop: -16, marginBottom: 12 }}>
+            <PerfilHero
+              nombre={perfil?.nombre_completo ?? ''}
+              avatarUrl={perfil?.avatar_url && !falloAvatar ? perfil.avatar_url : null}
+              {...datosHero}
+            />
+          </View>
+        )}
         {error !== null && (
           <View className="bg-errorTint rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
             <Feather name="alert-circle" size={17} color={colors.error} />

@@ -1,4 +1,5 @@
 /**
+ * 
  * Tipos de navegación. Se irán ampliando con los parámetros reales de cada
  * pantalla (p.ej. DetalleObra necesitará obraId) en la siguiente fase.
  */
@@ -96,4 +97,6 @@ export type RootStackParamList = {
   MisTrabajadores: undefined;
   TrabajadorDetalle: { trabajadorId: string };
   TrabajadorForm: { trabajadorId?: string } | undefined;
-};
+  Guia: undefined;
+  Tutorial: undefined;
+}

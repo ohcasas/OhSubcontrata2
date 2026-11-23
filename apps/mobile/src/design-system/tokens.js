@@ -21,15 +21,15 @@
 // todas las pantallas usen los nombres nuevos, los alias se podrán borrar.
 // ============================================================================
 const colorsRediseno = {
-  canvas: '#F8FAFD',
+  canvas: '#F2F7FF',
   surface: '#FFFFFF',
   ink: '#0B1F35',
   inkMuted: '#52657A',
   inkSubtle: '#6B7C8F',
-  action: '#0057FF',
-  actionDark: '#0046CC',
-  actionTint: '#E8F0FF',
-  border: '#D7E0EB',
+  action: '#1951FC',
+  actionDark: '#0B2CB1',
+  actionTint: '#E4EDFF',
+  border: '#D3DEF0',
   borderStrong: '#B8C7D8',
   navySurface: '#102A46',
   white: '#FFFFFF',
@@ -63,7 +63,7 @@ const shadowRediseno = {
     elevation: 3,
   },
   active: {
-    shadowColor: '#0057FF',
+    shadowColor: '#1951FC',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.24,
     shadowRadius: 18,

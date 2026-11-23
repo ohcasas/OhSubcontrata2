@@ -9,7 +9,7 @@
  * con las pantallas reales. Aquí sólo se deja el esqueleto de decisión.
  */
 import { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
@@ -45,6 +45,9 @@ import { comprobarVersionApp, type EstadoVersion } from '../services/versionApp'
 import CandidatoPendienteScreen from '../screens/seleccion/CandidatoPendienteScreen';
 import CandidatoAltaScreen from '../screens/seleccion/CandidatoAltaScreen';
 import { obtenerMiCandidato } from '../services/seleccion';
+import GuiaScreen from '../screens/ayuda/GuiaScreen';
+import TutorialScreen from '../screens/ayuda/TutorialScreen';
+import { tutorialYaVisto } from '../services/tutorial';
 import type { RootStackParamList } from './types';
 
 type Rol =
@@ -88,6 +91,8 @@ export default function RootNavigator() {
   }, []);
   const [candidatoNota, setCandidatoNota] = useState<string | null>(null);
   const [candidato, setCandidato] = useState<'si' | 'pendiente' | 'alta' | null>(null);
+  const navRef = useNavigationContainerRef<RootStackParamList>();
+  const [navLista, setNavLista] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -168,6 +173,21 @@ export default function RootNavigator() {
     };
   }, [session, recargas]);
 
+  // Tutorial de bienvenida: se abre solo la primera vez que una cuenta entra en la app.
+  const rolConTutorial = rol !== null && rol !== 'admin' && rol !== 'superadmin';
+  const userIdSesion = session?.user.id ?? null;
+  const tutorialListo = navLista && userIdSesion !== null && rolConTutorial && estadoCuenta === 'verificada' && candidato === null;
+  useEffect(() => {
+    if (!tutorialListo || userIdSesion === null) return;
+    let activo = true;
+    tutorialYaVisto(userIdSesion).then((visto) => {
+      if (activo && !visto && navRef.isReady()) navRef.navigate('Tutorial');
+    });
+    return () => {
+      activo = false;
+    };
+  }, [tutorialListo, userIdSesion, navRef]);
+
   // Version de la app demasiado antigua: nada de lo demas se ensena hasta actualizar.
   if (version.nivel === 'obligatoria') {
     return <ActualizarAppScreen urlTienda={version.urlTienda} mensaje={version.mensaje} />;
@@ -216,6 +236,12 @@ export default function RootNavigator() {
     <Stack.Screen key="TrabajadorForm" name="TrabajadorForm" component={TrabajadorFormScreen} options={opcionesDocumentos('Datos del trabajador')} />,
   ];
 
+  // Ayuda dentro de la app: guía con glosario y tutorial de bienvenida (se abre desde el Perfil).
+  const pantallasAyuda = [
+    <Stack.Screen key="Guia" name="Guia" component={GuiaScreen} options={opcionesDocumentos('Guía de la app')} />,
+    <Stack.Screen key="Tutorial" name="Tutorial" component={TutorialScreen} options={{ headerShown: false, presentation: 'fullScreenModal' }} />,
+  ];
+
   // Chat: la conversación y el buscador para escribir a alguien (la bandeja se abre desde el icono de mensajes de la cabecera).
   const pantallasChat = [
     <Stack.Screen key="Mensajes" name="Mensajes" component={MensajesScreen} options={opcionesDocumentos('Mensajes')} />,
@@ -224,7 +250,7 @@ export default function RootNavigator() {
   ];
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navRef} onReady={() => setNavLista(true)}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!session ? (
           <Stack.Screen name="Auth" component={AuthStack} />
@@ -291,18 +317,21 @@ export default function RootNavigator() {
             <Stack.Screen name="AppParticular" component={ParticularTabs} />
             {pantallaNotificaciones}
             {pantallasChat}
+            {pantallasAyuda}
           </>
         ) : rol === 'tecnico' ? (
           <>
             <Stack.Screen name="AppTecnico" component={TecnicoTabs} />
             {pantallaNotificaciones}
             {pantallasChat}
+            {pantallasAyuda}
           </>
         ) : rol === 'referidor' ? (
           <>
             <Stack.Screen name="AppReferidor" component={ReferidorTabs} />
             {pantallaNotificaciones}
             {pantallasChat}
+            {pantallasAyuda}
             {pantallasDocumentos}
           </>
         ) : rol !== null && ROLES_CONECTA.includes(rol) ? (
@@ -323,6 +352,7 @@ export default function RootNavigator() {
             />
             {pantallaNotificaciones}
             {pantallasChat}
+            {pantallasAyuda}
             {pantallasDocumentos}
           </>
         ) : (
@@ -341,6 +371,7 @@ export default function RootNavigator() {
             />
             {pantallaNotificaciones}
             {pantallasChat}
+            {pantallasAyuda}
             {pantallasDocumentos}
           </>
         )}

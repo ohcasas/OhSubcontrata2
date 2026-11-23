@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 
@@ -43,7 +44,7 @@ export default function AnimatedTabBar({
   icons,
   barColor,
   activeColor,
-  inactiveColor = 'rgba(255,255,255,0.72)',
+  inactiveColor = '#5B6E84',
   badges,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -64,7 +65,8 @@ export default function AnimatedTabBar({
 
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 12) }}>
-      <View style={[styles.barra, { backgroundColor: barColor }]}>
+      {/* Estilo cristal del rediseño: barra clara translúcida; barColor se mantiene en las props por compatibilidad. */}
+      <View style={[styles.barra, { backgroundColor: 'rgba(255,255,255,0.94)' }]}>
         {state.routes.map((route, index) => {
           const enfocado = state.index === index;
           const progreso = progresos[index];
@@ -106,11 +108,13 @@ export default function AnimatedTabBar({
                   styles.burbuja,
                   {
                     backgroundColor: activeColor,
+                    overflow: 'hidden',
                     opacity: progreso,
                     transform: [{ translateY: traslacionBurbuja }, { scale: escalaBurbuja }],
                   },
                 ]}
               >
+                <LinearGradient colors={['#6FB6FF', '#1951FC', '#0B2CB1']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
                 <Feather name={nombreIcono} size={23} color="#ffffff" />
               </Animated.View>
             </Pressable>
@@ -142,6 +146,8 @@ const styles = StyleSheet.create({
     borderRadius: ALTURA_BARRA / 2,
     alignItems: 'center',
     justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: 'rgba(25,81,252,0.14)',
     // shadow.nav de la guía de estilo del rediseño
     shadowColor: '#0B1F35',
     shadowOpacity: 0.16,
