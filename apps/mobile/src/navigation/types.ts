@@ -51,6 +51,7 @@ export type ReferidorTabParamList = {
 
 export type ParticularTabParamList = {
   Peticiones: undefined;
+  Catalogo: undefined;
   Perfil: undefined;
 };
 
