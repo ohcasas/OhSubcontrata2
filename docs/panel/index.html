@@ -258,6 +258,7 @@
       <a href="#/metricas" data-nav="metricas"><svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 15v3M12 9v9M17 5v13"/></svg>Métricas</a>
       <a href="#/etiquetas" data-nav="etiquetas"><svg viewBox="0 0 24 24"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8zM7 7h.01"/></svg>Etiquetas <span class="n hidden" id="cnt-etiquetas">0</span></a>
       <a href="#/pagos" data-nav="pagos"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Pagos <span class="n hidden" id="cnt-pagos">0</span></a>
+      <a href="#/pagos-manuales" data-nav="pagos-manuales"><svg viewBox="0 0 24 24"><path d="M3 7h18v10H3zM12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM6 9.5v.01M18 14.5v.01"/></svg>Pagos manuales</a>
       <a href="#/contratos" data-nav="contratos"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Contratos</a>
       <a href="#/bolsa" data-nav="bolsa"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>Bolsa de empleo</a>
       <a href="#/precios" data-nav="precios"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</a>
@@ -457,6 +458,7 @@ async function enrutar() {
     else if (ruta === 'equipo') await vistaEquipo(v);
     else if (ruta === 'etiquetas') await vistaEtiquetas(v);
     else if (ruta === 'pagos') await vistaPagos(v);
+    else if (ruta === 'pagos-manuales') await vistaPagosManuales(v);
     else if (ruta === 'contratos') await vistaContratos(v);
     else if (ruta === 'bolsa') await vistaBolsa(v);
     else if (ruta === 'precios') await vistaPrecios(v);
@@ -1206,6 +1208,117 @@ function ventanaResolverDisputa(x) {
     catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
   };
 }
+// ───────────────────────── Pagos manuales (0095) ─────────────────────────
+// Registro de pagos hechos FUERA de la app (transferencia, tarjeta de empresa en el banco...).
+// El panel NO mueve dinero ni guarda datos de tarjeta: solo deja constancia y calcula la comisión.
+const ESTADO_PM = { pendiente: ['Pendiente de pagar', 'aviso'], pagado: ['Pagado', 'ok'], anulado: ['Anulado', 'neutro'] };
+const METODO_PM = { transferencia: 'Transferencia', tarjeta_empresa: 'Tarjeta de empresa', efectivo: 'Efectivo', otro: 'Otro' };
+const eurosAC = (e) => Math.round(Number(String(e).replace(',', '.')) * 100);
+async function vistaPagosManuales(v) {
+  let obrasPM, resumen, pagos;
+  try {
+    [obrasPM, resumen] = await Promise.all([rpc('panel_pm_obras'), rpc('panel_pm_resumen')]);
+    const r = await sb.from('pagos_manuales').select('*, obras(referencia,titulo), empresas_subcontratistas(nombre)').order('created_at', { ascending: false });
+    if (r.error) throw r.error; pagos = r.data || [];
+  } catch (e) {
+    v.innerHTML = `<div class="cab"><div><h1>Pagos manuales</h1></div></div><div class="panel" style="padding:14px 18px">Todavía no está activada esta sección. Ejecuta primero la migración 0095 en Supabase. <span class="suave">(${esc(mensajeError(e))})</span></div>`; return;
+  }
+  window.__pm = { obras: obrasPM, pagos };
+  const pend = pagos.filter((p) => p.estado === 'pendiente').length;
+  v.innerHTML = `<div class="cab"><div><h1>Pagos manuales</h1>
+      <p class="suave">Para las obras que paga OH Casas (u otra empresa) fuera de la app: transferencia o tarjeta de empresa en su banco. Aquí solo se <b>registra</b> el pago y se calcula la comisión: el panel no mueve dinero.</p></div></div>
+    <div class="panel" style="padding:14px 18px;margin-bottom:14px"><b>Importante:</b> nunca escribas aquí el número de una tarjeta ni de una cuenta. Anota solo la referencia de la operación (por ejemplo, el código de la transferencia). Si lo intentas, el sistema lo rechaza.</div>
+    <div class="resumen" style="margin-bottom:14px">
+      <a href="#/pagos-manuales"><b>${eurosC(resumen.pagado_bruto_cents)}</b><span>Pagado (importe de las ofertas)</span><span style="display:block">${esc(resumen.pagos_registrados)} pagos</span></a>
+      <a href="#/pagos-manuales"><b>${eurosC(resumen.comision_3b_cents)}</b><span>Comisión retenida por 3B</span></a>
+      <a href="#/pagos-manuales"><b>${eurosC(resumen.pagado_neto_cents)}</b><span>Transferido a las empresas</span></a>
+      <a href="#/pagos-manuales"><b>${eurosC(resumen.pendiente_neto_cents)}</b><span>Pendiente de transferir</span><span style="display:block">${esc(resumen.pagos_pendientes)} pagos</span></a>
+    </div>
+    <div class="panel" style="margin-bottom:14px"><div style="padding:14px 18px 0"><b>Obras con oferta aceptada</b></div><div id="pm-obras"></div></div>
+    <div class="panel"><div style="padding:14px 18px 0"><b>Pagos registrados</b> ${pend ? `<span class="e aviso">${pend} pendientes</span>` : ''}</div><div id="pm-pagos"></div></div>`;
+  $('#pm-obras').innerHTML = htmlTabla('pm-obras', [
+    { t: 'Obra', f: (x) => `<b>${esc(x.referencia || '')}</b> ${esc(x.titulo)}<span class="sub">${esc(x.empresa)}</span>`, s: (x) => String(x.titulo).toLowerCase() },
+    { t: 'Oferta', f: (x) => eurosC(x.oferta_cents), s: (x) => Number(x.oferta_cents) },
+    { t: 'Comisión', f: (x) => esc(pctTxt(x.comision_pct)), s: (x) => Number(x.comision_pct || 0) },
+    { t: 'Pagado', f: (x) => eurosC(x.pagado_bruto_cents), s: (x) => Number(x.pagado_bruto_cents) },
+    { t: 'Por registrar', f: (x) => eurosC(x.por_registrar_cents), s: (x) => Number(x.por_registrar_cents) },
+    { t: '', cls: 'acc', f: (x) => x.pago_stripe ? '<span class="suave">Ya va por Stripe</span>' : Number(x.por_registrar_cents) > 0 ? `<button class="btn peq primario" data-act="pm-nuevo" data-id="${esc(x.obra_id)}">Nuevo pago</button>` : '<span class="suave">Completa</span>' }
+  ], obrasPM, 'No hay obras con una oferta aceptada.');
+  $('#pm-pagos').innerHTML = htmlTabla('pm-pagos', [
+    { t: 'Obra', f: (x) => `<b>${esc((x.obras && x.obras.referencia) || '')}</b> ${esc((x.obras && x.obras.titulo) || '')}<span class="sub">${esc((x.empresas_subcontratistas && x.empresas_subcontratistas.nombre) || '')}</span>`, s: (x) => String((x.obras && x.obras.titulo) || '').toLowerCase() },
+    { t: 'Concepto', f: (x) => `${esc(x.concepto)}${x.fecha_prevista && x.estado === 'pendiente' ? `<span class="sub">Previsto: ${fecha(x.fecha_prevista)}</span>` : ''}` },
+    { t: 'Importe', f: (x) => `<b>${eurosC(x.importe_bruto_cents)}</b><span class="sub">Comisión ${eurosC(x.comision_cents)} · A transferir ${eurosC(x.neto_cents)}</span>`, s: (x) => Number(x.importe_bruto_cents) },
+    { t: 'Estado', f: (x) => { const e = ESTADO_PM[x.estado] || [x.estado, 'neutro']; return `<span class="e ${e[1]}">${esc(e[0])}</span>${x.estado === 'pagado' ? `<span class="sub">${fecha(x.fecha_pago)} · ${esc(METODO_PM[x.metodo] || '')}${x.referencia ? ' · ' + esc(x.referencia) : ''}</span>` : ''}${x.estado === 'anulado' ? `<span class="sub" style="white-space:normal">${esc(x.anulado_motivo || '')}</span>` : ''}`; }, s: (x) => x.estado },
+    { t: '', cls: 'acc', f: (x) => x.estado === 'pendiente' ? `<button class="btn peq primario" data-act="pm-pagado" data-id="${esc(x.id)}">Marcar pagado</button> <button class="btn peq" data-act="pm-anular" data-id="${esc(x.id)}">Anular</button>` : x.estado === 'pagado' ? `<button class="btn peq" data-act="pm-anular" data-id="${esc(x.id)}">Anular</button>` : '' }
+  ], pagos, 'Todavía no has registrado ningún pago.');
+}
+function ventanaPmNuevo(id) {
+  const o = window.__pm.obras.find((x) => x.obra_id === id); if (!o) return;
+  abrirVentana(`<h2>Nuevo pago</h2><p><b>${esc(o.referencia || '')} ${esc(o.titulo)}</b> · ${esc(o.empresa)}</p>
+    <p class="suave">Oferta ${eurosC(o.oferta_cents)} · Ya registrado ${eurosC(Number(o.oferta_cents) - Number(o.por_registrar_cents))} · Disponible ${eurosC(o.por_registrar_cents)}</p>
+    <label class="campo" for="pm-concepto">Concepto</label><input type="text" id="pm-concepto" maxlength="120" placeholder="Anticipo 30 %" />
+    <label class="campo" for="pm-importe">Importe de la oferta que se paga (€)</label><input type="text" inputmode="decimal" id="pm-importe" placeholder="0,00" />
+    <p class="suave" id="pm-calc">Comisión ${esc(pctTxt(o.comision_pct))}. Escribe el importe para ver cuánto se transfiere.</p>
+    <label class="campo" for="pm-prevista">Fecha prevista (opcional)</label><input type="date" id="pm-prevista" />
+    <label class="campo" for="pm-notas">Notas (opcional, sin números de tarjeta ni cuenta)</label><textarea id="pm-notas" maxlength="500" rows="2"></textarea>
+    ${pieVentana('Crear pago', 'primario')}`, 520);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#pm-importe').oninput = () => {
+    const c = eurosAC($('#pm-importe').value); const pct = Number(o.comision_pct || 0);
+    if (!(c > 0)) { $('#pm-calc').textContent = `Comisión ${pctTxt(o.comision_pct)}. Escribe el importe para ver cuánto se transfiere.`; return; }
+    const com = Math.round(c * pct / 100);
+    $('#pm-calc').textContent = `Comisión ${pctTxt(o.comision_pct)} = ${eurosC(com)}. A transferir a la empresa: ${eurosC(c - com)}.`;
+  };
+  $('#v-ok').onclick = async () => {
+    const c = eurosAC($('#pm-importe').value);
+    if (!(c > 0)) return errorVentana('Escribe un importe mayor que cero.');
+    if (c > Number(o.por_registrar_cents)) return errorVentana('Te pasas de lo que queda por registrar de esta oferta.');
+    if ($('#pm-concepto').value.trim().length < 3) return errorVentana('Escribe el concepto (mínimo 3 letras).');
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_pm_crear', { p_obra_id: id, p_concepto: $('#pm-concepto').value, p_importe_bruto_cents: c, p_fecha_prevista: $('#pm-prevista').value || null, p_notas: $('#pm-notas').value || null }); cerrarVentana(); aviso('Pago registrado como pendiente.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaPmPagado(id) {
+  const p = window.__pm.pagos.find((x) => x.id === id); if (!p) return;
+  const hoy = new Date().toISOString().slice(0, 10);
+  abrirVentana(`<h2>Marcar como pagado</h2><p><b>${esc(p.concepto)}</b> · ${esc((p.empresas_subcontratistas || {}).nombre || '')}</p>
+    <p>A transferir a la empresa: <b>${eurosC(p.neto_cents)}</b> <span class="suave">(comisión de 3B: ${eurosC(p.comision_cents)})</span></p>
+    <p class="suave">Marca esto solo cuando el pago ya se haya hecho en el banco.</p>
+    <label class="campo" for="pm-fecha">Fecha del pago</label><input type="date" id="pm-fecha" value="${hoy}" max="${hoy}" />
+    <label class="campo" for="pm-metodo">Cómo se pagó</label><select id="pm-metodo">${Object.entries(METODO_PM).map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join('')}</select>
+    <label class="campo" for="pm-ref">Referencia de la operación (opcional, nunca un número de tarjeta)</label><input type="text" id="pm-ref" maxlength="80" />
+    ${pieVentana('Marcar pagado', 'primario')}`, 500);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    if (!$('#pm-fecha').value) return errorVentana('Indica la fecha del pago.');
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_pm_marcar_pagado', { p_id: id, p_fecha_pago: $('#pm-fecha').value, p_metodo: $('#pm-metodo').value, p_referencia: $('#pm-ref').value || null }); cerrarVentana(); aviso('Pago marcado como pagado.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+function ventanaPmAnular(id) {
+  const p = window.__pm.pagos.find((x) => x.id === id); if (!p) return;
+  abrirVentana(`<h2>Anular pago</h2><p><b>${esc(p.concepto)}</b> · ${eurosC(p.importe_bruto_cents)}</p>
+    <p class="suave">No se borra: queda en el historial con el motivo. El importe vuelve a quedar disponible en la obra.</p>
+    <label class="campo" for="pm-motivo">Motivo</label><input type="text" id="pm-motivo" maxlength="300" />${pieVentana('Anular pago', '')}`, 480);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  $('#v-ok').onclick = async () => {
+    if ($('#pm-motivo').value.trim().length < 5) return errorVentana('Indica el motivo.');
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_pm_anular', { p_id: id, p_motivo: $('#pm-motivo').value }); cerrarVentana(); aviso('Pago anulado.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act^="pm-"]'); if (!b) return;
+  try {
+    if (b.dataset.act === 'pm-nuevo') return ventanaPmNuevo(b.dataset.id);
+    if (b.dataset.act === 'pm-pagado') return ventanaPmPagado(b.dataset.id);
+    if (b.dataset.act === 'pm-anular') return ventanaPmAnular(b.dataset.id);
+  } catch (err) { aviso(mensajeError(err), true); }
+});
+
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-act^="pag-"]'); if (!b) return;
   const d = b.dataset;
