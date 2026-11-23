@@ -2219,10 +2219,14 @@ const MOTIVOS_RECHAZO = ['Oferta económica demasiado alta', 'Sin disponibilidad
 const POST_ETIQ = { enviada: ['aviso', 'Enviada'], en_revision: ['aviso', 'En revisión'], aceptada: ['ok', 'Aceptada'], rechazada: ['mal', 'No seleccionada'] };
 async function vistaPostulaciones(v) {
   const t = new URLSearchParams(location.hash.split('?')[1] || '').get('t') || 'pendientes';
-  const { data, error } = await sb.from('postulaciones')
-    .select('id, oferta_economica, telefono_contacto, estado, created_at, empresa_id, obra_id, motivacion, motivo_rechazo, obras(titulo, referencia, moneda, estado, origen), empresas_subcontratistas(nombre)')
-    .order('created_at', { ascending: false });
+  const base = 'id, oferta_economica, telefono_contacto, estado, created_at, empresa_id, obra_id, motivacion, motivo_rechazo, obras(titulo, referencia, moneda, estado, origen, m2), empresas_subcontratistas(nombre)';
+  // Con la migración 0096 también se leen la oferta original y el motivo del ajuste; sin ella, la pantalla sigue como antes
+  let r1 = await sb.from('postulaciones').select(base.replace('motivo_rechazo,', 'motivo_rechazo, oferta_original, oferta_ajuste_motivo,')).order('created_at', { ascending: false });
+  window.__ajusteOferta = !r1.error;
+  if (r1.error) r1 = await sb.from('postulaciones').select(base.replace('origen, m2)', 'origen)')).order('created_at', { ascending: false });
+  const { data, error } = r1;
   if (error) throw error;
+  window.__postuls = data || [];
   const todas = data || [];
   const ids = todas.map((p) => p.id), empIds = [...new Set(todas.map((p) => p.empresa_id))];
   const [ra, rc] = await Promise.all([
@@ -2240,15 +2244,48 @@ async function vistaPostulaciones(v) {
   <div class="panel">${htmlTabla('postulaciones', [
     { t: 'Obra', f: (p) => p.obras ? `<a href="#/obra/${esc(p.obra_id)}"><b>${esc(p.obras.titulo)}</b></a><span class="sub">${esc(p.obras.referencia)} · ${esc((OBRA_EST[p.obras.estado] || [0, p.obras.estado])[1])}</span>` : '—' },
     { t: 'Empresa', f: (p) => { const c = cont[p.empresa_id]; return `<a href="#/gremio/${esc(p.empresa_id)}"><b>${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || 'Sin nombre')}</b></a>${c ? `<span class="sub">${esc(c.nombre_completo || '')}${c.email ? ` · <a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''}</span>` : ''}<span class="sub">${esc(p.telefono_contacto || (c && c.telefono) || '')}</span>`; } },
-    { t: 'Oferta', cls: 'der', f: (p) => euros(p.oferta_economica, p.obras && p.obras.moneda), s: (p) => Number(p.oferta_economica) },
+    { t: 'Oferta', cls: 'der', f: (p) => `${euros(p.oferta_economica, p.obras && p.obras.moneda)}${p.oferta_original != null && Number(p.oferta_original) !== Number(p.oferta_economica) ? `<span class="sub">Oferta original: ${euros(p.oferta_original, p.obras && p.obras.moneda)}</span>` : ''}${p.obras && Number(p.obras.m2) > 0 ? `<span class="sub">${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(p.oferta_economica) / Number(p.obras.m2))} €/m²</span>` : ''}`, s: (p) => Number(p.oferta_economica) },
     { t: 'Mensaje', f: (p) => `${esc(p.motivacion || '—')}${p.motivo_rechazo ? `<span class="sub mal-t">${esc(p.motivo_rechazo)}</span>` : ''}${(arch[p.id] || []).map((a) => `<button class="btn peq" data-act="po-archivo" data-ruta="${esc(a.storage_path)}">${esc(a.nombre_archivo)}</button>`).join(' ')}` },
     { t: 'Estado', f: (p) => marca(POST_ETIQ[p.estado] || ['neutro', p.estado]), s: (p) => p.estado },
     { t: 'Enviada', f: (p) => fecha(p.created_at), s: (p) => p.created_at },
     { t: '', cls: 'acc', f: (p) => p.obras && p.obras.origen === 'particular' ? '<span class="sub">Petición de particular: se decide en <a href="#/peticiones?t=ofertas">Peticiones</a></span>'
-      : pend(p) ? `<button class="btn peq primario" data-act="ob-aceptar" data-id="${esc(p.id)}" data-nombre="${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || '')}" data-vuelta="1">Aceptar</button><button class="btn peq mal" data-act="ob-rechazar" data-id="${esc(p.id)}">Rechazar</button>` : '' }
+      : (window.__ajusteOferta && ['enviada', 'en_revision', 'aceptada'].includes(p.estado) && p.obras && !['cerrada', 'cancelada'].includes(p.obras.estado) ? `<button class="btn peq" data-act="po-ajustar" data-id="${esc(p.id)}">Ajustar oferta</button> ` : '') + (pend(p) ? `<button class="btn peq primario" data-act="ob-aceptar" data-id="${esc(p.id)}" data-nombre="${esc((p.empresas_subcontratistas && p.empresas_subcontratistas.nombre) || '')}" data-vuelta="1">Aceptar</button><button class="btn peq mal" data-act="ob-rechazar" data-id="${esc(p.id)}">Rechazar</button>` : '') }
   ], lista, t === 'pendientes' ? 'No hay ofertas por decidir.' : 'No hay ofertas en esta lista.')}</div>`;
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act="po-archivo"]'); if (b) verArchivoEn('postulacion-archivos', b.dataset.ruta); });
+
+// ───────────────────────── Ajustar oferta (0096) ─────────────────────────
+// Para dejar la oferta final tras una contraoferta. Guarda la oferta original, quién la cambió y el motivo.
+function ventanaAjustarOferta(id) {
+  const p = (window.__postuls || []).find((x) => x.id === id); if (!p) return;
+  const m2 = p.obras && Number(p.obras.m2) > 0 ? Number(p.obras.m2) : null;
+  const act = Number(p.oferta_economica);
+  const fmt = (n) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  const num = (t) => Number(String(t).replace(/\./g, '').replace(',', '.'));
+  abrirVentana(`<h2>Ajustar oferta</h2><p><b>${esc((p.obras || {}).titulo || '')}</b> · ${esc((p.empresas_subcontratistas || {}).nombre || '')}</p>
+    <p class="suave">Oferta actual: <b>${euros(act, p.obras && p.obras.moneda)}</b>${m2 ? ` · ${fmt(act / m2)} €/m² · ${fmt(m2)} m²` : ''}${p.oferta_original != null ? ` · Original: ${euros(p.oferta_original, p.obras && p.obras.moneda)}` : ''}</p>
+    ${m2 ? `<label class="campo" for="ao-m2">Precio por m² (€)</label><input type="text" inputmode="decimal" id="ao-m2" value="${esc(String(Math.round(act / m2 * 100) / 100).replace('.', ','))}" />` : '<p class="suave">Esta obra no tiene metros cuadrados: escribe directamente el total.</p>'}
+    <label class="campo" for="ao-total">Total de la oferta (€)</label><input type="text" inputmode="decimal" id="ao-total" value="${esc(String(act).replace('.', ','))}" />
+    <p class="suave" id="ao-calc"></p>
+    <label class="campo" for="ao-motivo">Motivo (queda guardado)</label><input type="text" id="ao-motivo" maxlength="300" placeholder="Contraoferta acordada por teléfono" />
+    <p class="suave">Esto no acepta ni rechaza a nadie y no envía avisos: solo cambia el importe de la oferta. No cambia el presupuesto de la obra (se edita en la obra). Si la oferta tiene pagos por tramos, se reparten solos sobre el nuevo total.</p>
+    ${pieVentana('Guardar oferta', 'primario')}`, 520);
+  $('[data-cerrar]').onclick = cerrarVentana;
+  const calc = () => { const t = num($('#ao-total').value); const dif = t - act; $('#ao-calc').textContent = isNaN(t) || t <= 0 ? '' : `Nuevo total: ${fmt(t)} €${m2 ? ` (${fmt(t / m2)} €/m²)` : ''} · Diferencia: ${dif >= 0 ? '+' : ''}${fmt(dif)} €`; };
+  if (m2) $('#ao-m2').oninput = () => { const pm = num($('#ao-m2').value); if (!isNaN(pm) && pm > 0) { $('#ao-total').value = String(Math.round(pm * m2 * 100) / 100).replace('.', ','); calc(); } };
+  $('#ao-total').oninput = () => { const t = num($('#ao-total').value); if (m2 && !isNaN(t) && t > 0) $('#ao-m2').value = String(Math.round(t / m2 * 100) / 100).replace('.', ','); calc(); };
+  calc();
+  $('#v-ok').onclick = async () => {
+    const t = Math.round(num($('#ao-total').value) * 100) / 100;
+    if (isNaN(t) || t <= 0) return errorVentana('Escribe un total mayor que cero.');
+    if (t === act) return errorVentana('La oferta no ha cambiado.');
+    if ($('#ao-motivo').value.trim().length < 5) return errorVentana('Indica el motivo (mínimo 5 letras).');
+    $('#v-ok').disabled = true;
+    try { await rpc('panel_ajustar_oferta', { p_postulacion_id: id, p_nueva_oferta: t, p_motivo: $('#ao-motivo').value }); cerrarVentana(); aviso('Oferta ajustada.'); recargar(); }
+    catch (err) { $('#v-ok').disabled = false; errorVentana(err); }
+  };
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-act="po-ajustar"]'); if (b) { try { ventanaAjustarOferta(b.dataset.id); } catch (err) { aviso(mensajeError(err), true); } } });
 
 // ───────────────────────── Gremios ─────────────────────────
 const TIPO_DOC_HOM = { alta_autonomo: 'Alta Autónomo / Modelo 036', seguro_rc: 'Seguro de Responsabilidad Civil', certificado_prl: 'Certificado PRL', certificado_aeat_tgss: 'Corriente de pagos AEAT y TGSS', otro: 'Otro documento' };

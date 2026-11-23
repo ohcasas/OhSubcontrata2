@@ -125,6 +125,7 @@ export default function DetalleObraScreen() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   const [ofertaEconomica, setOfertaEconomica] = useState('');
+  const [precioFijo, setPrecioFijo] = useState(false);
   const [telefonoContactoPrefijo, setTelefonoContactoPrefijo] = useState('+34');
   const [telefonoContacto, setTelefonoContacto] = useState('');
   const [disponibilidad, setDisponibilidad] = useState('');
@@ -165,6 +166,12 @@ export default function DetalleObraScreen() {
     }
     setObra(obraData as Obra);
     navigation.setOptions({ title: (obraData as Obra).titulo });
+    // Obras de OH Casas: el precio es fijo (el publicado) y no hay contraoferta. Si la base de datos aún no lo
+    // sabe (sin la migración 0097), se comporta como siempre.
+    const { data: fijoData } = await supabase.rpc('obra_precio_fijo', { p_obra_id: obraId });
+    const esFijo = fijoData === true;
+    setPrecioFijo(esFijo);
+    if (esFijo) setOfertaEconomica(String((obraData as Obra).presupuesto).replace('.', ','));
     etiquetasDeObras([obraId]).then((m) => setEtiquetasObra(m.get(obraId) ?? []));
 
     const { data: userData } = await supabase.auth.getUser();
@@ -611,6 +618,16 @@ export default function DetalleObraScreen() {
                 </View>
               )}
 
+              {precioFijo ? (
+                <View className="bg-actionTint rounded-xl px-3 py-3 mb-3">
+                  <Text className="text-ink text-xs font-sansSemiBold mb-1">Precio de la obra (sin IVA)</Text>
+                  <Text className="text-ink text-lg font-sansBold">{formatearMoneda(obra.presupuesto, obra.moneda)}</Text>
+                  <Text className="text-inkMuted text-[13px] mt-1">
+                    Es el precio fijado por 3B Conecta para esta obra. No admite contraoferta: al postular aceptas este precio.
+                  </Text>
+                </View>
+              ) : (
+                <>
               <Text className="text-ink text-xs font-sansSemiBold mb-1">Tu oferta económica (sin IVA) *</Text>
               <View className="flex-row items-center bg-surface border border-border rounded-xl px-3 mb-1">
                 <Feather name="dollar-sign" size={15} color={colors.inkSubtle} />
@@ -628,6 +645,8 @@ export default function DetalleObraScreen() {
               <Text className="text-inkMuted text-[13px] mb-3">
                 {obra.origen === 'particular' ? 'Presupuesto indicado por el cliente' : 'Presupuesto de referencia'}: {formatearMoneda(obra.presupuesto, obra.moneda)}. Tu oferta puede ser distinta.
               </Text>
+                </>
+              )}
 
               {pagosActivos && (
                 <>

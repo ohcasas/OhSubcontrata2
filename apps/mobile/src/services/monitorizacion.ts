@@ -42,7 +42,7 @@ if (monitorizacionActiva && process.env.EXPO_PUBLIC_SENTRY_PRUEBA === '1') {
 
 /** Envuelve la app para recoger los errores que no se capturan en ningún otro sitio. */
 export function envolverApp<P extends object>(Componente: ComponentType<P>): ComponentType<P> {
-  return monitorizacionActiva ? (Sentry.wrap(Componente) as ComponentType<P>) : Componente;
+    return monitorizacionActiva ? (Sentry.wrap(Componente as ComponentType<any>) as ComponentType<P>) : Componente;
 }
 
 /** Asocia los errores a un usuario por su identificador interno (nunca el correo). */
