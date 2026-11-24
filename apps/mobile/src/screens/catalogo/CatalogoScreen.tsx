@@ -220,7 +220,7 @@ function Inicio({
                 onPress={() => onCategoria(c)}
                 accessibilityRole="button"
                 accessibilityLabel={c.nombre}
-                className="bg-surface rounded-2xl border border-border p-4 mb-3 items-start"
+                className="bg-white/90 rounded-2xl border border-white p-4 mb-3 items-start shadow-lg shadow-blue-700/20"
                 style={{ width: '48%' }}
               >
                 <View className="bg-actionTint rounded-xl items-center justify-center" style={{ width: 44, height: 44 }}>

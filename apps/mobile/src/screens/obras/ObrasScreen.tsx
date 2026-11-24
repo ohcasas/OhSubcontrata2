@@ -267,7 +267,7 @@ export default function ObrasScreen() {
 
   const cabecera = (
     <View>
-      <View className="bg-surface rounded-2xl border border-border p-4 flex-row items-center justify-between">
+      <View className="bg-white/90 rounded-2xl border border-white p-4 flex-row items-center justify-between shadow-lg shadow-blue-700/20">
         <View className="flex-row items-center flex-1 pr-3">
           <Image
             source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
@@ -374,7 +374,7 @@ export default function ObrasScreen() {
       {prioritarias.map((obra) => {
         const ms = msHastaCierre(obra.plazo_cierre, ahora) ?? 0;
         return (
-          <View key={obra.id} className="bg-surface rounded-2xl border border-border overflow-hidden mt-3">
+          <View key={obra.id} className="bg-white/90 rounded-2xl border border-white overflow-hidden mt-3 shadow-lg shadow-blue-700/20">
             <ObraImagePlaceholder imageUrl={obra.imagen_url} icon="home" height={160} rounded="top" />
             <View className="p-4">
               <View className="flex-row justify-between items-center">
@@ -504,7 +504,7 @@ export default function ObrasScreen() {
           ) : null
         }
         renderItem={({ item }) => (
-          <View className="bg-surface rounded-2xl border border-border overflow-hidden mt-3">
+          <View className="bg-white/90 rounded-2xl border border-white overflow-hidden mt-3 shadow-lg shadow-blue-700/20">
             <View>
               <ObraImagePlaceholder imageUrl={item.imagen_url} icon="home" height={220} />
               <Pressable

@@ -14,7 +14,7 @@ export function Etiqueta({ texto, tono = 'azul' }: { texto: string; tono?: 'azul
 }
 
 export function Tarjeta({ children, onPress }: { children: ReactNode; onPress?: () => void }) {
-  const cuerpo = <View className="bg-surface border border-border rounded-2xl p-4 mb-3">{children}</View>;
+  const cuerpo = <View className="bg-white/90 border border-white rounded-2xl p-4 mb-3 shadow-lg shadow-blue-700/20">{children}</View>;
   return onPress ? <Pressable onPress={onPress}>{cuerpo}</Pressable> : cuerpo;
 }
 

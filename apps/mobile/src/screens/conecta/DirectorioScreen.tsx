@@ -154,7 +154,7 @@ export default function DirectorioScreen({ rol, userId }: { rol: string; userId:
 
         {/* Mi ficha */}
         {puedeTenerFicha && (
-        <View className="bg-surface rounded-2xl border border-border p-4 mb-5">
+        <View className="bg-white/90 rounded-2xl border border-white p-4 mb-5 shadow-lg shadow-blue-700/20">
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
               Mi ficha

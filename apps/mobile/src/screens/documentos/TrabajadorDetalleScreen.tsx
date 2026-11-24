@@ -49,7 +49,7 @@ export default function TrabajadorDetalleScreen({ route, navigation }: Props) {
         subir={subir}
         cabecera={
           trabajador !== null ? (
-            <View className="bg-surface rounded-2xl border border-border p-4 mb-3">
+            <View className="bg-white/90 rounded-2xl border border-white p-4 mb-3 shadow-lg shadow-blue-700/20">
               <View className="flex-row justify-between items-start">
                 <View className="flex-1 pr-2">
                   <Text className="text-ink text-base font-sansBold">

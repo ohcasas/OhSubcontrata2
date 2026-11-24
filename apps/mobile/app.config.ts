@@ -73,13 +73,12 @@ const config: ExpoConfig = {
         // Desde Android 12 (Splash Screen API, que Expo adoptó en la SDK 52) la
         // pantalla de carga NATIVA solo puede ser un icono sobre un color liso;
         // no admite una imagen a pantalla completa. Por eso la nativa se deja en
-        // negro y SIN icono (un PNG transparente), y la composición con el logo y
-        // los dibujos arquitectónicos la pinta, justo después, el componente
-        // src/components/PantallaCarga.tsx (con la imagen splash-conecta.png).
+        // azul liso y SIN icono (un PNG transparente), y la composición con el logo
+        // la pinta, justo después, el componente src/components/PantallaCarga.tsx.
         image: './assets/branding/splash-nativo.png',
         resizeMode: 'contain',
         imageWidth: 200,
-        backgroundColor: '#000000',
+        backgroundColor: '#1951FC',
       },
     ],
   ],

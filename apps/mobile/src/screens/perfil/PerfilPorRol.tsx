@@ -95,7 +95,7 @@ function ResumenRecomendador({ userId }: { userId: string }) {
           </View>
 
           <Titulo texto="Mis comisiones" />
-          <View className="bg-surface rounded-2xl border border-border px-4">
+          <View className="bg-white/90 rounded-2xl border border-white px-4 shadow-lg shadow-blue-700/20">
             {filas.map((f, i) => (
               <View
                 key={f.estado}
@@ -238,7 +238,7 @@ function MiFichaResumen({ userId }: { userId: string }) {
       {cargando ? (
         <Cargando />
       ) : (
-        <View className="bg-surface border border-border rounded-2xl p-4">
+        <View className="bg-white/90 border border-white rounded-2xl p-4 shadow-lg shadow-blue-700/20">
           {ficha === null ? (
             <Text className="text-inkMuted text-sm">
               Todavía no tienes ficha. Sin ella, el resto de cuentas no puede encontrarte en el Directorio.

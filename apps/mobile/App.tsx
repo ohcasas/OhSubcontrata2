@@ -16,7 +16,7 @@ import PantallaCarga from './src/components/PantallaCarga';
 import { StripeRaiz } from './src/services/stripeNativo';
 import { envolverApp } from './src/services/monitorizacion';
 
-// La pantalla de carga nativa (negra) se queda puesta hasta que PantallaCarga
+// La pantalla de carga nativa (azul liso) se queda puesta hasta que PantallaCarga
 // la quite, para que no haya un parpadeo entre una y otra.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -34,7 +34,7 @@ function App() {
   return (
     <StripeRaiz>
       <SafeAreaProvider>
-        <View style={{ flex: 1, backgroundColor: '#000000' }}>
+        <View style={{ flex: 1, backgroundColor: '#F4F8FF' }}>
           {fuentesListas && <RootNavigator />}
           {cargaVisible && <PantallaCarga listo={fuentesListas} onTerminada={() => setCargaVisible(false)} />}
         </View>

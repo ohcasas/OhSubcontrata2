@@ -207,7 +207,7 @@ export default function RecomiendaScreen() {
         </View>
 
         {mostrandoForm && (
-          <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+          <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
             {errorForm !== null && (
               <View className="bg-errorTint rounded-lg px-3 py-2 mb-3 flex-row items-center gap-2">
                 <Feather name="alert-circle" size={16} color={colors.error} />

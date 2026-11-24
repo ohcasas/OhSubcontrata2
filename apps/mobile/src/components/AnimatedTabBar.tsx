@@ -1,122 +1,84 @@
-import { useEffect, useRef } from 'react';
-import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { ComponentProps } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 
 type NombreIcono = ComponentProps<typeof Feather>['name'];
 
 type Props = BottomTabBarProps & {
   /** Icono Feather de cada pestaña, por nombre de ruta. */
   icons: Record<string, NombreIcono>;
-  /** Color de fondo de la barra (pensada para ser oscura, tipo píldora). */
-  barColor: string;
-  /** Color de la burbuja de la pestaña activa. */
-  activeColor: string;
-  /** Color del icono cuando la pestaña está inactiva. */
+  /** Se mantienen por compatibilidad con quien llama; el estilo cristal fija sus propios colores. */
+  barColor?: string;
+  activeColor?: string;
   inactiveColor?: string;
   /** Número (p. ej. mensajes sin leer) que se muestra en un globo sobre la pestaña, por nombre de ruta. */
   badges?: Record<string, number>;
 };
 
-const ALTURA_BARRA = 64;
-const DIAMETRO_BURBUJA = 52;
+const ETIQUETAS: Record<string, string> = {
+  Tablon: 'Tablón',
+  Catalogo: 'Catálogo',
+  Recomienda: 'Recomienda',
+  Postulaciones: 'Postulaciones',
+  ObrasAdmin: 'Obras',
+  PostulacionesAdmin: 'Postulaciones',
+  RecompensasAdmin: 'Recompensas',
+  PerfilAdmin: 'Perfil',
+  MiCandidatura: 'Candidatura',
+  MensajesCandidato: 'Mensajes',
+  MisDatos: 'Mis datos',
+};
 
 /**
- * Barra de navegación inferior con la pestaña activa "flotando" en una
- * burbuja de color por encima de la barra (basada en el diseño de
- * referencia en Figma que pasó Ainhoa: "Mobile Navigation Menu Bar UI
- * Template"). Las pestañas inactivas se quedan como icono simple de
- * contorno, dentro de la barra oscura.
- *
- * Usa Animated (núcleo de React Native), no Reanimated: el proyecto ya
- * tenía react-native-reanimated como dependencia pero sin el plugin de
- * Babel configurado ni ningún uso real — añadirlo ahora habría sido meterse
- * en configuración de babel/New Architecture sin necesidad, cuando esta
- * animación (opacidad + traslación + escala) la cubre de sobra el
- * Animated de siempre, sin tocar nada más del proyecto.
+ * Barra inferior de cristal, fiel al prediseño: píldora clara translúcida con
+ * los iconos en gris y, en la pestaña activa, una píldora azul en degradado con
+ * el icono y el nombre.
  */
-export default function AnimatedTabBar({
-  state,
-  navigation,
-  icons,
-  barColor,
-  activeColor,
-  inactiveColor = '#5B6E84',
-  badges,
-}: Props) {
+export default function AnimatedTabBar({ state, navigation, icons, inactiveColor = '#5B6E84', badges }: Props) {
   const insets = useSafeAreaInsets();
-  const progresos = useRef(
-    state.routes.map((_, i) => new Animated.Value(i === state.index ? 1 : 0)),
-  ).current;
-
-  useEffect(() => {
-    state.routes.forEach((_, i) => {
-      Animated.spring(progresos[i], {
-        toValue: i === state.index ? 1 : 0,
-        useNativeDriver: true,
-        friction: 7,
-        tension: 90,
-      }).start();
-    });
-  }, [state.index]);
+  const muchas = state.routes.length > 5;
 
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 12) }}>
-      {/* Estilo cristal del rediseño: barra clara translúcida; barColor se mantiene en las props por compatibilidad. */}
-      <View style={[styles.barra, { backgroundColor: 'rgba(255,255,255,0.94)' }]}>
+      <View style={estilos.barra}>
         {state.routes.map((route, index) => {
           const enfocado = state.index === index;
-          const progreso = progresos[index];
-          const nombreIcono = icons[route.name] ?? 'circle';
-
-          const traslacionBurbuja = progreso.interpolate({
-            inputRange: [0, 1],
-            outputRange: [14, -16],
-          });
-          const escalaBurbuja = progreso.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
-          const opacidadIcono = progreso.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+          const icono = icons[route.name] ?? 'circle';
+          const etiqueta = ETIQUETAS[route.name] ?? route.name;
+          const aviso = badges?.[route.name] ?? 0;
 
           const onPress = () => {
             const evento = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!enfocado && !evento.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
+            if (!enfocado && !evento.defaultPrevented) navigation.navigate(route.name);
           };
 
+          if (enfocado) {
+            return (
+              <Pressable key={route.key} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: true }} style={{ flexShrink: 1 }}>
+                <LinearGradient
+                  colors={['#6FB6FF', '#1951FC', '#0B2CB1']}
+                  start={{ x: 0.1, y: 0 }}
+                  end={{ x: 0.9, y: 1 }}
+                  style={[estilos.activa, { paddingHorizontal: muchas ? 13 : 18 }]}
+                >
+                  <Feather name={icono} size={20} color="#FFFFFF" />
+                  <Text numberOfLines={1} style={estilos.textoActiva}>{etiqueta}</Text>
+                </LinearGradient>
+              </Pressable>
+            );
+          }
+
           return (
-            <Pressable
-              key={route.key}
-              onPress={onPress}
-              accessibilityRole="button"
-              accessibilityState={enfocado ? { selected: true } : {}}
-              style={styles.tab}
-            >
-              <Animated.View style={{ opacity: opacidadIcono }}>
-                <Feather name={nombreIcono} size={22} color={inactiveColor} />
-              </Animated.View>
-              {(badges?.[route.name] ?? 0) > 0 && (
-                <View pointerEvents="none" style={styles.globo}>
-                  <Text style={styles.globoTexto}>{(badges?.[route.name] ?? 0) > 99 ? '99+' : badges?.[route.name]}</Text>
+            <Pressable key={route.key} onPress={onPress} accessibilityRole="button" accessibilityLabel={etiqueta} style={[estilos.inactiva, muchas && { width: 38 }]}>
+              <Feather name={icono} size={22} color={inactiveColor} />
+              {aviso > 0 && (
+                <View pointerEvents="none" style={estilos.globo}>
+                  <Text style={estilos.globoTexto}>{aviso > 99 ? '99+' : aviso}</Text>
                 </View>
               )}
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.burbuja,
-                  {
-                    backgroundColor: activeColor,
-                    overflow: 'hidden',
-                    opacity: progreso,
-                    transform: [{ translateY: traslacionBurbuja }, { scale: escalaBurbuja }],
-                  },
-                ]}
-              >
-                <LinearGradient colors={['#6FB6FF', '#1951FC', '#0B2CB1']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
-                <Feather name={nombreIcono} size={23} color="#ffffff" />
-              </Animated.View>
             </Pressable>
           );
         })}
@@ -125,11 +87,30 @@ export default function AnimatedTabBar({
   );
 }
 
-const styles = StyleSheet.create({
+const estilos = StyleSheet.create({
+  barra: {
+    flexDirection: 'row',
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.9)',
+    shadowColor: '#1951FC',
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  inactiva: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  activa: { height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  textoActiva: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', flexShrink: 1 },
   globo: {
     position: 'absolute',
-    top: 8,
-    right: '22%',
+    top: 2,
+    right: 0,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
@@ -137,42 +118,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#B33A3A',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 5,
   },
   globoTexto: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
-  barra: {
-    flexDirection: 'row',
-    height: ALTURA_BARRA,
-    borderRadius: ALTURA_BARRA / 2,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    borderWidth: 1,
-    borderColor: 'rgba(25,81,252,0.14)',
-    // shadow.nav de la guía de estilo del rediseño
-    shadowColor: '#0B1F35',
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  tab: {
-    flex: 1,
-    height: ALTURA_BARRA,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  burbuja: {
-    position: 'absolute',
-    width: DIAMETRO_BURBUJA,
-    height: DIAMETRO_BURBUJA,
-    borderRadius: DIAMETRO_BURBUJA / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    // shadow.active de la guía de estilo del rediseño
-    shadowColor: '#0057FF',
-    shadowOpacity: 0.24,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 10,
-  },
 });

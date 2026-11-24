@@ -1,15 +1,15 @@
 /**
- * Pantalla de carga con el logo de 3B Conecta y los dibujos arquitectónicos.
+ * Pantalla de carga de 3B Conecta, estilo cristal del rediseño: degradado azul,
+ * anillos concéntricos, el logo en una tarjeta de cristal y el nombre debajo.
  *
  * Por qué es un componente y no la pantalla de carga "normal": desde Android 12
- * la pantalla de carga NATIVA solo puede ser un icono pequeño sobre un color
- * liso; no admite una imagen a pantalla completa. Así que la nativa se deja en
- * negro y vacía (ver app.config.ts) y, en cuanto arranca la app, esta pantalla
- * se funde por encima con la composición completa. Para quien usa la app es
- * una única pantalla de carga: negro, el logo aparece, y se va hacia el Login.
+ * la pantalla de carga NATIVA solo puede ser un icono sobre un color liso. Así que
+ * la nativa se deja de un azul liso y vacía (ver app.config.ts) y, en cuanto
+ * arranca la app, esta pantalla se funde por encima con la composición completa.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { Animated, Image, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as SplashScreen from 'expo-splash-screen';
 
 /** Lo mínimo que se ve el logo, contado desde que aparece (ms). */
@@ -30,12 +30,9 @@ export default function PantallaCarga({ listo, onTerminada }: Props) {
   const pantalla = useRef(new Animated.Value(1)).current;
   const [apareceEn, setApareceEn] = useState<number | null>(null);
 
-  // Se guarda la última función recibida para no reiniciar el temporizador si
-  // quien nos usa vuelve a pintarse.
   const terminadaRef = useRef(onTerminada);
   terminadaRef.current = onTerminada;
 
-  // Cuando esta pantalla ya está dibujada: se quita la nativa (negra) y el logo se funde.
   const alMaquetar = useCallback(() => {
     if (apareceEn !== null) return;
     setApareceEn(Date.now());
@@ -43,7 +40,6 @@ export default function PantallaCarga({ listo, onTerminada }: Props) {
     Animated.timing(arte, { toValue: 1, duration: FUNDIDO_ENTRADA_MS, useNativeDriver: true }).start();
   }, [apareceEn, arte]);
 
-  // Cuando la app está lista Y el logo lleva el tiempo mínimo a la vista: fundido de salida.
   useEffect(() => {
     if (!listo || apareceEn === null) return;
     const espera = Math.max(0, MINIMO_VISIBLE_MS - (Date.now() - apareceEn));
@@ -62,15 +58,28 @@ export default function PantallaCarga({ listo, onTerminada }: Props) {
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, estilos.contenedor, { opacity: pantalla }]} onLayout={alMaquetar}>
-      {/* width y height EXPLÍCITOS, a propósito: una imagen local (require) trae por
-          defecto su tamaño en píxeles como width/height, y eso gana a los cuatro 0 de
-          absoluteFill. Sin esto la imagen se pinta a tamaño real (casi 3 veces más
-          grande en un móvil de densidad 2,75), anclada arriba a la izquierda y sin
-          ajustarse a la pantalla: se veía solo una esquina de los dibujos. */}
-      <Animated.Image
-        source={require('../../assets/branding/splash-conecta.png')}
-        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', resizeMode: 'cover', opacity: arte }}
+      <LinearGradient
+        colors={['#8FD0FF', '#3781FC', '#1951FC', '#0B2CB1']}
+        locations={[0, 0.3, 0.65, 1]}
+        start={{ x: 0.2, y: 0 }}
+        end={{ x: 0.7, y: 1 }}
+        style={StyleSheet.absoluteFill}
       />
+      <Animated.View style={[StyleSheet.absoluteFill, estilos.centro, { opacity: arte }]}>
+        {[220, 340, 460, 580].map((d) => (
+          <View key={d} style={{ position: 'absolute', width: d, height: d, borderRadius: d, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.22)' }} />
+        ))}
+        <View style={estilos.tarjeta}>
+          <LinearGradient
+            colors={['rgba(255,255,255,0.45)', 'rgba(255,255,255,0.12)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Image source={require('../../assets/branding/logo-3b-simbolo-blanco.png')} style={{ width: 92, height: 52 }} resizeMode="contain" />
+        </View>
+        <Text style={estilos.nombre}>3B CONECTA</Text>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -78,5 +87,17 @@ export default function PantallaCarga({ listo, onTerminada }: Props) {
 const estilos = StyleSheet.create({
   // elevation: en Android, un elemento con más elevación se pinta por encima
   // aunque vaya antes en el árbol (la barra de pestañas tiene sombra).
-  contenedor: { backgroundColor: '#000000', zIndex: 100, elevation: 100 },
+  contenedor: { backgroundColor: '#1951FC', zIndex: 100, elevation: 100 },
+  centro: { alignItems: 'center', justifyContent: 'center' },
+  tarjeta: {
+    width: 150,
+    height: 150,
+    borderRadius: 44,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+  },
+  nombre: { color: '#FFFFFF', fontSize: 15, fontWeight: '700', letterSpacing: 4, marginTop: 22 },
 });

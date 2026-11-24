@@ -451,7 +451,7 @@ export default function PerfilScreen() {
         )}
 
         {/* Cabecera de perfil */}
-        <View className="bg-surface rounded-2xl border border-border p-4 flex-row items-center">
+        <View className="bg-white/90 rounded-2xl border border-white p-4 flex-row items-center shadow-lg shadow-blue-700/20">
           <Pressable onPress={handleCambiarAvatar} disabled={subiendoAvatar} className="mr-3.5">
             {perfil?.avatar_url && !falloAvatar ? (
               <Image
@@ -523,7 +523,7 @@ export default function PerfilScreen() {
         )}
 
         {/* Biografía / descripción */}
-        <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+        <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
           <View className="flex-row justify-between items-center mb-2">
             <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
               Sobre mí
@@ -587,7 +587,7 @@ export default function PerfilScreen() {
 
         {/* Documentación: renovar los documentos de la cuenta y gestionar a los trabajadores */}
         {rol !== null && rol !== 'particular' && rol !== 'tecnico' && (
-          <View className="bg-surface rounded-2xl border border-border mt-3 overflow-hidden">
+          <View className="bg-white/90 rounded-2xl border border-white mt-3 overflow-hidden shadow-lg shadow-blue-700/20">
             <Pressable
               onPress={() => navigation.navigate('MisDocumentos')}
               className="flex-row items-center px-4 py-3.5"

@@ -13,7 +13,8 @@ module.exports = {
       // colorsRediseno va DESPUÉS de colors: si algún nombre coincidiera,
       // gana el del rediseño. No coinciden hoy (nombres distintos a propósito).
       colors: { ...colors, ...colorsRediseno },
-      borderRadius: { ...radius, ...radiusRediseno },
+      // '2xl' sube de 16 a 24 px: las tarjetas de toda la app (rounded-2xl) quedan más redondeadas, como en el rediseño.
+      borderRadius: { ...radius, ...radiusRediseno, '2xl': 24 },
       spacing,
       // font-sans, font-sansMedium, font-sansSemiBold, font-sansBold,
       // font-sansExtraBold — un peso de DM Sans por clase, ya que NativeWind

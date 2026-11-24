@@ -157,7 +157,7 @@ export default function RegistroParticularScreen() {
             </Text>
           </View>
 
-          <View className="bg-surface rounded-2xl p-5 border border-border">
+          <View className="bg-white/90 rounded-2xl p-5 border border-white shadow-lg shadow-blue-700/20">
             {errorGeneral !== null && (
               <View className="bg-errorTint rounded-lg px-3 py-2 mb-4 flex-row items-center gap-2">
                 <Feather name="alert-circle" size={16} color={colors.error} />

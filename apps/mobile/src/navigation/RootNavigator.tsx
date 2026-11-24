@@ -75,6 +75,15 @@ const ROLES_CONECTA: Rol[] = [
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+// Barra superior de las pantallas de detalle, fiel al prediseño: clara, con el título centrado y oscuro.
+const estiloCabecera = {
+  headerStyle: { backgroundColor: '#F2F7FF' },
+  headerTintColor: '#0B1F35',
+  headerTitleStyle: { color: '#0B1F35', fontFamily: 'DMSans_700Bold' },
+  headerTitleAlign: 'center',
+  headerShadowVisible: false,
+} as const;
+
 export default function RootNavigator() {
   const [session, setSession] = useState<Session | null>(null);
   const [rol, setRol] = useState<Rol | null>(null);
@@ -214,9 +223,7 @@ export default function RootNavigator() {
       options={{
         headerShown: true,
         title: 'Notificaciones',
-        headerStyle: { backgroundColor: colors.canvas },
-        headerTintColor: colors.ink,
-        headerTitleStyle: { color: colors.ink },
+        ...estiloCabecera,
       }}
     />
   );
@@ -225,9 +232,7 @@ export default function RootNavigator() {
   const opcionesDocumentos = (titulo: string) => ({
     headerShown: true,
     title: titulo,
-    headerStyle: { backgroundColor: colors.canvas },
-    headerTintColor: colors.ink,
-    headerTitleStyle: { color: colors.ink },
+    ...estiloCabecera,
   });
   const pantallasDocumentos = [
     <Stack.Screen key="MisDocumentos" name="MisDocumentos" component={MisDocumentosScreen} options={opcionesDocumentos('Mis documentos')} />,
@@ -295,9 +300,7 @@ export default function RootNavigator() {
               options={{
                 headerShown: true,
                 title: 'Empresa',
-                headerStyle: { backgroundColor: colors.canvas },
-                headerTintColor: colors.ink,
-                headerTitleStyle: { color: colors.ink },
+                ...estiloCabecera,
               }}
             />
             <Stack.Screen
@@ -306,9 +309,7 @@ export default function RootNavigator() {
               options={{
                 headerShown: true,
                 title: 'Obra',
-                headerStyle: { backgroundColor: colors.canvas },
-                headerTintColor: colors.ink,
-                headerTitleStyle: { color: colors.ink },
+                ...estiloCabecera,
               }}
             />
           </>
@@ -345,9 +346,7 @@ export default function RootNavigator() {
               options={{
                 headerShown: true,
                 title: 'Detalle de obra',
-                headerStyle: { backgroundColor: colors.canvas },
-                headerTintColor: colors.ink,
-                headerTitleStyle: { color: colors.ink },
+                ...estiloCabecera,
               }}
             />
             {pantallaNotificaciones}
@@ -364,9 +363,7 @@ export default function RootNavigator() {
               options={{
                 headerShown: true,
                 title: 'Detalle de obra',
-                headerStyle: { backgroundColor: colors.canvas },
-                headerTintColor: colors.ink,
-                headerTitleStyle: { color: colors.ink },
+                ...estiloCabecera,
               }}
             />
             {pantallaNotificaciones}

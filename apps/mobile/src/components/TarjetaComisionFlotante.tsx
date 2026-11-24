@@ -70,7 +70,7 @@ export default function TarjetaComisionFlotante({ userId }: { userId: string }) 
       style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 72, paddingHorizontal: 16 }}
     >
       <View
-        className="bg-surface rounded-2xl border border-border p-4"
+        className="bg-white/90 rounded-2xl border border-white p-4 shadow-lg shadow-blue-700/20"
         style={{
           shadowColor: colors.ink,
           shadowOffset: { width: 0, height: 6 },

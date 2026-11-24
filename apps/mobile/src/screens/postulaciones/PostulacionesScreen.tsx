@@ -194,7 +194,7 @@ export default function PostulacionesScreen() {
             return (
               <Pressable
                 onPress={() => navigation.navigate('DetalleObra', { obraId: item.obra_id })}
-                className="bg-surface rounded-2xl border border-border p-4"
+                className="bg-white/90 rounded-2xl border border-white p-4 shadow-lg shadow-blue-700/20"
               >
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 pr-2">

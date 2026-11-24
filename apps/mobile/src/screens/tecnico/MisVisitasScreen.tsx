@@ -247,7 +247,7 @@ function DetalleVisita({ visita, onVolver, onCambio }: { visita: Visita; onVolve
           </View>
         )}
 
-        <View className="bg-surface rounded-2xl border border-border p-4 mb-3">
+        <View className="bg-white/90 rounded-2xl border border-white p-4 mb-3 shadow-lg shadow-blue-700/20">
           <View className="flex-row justify-between items-start">
             <Text className="text-ink text-base font-sansBold flex-1 pr-2">{visita.titulo}</Text>
             <View className={`rounded-md px-2 py-0.5 ${e.fondo}`}>
@@ -264,7 +264,7 @@ function DetalleVisita({ visita, onVolver, onCambio }: { visita: Visita; onVolve
         </View>
 
         {/* Dónde y con quién */}
-        <View className="bg-surface rounded-2xl border border-border p-4 mb-3 gap-2.5">
+        <View className="bg-white/90 rounded-2xl border border-white p-4 mb-3 gap-2.5 shadow-lg shadow-blue-700/20">
           {visita.contacto_nombre !== null && (
             <View className="flex-row items-center gap-2">
               <Feather name="user" size={14} color={colors.inkMuted} />
@@ -381,7 +381,7 @@ function DetalleVisita({ visita, onVolver, onCambio }: { visita: Visita; onVolve
         )}
 
         {visita.estado === 'realizada' && (
-          <View className="bg-surface rounded-2xl border border-border p-4">
+          <View className="bg-white/90 rounded-2xl border border-white p-4 shadow-lg shadow-blue-700/20">
             <Text className="text-ink text-sm font-sansBold mb-1">
               Informe enviado{visita.resultado !== null ? ` · ${NOMBRE_RESULTADO[visita.resultado]}` : ''}
             </Text>

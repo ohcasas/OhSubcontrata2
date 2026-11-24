@@ -484,7 +484,7 @@ export default function DetalleObraScreen() {
           </View>
 
           {/* Presupuesto: fila de texto plano bajo la imagen, no un panel de color */}
-          <View className="bg-surface border border-border rounded-2xl p-4 mt-3 flex-row justify-between items-end">
+          <View className="bg-white/90 border border-white rounded-2xl p-4 mt-3 flex-row justify-between items-end shadow-lg shadow-blue-700/20">
             <View className="flex-1 pr-2">
               <Text className="text-inkMuted text-[12px] uppercase font-sansSemiBold" style={{ letterSpacing: 0.5 }}>
                 {obra.origen === 'particular' ? 'Presupuesto del cliente' : 'Presupuesto de referencia'}
@@ -502,7 +502,7 @@ export default function DetalleObraScreen() {
           </View>
 
           {/* Especificaciones */}
-          <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+          <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
             <Text className="text-ink text-xs font-sansBold uppercase mb-3" style={{ letterSpacing: 1 }}>
               Especificaciones
             </Text>
@@ -547,7 +547,7 @@ export default function DetalleObraScreen() {
           </View>
 
           {obra.descripcion !== null && (
-            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+            <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
               <Text className="text-ink text-xs font-sansBold uppercase mb-2" style={{ letterSpacing: 1 }}>
                 Alcance de los trabajos
               </Text>
@@ -559,7 +559,7 @@ export default function DetalleObraScreen() {
 
           {/* Postulación: ya enviada, o formulario */}
           {postulacionExistente !== null ? (
-            <View className="bg-surface border border-border rounded-2xl p-4 mt-3">
+            <View className="bg-white/90 border border-white rounded-2xl p-4 mt-3 shadow-lg shadow-blue-700/20">
               <View
                 className="self-start flex-row items-center gap-1.5 rounded-full px-2.5 py-1 mb-2"
                 style={{ backgroundColor: ESTILO_ESTADO_POSTULACION[postulacionExistente.estado].fondo }}
@@ -608,7 +608,7 @@ export default function DetalleObraScreen() {
               )}
             </View>
           ) : (
-            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+            <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
               <Text className="text-ink text-sm font-sansBold mb-3">Formulario de postulación</Text>
 
               {errorEnvio !== null && (
@@ -794,7 +794,7 @@ export default function DetalleObraScreen() {
               obra está en curso. Admin ve el mismo historial de solo lectura
               en su propia pantalla de detalle. */}
           {postulacionExistente?.estado === 'aceptada' && obra.estado === 'en_curso' && (
-            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+            <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
               <Text className="text-ink text-sm font-sansBold mb-3">Progreso de la obra</Text>
 
               {errorAvance !== null && (
@@ -879,7 +879,7 @@ export default function DetalleObraScreen() {
 
           {/* Fin de la obra: solo la empresa adjudicada. El aviso no cierra la obra; lo confirma administración. */}
           {postulacionExistente?.estado === 'aceptada' && (obra.estado === 'en_curso' || obra.estado === 'adjudicada') && (
-            <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+            <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
               <Text className="text-ink text-sm font-sansBold mb-1">Fin de la obra</Text>
               {obra.fecha_fin ? (
                 <Text className="text-inkMuted text-xs mb-3">Fecha de fin pactada: {fechaConAnio(obra.fecha_fin)}</Text>

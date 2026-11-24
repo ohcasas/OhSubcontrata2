@@ -68,7 +68,7 @@ export default function MisEspecialidades({ empresaId }: { empresaId: string }) 
   };
 
   return (
-    <View className="bg-surface rounded-2xl border border-border p-4 mt-3">
+    <View className="bg-white/90 rounded-2xl border border-white p-4 mt-3 shadow-lg shadow-blue-700/20">
       <Text className="text-ink text-xs font-sansBold uppercase" style={{ letterSpacing: 1 }}>
         Mis especialidades
       </Text>

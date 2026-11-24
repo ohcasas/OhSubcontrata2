@@ -269,7 +269,7 @@ function PeticionEnRevision({ peticion, onVolver }: { peticion: Peticion; onVolv
           </View>
         )}
 
-        <View className="bg-surface rounded-2xl border border-border p-4 mb-4">
+        <View className="bg-white/90 rounded-2xl border border-white p-4 mb-4 shadow-lg shadow-blue-700/20">
           <View className="flex-row justify-between items-start">
             <Text className="text-ink text-base font-sansBold flex-1 pr-2">{peticion.titulo}</Text>
             <Chip estado={peticion.estado} />
