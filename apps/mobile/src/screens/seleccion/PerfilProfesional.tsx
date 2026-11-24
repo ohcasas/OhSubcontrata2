@@ -137,7 +137,7 @@ export default function PerfilProfesional() {
               key={d.valor}
               onPress={() => setDisp(disp === d.valor ? null : d.valor)}
               accessibilityRole="button"
-              className={`rounded-full px-3.5 py-2 border ${disp === d.valor ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+              className={`rounded-full px-3.5 py-2 border ${disp === d.valor ? 'bg-action border-action' : 'bg-surface border-border'}`}
             >
               <Text className={`text-xs font-sansSemiBold ${disp === d.valor ? 'text-white' : 'text-ink'}`}>{d.texto}</Text>
             </Pressable>
@@ -161,7 +161,7 @@ export default function PerfilProfesional() {
                   key={t}
                   onPress={() => cambiarFormacion(i, { tipo: t })}
                   accessibilityRole="button"
-                  className={`rounded-full px-3 py-1.5 border ${f.tipo === t ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+                  className={`rounded-full px-3 py-1.5 border ${f.tipo === t ? 'bg-action border-action' : 'bg-surface border-border'}`}
                 >
                   <Text className={`text-xs font-sansSemiBold ${f.tipo === t ? 'text-white' : 'text-ink'}`}>{t === 'curso' ? 'Curso' : 'Certificación'}</Text>
                 </Pressable>

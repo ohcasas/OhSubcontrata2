@@ -305,7 +305,7 @@ function DetalleVisita({ visita, onVolver, onCambio }: { visita: Visita; onVolve
                 <Pressable
                   key={d.etiqueta}
                   onPress={() => setDia(i)}
-                  className={`rounded-full px-3 py-2 border ${dia === i ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+                  className={`rounded-full px-3 py-2 border ${dia === i ? 'bg-action border-action' : 'bg-surface border-border'}`}
                 >
                   <Text className={`text-xs font-sansSemiBold ${dia === i ? 'text-white' : 'text-ink'}`}>{d.etiqueta}</Text>
                 </Pressable>
@@ -316,7 +316,7 @@ function DetalleVisita({ visita, onVolver, onCambio }: { visita: Visita; onVolve
                 <Pressable
                   key={h}
                   onPress={() => setHora(h)}
-                  className={`rounded-full px-3 py-2 border ${hora === h ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+                  className={`rounded-full px-3 py-2 border ${hora === h ? 'bg-action border-action' : 'bg-surface border-border'}`}
                 >
                   <Text className={`text-xs font-sansSemiBold ${hora === h ? 'text-white' : 'text-ink'}`}>{`${h}:00`}</Text>
                 </Pressable>

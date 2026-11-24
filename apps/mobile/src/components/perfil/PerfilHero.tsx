@@ -3,10 +3,11 @@
  * carnet 3B) y accesos rápidos. Los datos los pone cada tipo de cuenta
  * (ver useDatosHero). Se enseña encima del perfil de siempre.
  */
-import { View, Text, ScrollView, Pressable, Image } from 'react-native';
+import { useCallback } from 'react';
+import { View, Text, ScrollView, Pressable, Image, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ComponentProps } from 'react';
 import CampanaNotificaciones from '../CampanaNotificaciones';
@@ -26,9 +27,22 @@ type Props = {
   accesos: Acceso[];
 };
 
+function filasDe<T>(lista: T[], n: number): T[][] {
+  const filas: T[][] = [];
+  for (let i = 0; i < lista.length; i += n) filas.push(lista.slice(i, i + n));
+  return filas;
+}
+
 export default function PerfilHero({ nombre, avatarUrl, etiqueta, numero, subtitulo, tarjetas, accesos }: Props) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  // Sobre el azul, los iconos de la barra de estado van en blanco; al salir vuelven a oscuros.
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle('light-content');
+      return () => StatusBar.setBarStyle('dark-content');
+    }, []),
+  );
   const inicial = nombre.trim().charAt(0).toUpperCase() || '?';
   const primerNombre = nombre.trim().split(' ')[0] || nombre;
 
@@ -78,23 +92,27 @@ export default function PerfilHero({ nombre, avatarUrl, etiqueta, numero, subtit
       {accesos.length > 0 && (
         <View className="px-4 mt-4">
           <Text className="text-ink text-[17px] font-sansBold mb-2">Accesos rápidos</Text>
-          <View className="bg-surface border border-border rounded-[28px] pt-3.5 pb-2.5 px-2 flex-row flex-wrap">
-            {accesos.map((a) => (
-              <Pressable
-                key={a.etiqueta}
-                onPress={() => (navigation as unknown as { navigate: (n: string) => void }).navigate(a.destino)}
-                accessibilityRole="button"
-                accessibilityLabel={a.etiqueta}
-                className="items-center mb-2.5"
-                style={{ width: '25%' }}
-              >
-                <View className="w-[46px] h-[46px] rounded-2xl bg-actionTint items-center justify-center">
-                  <Feather name={a.icono} size={21} color="#1951fc" />
-                </View>
-                <Text className="text-ink text-[11.5px] font-sansSemiBold text-center mt-1.5 px-0.5" numberOfLines={2}>
-                  {a.etiqueta}
-                </Text>
-              </Pressable>
+          <View className="bg-surface border border-border rounded-[28px] pt-3.5 pb-1 px-2">
+            {filasDe(accesos, 4).map((fila, i) => (
+              <View key={i} className="flex-row justify-center">
+                {fila.map((a) => (
+                  <Pressable
+                    key={a.etiqueta}
+                    onPress={() => (navigation as unknown as { navigate: (n: string) => void }).navigate(a.destino)}
+                    accessibilityRole="button"
+                    accessibilityLabel={a.etiqueta}
+                    className="items-center mb-2.5"
+                    style={{ width: '25%' }}
+                  >
+                    <View className="w-[46px] h-[46px] rounded-2xl bg-actionTint items-center justify-center">
+                      <Feather name={a.icono} size={21} color="#1951fc" />
+                    </View>
+                    <Text className="text-ink text-[11.5px] font-sansSemiBold text-center mt-1.5 px-0.5" numberOfLines={2}>
+                      {a.etiqueta}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             ))}
           </View>
         </View>

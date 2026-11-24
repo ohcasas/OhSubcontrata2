@@ -360,7 +360,7 @@ function NuevaLicitacion({ onCancelar, onCreada }: { onCancelar: () => void; onC
             <Pressable
               key={d}
               onPress={() => setDias(d)}
-              className={`rounded-full px-4 py-2 border ${dias === d ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+              className={`rounded-full px-4 py-2 border ${dias === d ? 'bg-action border-action' : 'bg-surface border-border'}`}
             >
               <Text className={`text-xs font-sansSemiBold ${dias === d ? 'text-white' : 'text-ink'}`}>{d} días</Text>
             </Pressable>

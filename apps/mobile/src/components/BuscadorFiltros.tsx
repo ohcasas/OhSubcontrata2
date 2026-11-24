@@ -56,7 +56,7 @@ export default function BuscadorFiltros({
                 <Pressable
                   key={op.clave}
                   onPress={() => onSeleccion(op.clave)}
-                  className={`rounded-full px-3.5 py-1.5 border ${activa ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+                  className={`rounded-full px-3.5 py-1.5 border ${activa ? 'bg-action border-action' : 'bg-surface border-border'}`}
                 >
                   <Text className={`text-xs font-sansSemiBold ${activa ? 'text-white' : 'text-ink'}`}>{op.etiqueta}</Text>
                 </Pressable>

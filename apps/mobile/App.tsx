@@ -1,7 +1,7 @@
 import './global.css';
 import 'react-native-gesture-handler';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { View, StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -35,6 +35,7 @@ function App() {
     <StripeRaiz>
       <SafeAreaProvider>
         <View style={{ flex: 1, backgroundColor: '#F4F8FF' }}>
+          <StatusBar barStyle="dark-content" />
           {fuentesListas && <RootNavigator />}
           {cargaVisible && <PantallaCarga listo={fuentesListas} onTerminada={() => setCargaVisible(false)} />}
         </View>

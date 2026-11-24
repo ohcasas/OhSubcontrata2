@@ -21,6 +21,7 @@ import { PLANES_PAGO } from '../../services/pagos';
 import { usePagosActivos } from '../../services/pagosActivos';
 import { subirArchivoPrivado, obtenerUrlFirmada } from '../../services/storage';
 import { colors } from '../../design-system/tokens';
+import BotonDegradado from '../../components/BotonDegradado';
 import type { RootStackParamList } from '../../navigation/types';
 import ObraImagePlaceholder from '../../components/ObraImagePlaceholder';
 import { esPrioritaria, textoDuracion } from '../../utils/plazos';
@@ -771,22 +772,12 @@ export default function DetalleObraScreen() {
                 </Pressable>
               )}
 
-              <Pressable
+              <BotonDegradado
+                etiqueta={enviando ? 'Enviando…' : 'Enviar propuesta'}
+                icono="send"
+                cargando={enviando}
                 onPress={handleEnviarPostulacion}
-                disabled={enviando}
-                className="bg-action rounded-xl py-3 items-center"
-              >
-                <View className="flex-row items-center justify-center gap-2">
-                  {enviando ? (
-                    <ActivityIndicator color={colors.white} />
-                  ) : (
-                    <Feather name="send" size={16} color={colors.white} />
-                  )}
-                  <Text className="text-white font-sansBold text-sm">
-                    {enviando ? 'Enviando…' : 'Enviar Propuesta de Subcontratación'}
-                  </Text>
-                </View>
-              </Pressable>
+              />
             </View>
           )}
 

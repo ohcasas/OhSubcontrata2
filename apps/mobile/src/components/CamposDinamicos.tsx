@@ -31,7 +31,7 @@ export default function CamposDinamicos({ campos, valores, errores, onCambio, de
                     disabled={deshabilitado}
                     // Pulsar la opción ya elegida la quita (en los campos opcionales)
                     onPress={() => onCambio(c.clave, activa && !c.obligatorio ? '' : opcion)}
-                    className={`rounded-full px-3.5 py-2 border ${activa ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+                    className={`rounded-full px-3.5 py-2 border ${activa ? 'bg-action border-action' : 'bg-surface border-border'}`}
                   >
                     <Text className={`text-xs font-sansSemiBold ${activa ? 'text-white' : 'text-ink'}`}>{opcion}</Text>
                   </Pressable>

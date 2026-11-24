@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import ScreenHeader from '../../components/ScreenHeader';
+import BotonDegradado from '../../components/BotonDegradado';
 import { formatearMoneda } from '../../utils/moneda';
 import PaquetesSelector from '../../components/PaquetesSelector';
 import { elegirPaquete } from '../../services/paquetes';
@@ -152,10 +153,9 @@ function Lista({ onNueva, onAbrir }: { onNueva: () => void; onAbrir: (p: Peticio
             </View>
           )}
 
-          <Pressable onPress={onNueva} className="bg-action rounded-xl py-3 items-center flex-row justify-center gap-2 mb-4">
-            <Feather name="plus" size={16} color={colors.white} />
-            <Text className="text-white font-sansBold text-sm">Nueva petición</Text>
-          </Pressable>
+          <View className="mb-4">
+            <BotonDegradado etiqueta="Nueva petición" icono="plus" onPress={onNueva} />
+          </View>
 
           {items.length === 0 ? (
             <Text className="text-inkMuted text-sm leading-relaxed">
@@ -497,7 +497,7 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
             <Pressable
               key={t}
               onPress={() => setTipo(tipo === t ? '' : t)}
-              className={`rounded-full px-3.5 py-2 border ${tipo === t ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+              className={`rounded-full px-3.5 py-2 border ${tipo === t ? 'bg-action border-action' : 'bg-surface border-border'}`}
             >
               <Text className={`text-xs font-sansSemiBold ${tipo === t ? 'text-white' : 'text-ink'}`}>{t}</Text>
             </Pressable>
@@ -554,7 +554,7 @@ function NuevaPeticion({ onCancelar, onEnviada }: { onCancelar: () => void; onEn
             <Pressable
               key={d}
               onPress={() => setDias(d)}
-              className={`rounded-full px-4 py-2 border ${dias === d ? 'bg-ink border-ink' : 'bg-surface border-border'}`}
+              className={`rounded-full px-4 py-2 border ${dias === d ? 'bg-action border-action' : 'bg-surface border-border'}`}
             >
               <Text className={`text-xs font-sansSemiBold ${dias === d ? 'text-white' : 'text-ink'}`}>{d} días</Text>
             </Pressable>

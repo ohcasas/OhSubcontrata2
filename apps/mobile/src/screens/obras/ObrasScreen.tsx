@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import BotonDegradado from '../../components/BotonDegradado';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import type { RootStackParamList } from '../../navigation/types';
@@ -267,15 +269,21 @@ export default function ObrasScreen() {
 
   const cabecera = (
     <View>
-      <View className="bg-white/90 rounded-2xl border border-white p-4 flex-row items-center justify-between shadow-lg shadow-blue-700/20">
+      <LinearGradient
+        colors={['#8fd0ff', '#3781fc', '#1951fc', '#0b2cb1']}
+        locations={[0, 0.34, 0.68, 1]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={{ borderRadius: 26, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      >
         <View className="flex-row items-center flex-1 pr-3">
           <Image
-            source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
+            source={require('../../../assets/branding/logo-3b-simbolo-blanco.png')} resizeMode="contain"
             style={{ width: 40, height: 40, borderRadius: 12 }}
             className="mr-3"
           />
           <View className="flex-1">
-            <Text className="text-ink text-base font-sansBold">
+            <Text className="text-white text-base font-sansBold">
               {nombre !== null && nombre !== '' ? `Hola, ${nombre} 👋` : 'Hola 👋'}
             </Text>
             {empresa !== null && !esConstructora && (
@@ -285,10 +293,10 @@ export default function ObrasScreen() {
                     width: 7,
                     height: 7,
                     borderRadius: 4,
-                    backgroundColor: empresa.homologado ? colors.success : colors.inkSubtle,
+                    backgroundColor: empresa.homologado ? '#7DF0B5' : '#E1F1FF',
                   }}
                 />
-                <Text className="text-inkMuted text-xs flex-shrink">
+                <Text className="text-xs flex-shrink" style={{ color: '#E1F1FF' }}>
                   {empresa.homologado ? 'Subcontratista Certificado 3B' : 'Homologación pendiente'}
                 </Text>
               </View>
@@ -306,7 +314,7 @@ export default function ObrasScreen() {
             </Text>
           </View>
         )}
-      </View>
+      </LinearGradient>
 
       {empresaId !== null && (
         <View className="flex-row mt-3" style={{ gap: 8 }}>
@@ -320,7 +328,7 @@ export default function ObrasScreen() {
                 key={op.etiqueta}
                 onPress={() => setSoloGuardadas(op.clave)}
                 className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 border ${
-                  activo ? 'bg-navySurface border-navySurface' : 'bg-surface border-border'
+                  activo ? 'bg-action border-action' : 'bg-surface border-border'
                 }`}
               >
                 {op.clave && <Feather name="bookmark" size={14} color={activo ? colors.white : colors.ink} />}
@@ -357,7 +365,7 @@ export default function ObrasScreen() {
               <Pressable
                 onPress={() => setSoloMias((v) => !v)}
                 className={`flex-row items-center gap-1.5 rounded-full px-3.5 py-1.5 border ${
-                  soloMias ? 'bg-navySurface border-navySurface' : 'bg-surface border-border'
+                  soloMias ? 'bg-action border-action' : 'bg-surface border-border'
                 }`}
               >
                 <Feather name="user-check" size={14} color={soloMias ? colors.white : colors.ink} />
@@ -440,15 +448,13 @@ export default function ObrasScreen() {
                 )}
               </View>
 
-              <Pressable
-                onPress={() => navigation.navigate('DetalleObra', { obraId: obra.id })}
-                className="bg-action rounded-xl py-3 items-center mt-4"
-              >
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-white font-sansBold text-sm">Postular ahora</Text>
-                  <Feather name="arrow-right" size={16} color={colors.white} />
-                </View>
-              </Pressable>
+              <View className="mt-4">
+                <BotonDegradado
+                  etiqueta="Postular ahora"
+                  iconoDerecha="arrow-right"
+                  onPress={() => navigation.navigate('DetalleObra', { obraId: obra.id })}
+                />
+              </View>
             </View>
           </View>
         );

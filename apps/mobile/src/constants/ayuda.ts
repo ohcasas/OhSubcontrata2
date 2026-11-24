@@ -71,6 +71,31 @@ export const GLOSARIO: Termino[] = [
     grupos: ['particular'],
   },
   {
+    pregunta: '¿Qué pasa cuando envío una petición?',
+    respuesta: 'Primero la revisamos nosotros. Si falta algo, te lo pedimos aquí mismo. Cuando está lista se publica y las empresas envían sus ofertas. Tú decides cuál aceptas.',
+    grupos: ['particular'],
+  },
+  {
+    pregunta: '¿Qué es una oferta?',
+    respuesta: 'Es el precio y las condiciones que te propone una empresa para hacer tu obra. Puedes compararlas antes de elegir: no te obliga a nada hasta que aceptas una.',
+    grupos: ['particular'],
+  },
+  {
+    pregunta: '¿Qué es el presupuesto orientativo?',
+    respuesta: 'Es lo que tienes pensado gastar, más o menos. Ayuda a que las empresas entiendan el tamaño de la obra. No es un precio cerrado.',
+    grupos: ['particular'],
+  },
+  {
+    pregunta: '¿Por qué piden mi municipio y no mi dirección?',
+    respuesta: 'Las empresas solo ven el municipio y la descripción de la obra. Tu nombre, teléfono y dirección no se publican: solo los ve 3B.',
+    grupos: ['particular'],
+  },
+  {
+    pregunta: '¿Qué son las obras guardadas?',
+    respuesta: 'Con el marcador de cada obra puedes guardarla para verla más tarde. Las encuentras en el filtro «Guardadas» de la pantalla Obras.',
+    grupos: ['subcontratista'],
+  },
+  {
     pregunta: '¿Qué es el Tablón?',
     respuesta: 'Un tablón de avisos donde promotores y constructoras publican lo que necesitan. Todas las cuentas pueden leerlo.',
     grupos: ['subcontratista', 'licitaciones', 'directorio'],
