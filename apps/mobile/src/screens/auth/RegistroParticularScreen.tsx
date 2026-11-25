@@ -4,10 +4,8 @@ import {
   Text,
   TextInput,
   Pressable,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   ScrollView,
   Linking,
 } from 'react-native';
@@ -15,6 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import BotonDegradado from '../../components/BotonDegradado';
+import FondoAuth from '../../components/auth/FondoAuth';
+import LogoCristal from '../../components/auth/LogoCristal';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import type { AuthStackParamList } from '../../navigation/types';
@@ -139,25 +140,22 @@ export default function RegistroParticularScreen() {
 
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <FondoAuth />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 24 }} keyboardShouldPersistTaps="handled">
           <Pressable onPress={() => navigation.goBack()} hitSlop={8} className="mb-4">
-            <Feather name="arrow-left" size={20} color={colors.ink} />
+            <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
 
           <View className="items-center mb-6">
-            <Image
-              source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
-              style={{ width: 48, height: 48, borderRadius: 12 }}
-              className="mb-3"
-            />
-            <Text className="text-ink text-2xl font-sansBold">Cuéntanos qué necesitas</Text>
-            <Text className="text-inkMuted text-sm mt-1 text-center px-4">
+            <LogoCristal tamano={64} />
+            <Text className="text-white text-2xl font-sansBold">Cuéntanos qué necesitas</Text>
+            <Text className="text-white/85 text-sm mt-1 text-center px-4">
               Crea tu cuenta para pedir una obra o reforma y recibir ofertas de empresas.
             </Text>
           </View>
 
-          <View className="bg-white/90 rounded-2xl p-5 border border-white shadow-lg shadow-blue-700/20">
+          <View className="bg-white/80 rounded-3xl p-5 border border-white">
             {errorGeneral !== null && (
               <View className="bg-errorTint rounded-lg px-3 py-2 mb-4 flex-row items-center gap-2">
                 <Feather name="alert-circle" size={16} color={colors.error} />
@@ -166,7 +164,7 @@ export default function RegistroParticularScreen() {
             )}
 
             <Text className="text-ink text-xs font-sansSemiBold mb-1">Nombre completo</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+            <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
               <Feather name="user" size={16} color={colors.inkSubtle} />
               <TextInput
                 value={valores.nombreCompleto}
@@ -184,7 +182,7 @@ export default function RegistroParticularScreen() {
             <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Teléfono</Text>
             <View className="flex-row gap-2 mb-1">
               <View className="w-20">
-                <View className="flex-row items-center bg-surface border border-border rounded-xl px-2">
+                <View className="flex-row items-center bg-white/75 border border-white rounded-full px-2">
                   <TextInput
                     value={prefijoPais}
                     onChangeText={setPrefijoPais}
@@ -197,7 +195,7 @@ export default function RegistroParticularScreen() {
                 </View>
               </View>
               <View className="flex-1">
-                <View className="flex-row items-center bg-surface border border-border rounded-xl px-3">
+                <View className="flex-row items-center bg-white/75 border border-white rounded-full px-3">
                   <Feather name="phone" size={16} color={colors.inkSubtle} />
                   <TextInput
                     value={valores.telefono}
@@ -214,7 +212,7 @@ export default function RegistroParticularScreen() {
             {errores.telefono !== undefined && <Text className="text-error text-xs mb-2">{errores.telefono}</Text>}
 
             <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Municipio</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+            <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
               <Feather name="map-pin" size={16} color={colors.inkSubtle} />
               <TextInput
                 value={valores.municipio}
@@ -228,7 +226,7 @@ export default function RegistroParticularScreen() {
             {errores.municipio !== undefined && <Text className="text-error text-xs mb-2">{errores.municipio}</Text>}
 
             <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Email</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+            <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
               <Feather name="mail" size={16} color={colors.inkSubtle} />
               <TextInput
                 value={valores.email}
@@ -245,7 +243,7 @@ export default function RegistroParticularScreen() {
             {errores.email !== undefined && <Text className="text-error text-xs mb-2">{errores.email}</Text>}
 
             <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Contraseña</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+            <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
               <Feather name="lock" size={16} color={colors.inkSubtle} />
               <TextInput
                 value={valores.password}
@@ -264,7 +262,7 @@ export default function RegistroParticularScreen() {
             {errores.password !== undefined && <Text className="text-error text-xs mb-2">{errores.password}</Text>}
 
             <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-2">Repetir contraseña</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+            <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
               <Feather name="lock" size={16} color={colors.inkSubtle} />
               <TextInput
                 value={valores.confirmarPassword}
@@ -281,22 +279,13 @@ export default function RegistroParticularScreen() {
               <Text className="text-error text-xs mb-3">{errores.confirmarPassword}</Text>
             )}
 
-            <Pressable
+            <BotonDegradado
+              etiqueta={cargando ? 'Creando cuenta…' : 'Crear cuenta'}
+              icono="user-plus"
+              cargando={cargando}
               onPress={handleCrearCuenta}
-              disabled={cargando}
-              className="bg-action rounded-xl py-3 items-center mt-3"
-            >
-              <View className="flex-row items-center justify-center gap-2">
-                {cargando ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Feather name="user-plus" size={16} color={colors.white} />
-                )}
-                <Text className="text-white font-sansBold text-sm">
-                  {cargando ? 'Creando cuenta…' : 'Crear cuenta'}
-                </Text>
-              </View>
-            </Pressable>
+              style={{ marginTop: 12 }}
+            />
 
             <Text className="text-inkMuted text-xs text-center mt-3">
               Al crear la cuenta aceptas el{' '}
@@ -318,7 +307,7 @@ export default function RegistroParticularScreen() {
             </Text>
           </View>
 
-          <Pressable onPress={() => navigation.navigate('Login')} className="self-center mt-6" disabled={cargando}>
+          <Pressable onPress={() => navigation.navigate('Login')} className="self-center mt-6 bg-white/75 rounded-full px-5 py-2.5" disabled={cargando}>
             <Text className="text-inkMuted text-sm">
               ¿Ya tienes cuenta? <Text className="text-action font-sansSemiBold">Iniciar sesión</Text>
             </Text>

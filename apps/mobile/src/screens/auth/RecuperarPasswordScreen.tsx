@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import BotonDegradado from '../../components/BotonDegradado';
+import FondoAuth from '../../components/auth/FondoAuth';
+import LogoCristal from '../../components/auth/LogoCristal';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import { URL_NUEVA_CONTRASENA } from '../../constants/enlaces';
@@ -47,14 +50,15 @@ export default function RecuperarPasswordScreen() {
 
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <FondoAuth />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View className="flex-1 px-6 justify-center">
           <Pressable onPress={() => navigation.goBack()} hitSlop={8} className="absolute left-6" style={{ top: 16 }}>
-            <Feather name="arrow-left" size={20} color={colors.ink} />
+            <Feather name="arrow-left" size={20} color="#FFFFFF" />
           </Pressable>
 
           {enviado ? (
-            <View className="items-center">
+            <View className="items-center bg-white/80 rounded-3xl p-6">
               <View className="w-14 h-14 rounded-full bg-successTint items-center justify-center mb-4">
                 <Feather name="mail" size={26} color={colors.success} />
               </View>
@@ -68,7 +72,7 @@ export default function RecuperarPasswordScreen() {
               </Pressable>
             </View>
           ) : (
-            <View>
+            <View className="bg-white/80 rounded-3xl p-6">
               <Text className="text-ink text-2xl font-sansBold mb-1.5">¿Has olvidado tu contraseña?</Text>
               <Text className="text-inkMuted text-sm mb-5 leading-relaxed">
                 Escribe el email de tu cuenta y te enviaremos un enlace para crear una contraseña nueva.
@@ -82,7 +86,7 @@ export default function RecuperarPasswordScreen() {
               )}
 
               <Text className="text-ink text-xs font-sansSemiBold mb-1">Email</Text>
-              <View className="flex-row items-center bg-surface border border-border rounded-xl mb-4 px-3">
+              <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-4 px-3">
                 <Feather name="mail" size={17} color={colors.inkSubtle} />
                 <TextInput
                   value={email}
@@ -97,16 +101,13 @@ export default function RecuperarPasswordScreen() {
                 />
               </View>
 
-              <Pressable onPress={handleEnviar} disabled={cargando} className="bg-action rounded-xl py-3 items-center">
-                <View className="flex-row items-center gap-2">
-                  {cargando ? (
-                    <ActivityIndicator color={colors.white} />
-                  ) : (
-                    <Feather name="send" size={15} color={colors.white} />
-                  )}
-                  <Text className="text-white font-sansBold text-sm">{cargando ? 'Enviando…' : 'Enviar enlace'}</Text>
-                </View>
-              </Pressable>
+              <BotonDegradado
+              etiqueta={cargando ? 'Enviando…' : 'Enviar enlace'}
+              icono="send"
+              cargando={cargando}
+              onPress={handleEnviar}
+              style={{ marginTop: 0 }}
+            />
             </View>
           )}
         </View>

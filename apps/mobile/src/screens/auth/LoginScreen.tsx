@@ -4,10 +4,9 @@ import {
   Text,
   TextInput,
   Pressable,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
+  ScrollView,
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +17,9 @@ import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import type { AuthStackParamList } from '../../navigation/types';
+import BotonDegradado from '../../components/BotonDegradado';
+import FondoAuth from '../../components/auth/FondoAuth';
+import LogoCristal from '../../components/auth/LogoCristal';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -88,117 +90,110 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+      <FondoAuth />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <View className="flex-1 justify-center px-6">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 24 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Marca */}
           <View className="items-center mb-8">
-            <Image
-              source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
-              style={{ width: 64, height: 64, borderRadius: 16 }}
-              className="mb-3"
-            />
-            <Text className="text-ink text-[13px] font-sansSemiBold uppercase" style={{ letterSpacing: 2.2 }}>
-              3B CONECTA
+            <LogoCristal tamano={84} />
+            <Text className="text-white text-3xl font-sansBold">3B Conecta</Text>
+            <Text className="text-white/85 text-sm mt-1.5 text-center">
+              Obras y profesionales, en un solo sitio
             </Text>
-            <Text className="text-ink text-2xl font-sansBold mt-3">Bienvenido de nuevo</Text>
-            <Text className="text-inkMuted text-sm mt-1">Accede a tu cuenta de 3B Conecta.</Text>
           </View>
 
-          {/* Tarjeta del formulario */}
-          <View className="bg-white/90 rounded-2xl p-5 border border-white shadow-lg shadow-blue-700/20">
-            {errorGeneral !== null && (
-              <View className="bg-errorTint rounded-lg px-3 py-2 mb-4 flex-row items-center gap-2">
-                <Feather name="alert-circle" size={17} color={colors.error} />
-                <Text className="text-error text-sm flex-1">{errorGeneral}</Text>
-              </View>
-            )}
-
-            <Text className="text-ink text-xs font-sansSemiBold mb-1">Email</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
-              <Feather name="mail" size={17} color={colors.inkSubtle} />
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
-                placeholder="tu@empresa.com"
-                placeholderTextColor={colors.inkSubtle}
-                editable={!cargando}
-                className="flex-1 py-3 pl-2.5 text-ink"
-              />
+          {errorGeneral !== null && (
+            <View className="bg-errorTint rounded-2xl px-4 py-3 mb-4 flex-row items-center gap-2">
+              <Feather name="alert-circle" size={17} color={colors.error} />
+              <Text className="text-error text-sm flex-1">{errorGeneral}</Text>
             </View>
-            {errorEmail !== null && <Text className="text-error text-xs mb-2">{errorEmail}</Text>}
+          )}
 
-            <Text className="text-ink text-xs font-sansSemiBold mb-1 mt-3">Contraseña</Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
-              <Feather name="lock" size={17} color={colors.inkSubtle} />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!mostrarPassword}
-                autoCapitalize="none"
-                placeholder="••••••••"
-                placeholderTextColor={colors.inkSubtle}
-                editable={!cargando}
-                className="flex-1 py-3 pl-2.5 text-ink"
-              />
-              <Pressable onPress={() => setMostrarPassword((v) => !v)} className="pl-2">
-                <Feather name={mostrarPassword ? 'eye-off' : 'eye'} size={17} color={colors.inkSubtle} />
-              </Pressable>
-            </View>
-            {errorPassword !== null && <Text className="text-error text-xs mb-2">{errorPassword}</Text>}
+          <View className="flex-row items-center bg-white/75 border border-white rounded-full px-5" style={{ height: 56 }}>
+            <Feather name="mail" size={17} color={colors.inkSubtle} />
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholder="Correo electrónico"
+              placeholderTextColor={colors.inkSubtle}
+              editable={!cargando}
+              className="flex-1 pl-3 text-ink"
+            />
+          </View>
+          {errorEmail !== null && <Text className="text-error text-xs mt-1 ml-5">{errorEmail}</Text>}
 
-            <Pressable onPress={() => navigation.navigate('RecuperarPassword')} className="self-end py-1" disabled={cargando}>
-              <Text className="text-action text-xs font-sansSemiBold">¿Has olvidado tu contraseña?</Text>
-            </Pressable>
-
+          <View className="flex-row items-center bg-white/75 border border-white rounded-full px-5 mt-3" style={{ height: 56 }}>
+            <Feather name="lock" size={17} color={colors.inkSubtle} />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!mostrarPassword}
+              autoCapitalize="none"
+              placeholder="Contraseña"
+              placeholderTextColor={colors.inkSubtle}
+              editable={!cargando}
+              className="flex-1 pl-3 text-ink"
+            />
             <Pressable
-              onPress={handleIniciarSesion}
-              disabled={cargando}
-              className="bg-action rounded-xl py-3 items-center mt-2"
+              onPress={() => setMostrarPassword((v) => !v)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
             >
-              <View className="flex-row items-center justify-center gap-2">
-                {cargando ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Feather name="log-in" size={17} color={colors.white} />
-                )}
-                <Text className="text-white font-sansBold text-sm">
-                  {cargando ? 'Entrando…' : 'Iniciar sesión'}
-                </Text>
-              </View>
-            </Pressable>
-
-            <Pressable
-              onPress={() => navigation.navigate('ElegirTipoCuenta')}
-              disabled={cargando}
-              className="border border-border rounded-xl py-3 items-center mt-2.5"
-            >
-              <Text className="text-ink font-sansBold text-sm">Crear cuenta</Text>
-            </Pressable>
-
-            <View className="flex-row items-center my-4">
-              <View className="flex-1 h-px bg-border" />
-              <Text className="text-inkSubtle text-xs mx-3">o</Text>
-              <View className="flex-1 h-px bg-border" />
-            </View>
-            <Pressable
-              onPress={() => navigation.navigate('EmpleoOfertas')}
-              disabled={cargando}
-              className="bg-actionTint rounded-xl py-3 items-center"
-            >
-              <Text className="text-actionDark font-sansBold text-sm">Trabaja con nosotros</Text>
+              <Feather name={mostrarPassword ? 'eye-off' : 'eye'} size={17} color={colors.inkSubtle} />
             </Pressable>
           </View>
+          {errorPassword !== null && <Text className="text-error text-xs mt-1 ml-5">{errorPassword}</Text>}
+
+          <Pressable
+            onPress={() => navigation.navigate('RecuperarPassword')}
+            className="self-end mt-2 mb-1 bg-white/75 rounded-full px-3 py-1.5"
+            disabled={cargando}
+          >
+            <Text className="text-action text-xs font-sansSemiBold">¿Has olvidado tu contraseña?</Text>
+          </Pressable>
+
+          <BotonDegradado
+            etiqueta={cargando ? 'Entrando…' : 'Entrar'}
+            icono="log-in"
+            cargando={cargando}
+            onPress={handleIniciarSesion}
+            style={{ marginTop: 8 }}
+          />
+
+          <Pressable
+            onPress={() => navigation.navigate('ElegirTipoCuenta')}
+            disabled={cargando}
+            className="self-center mt-5 bg-white/75 rounded-full px-5 py-2.5"
+          >
+            <Text className="text-inkMuted text-sm">
+              ¿Aún no tienes cuenta? <Text className="text-action font-sansBold">Regístrate</Text>
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate('EmpleoOfertas')}
+            disabled={cargando}
+            className="bg-white/60 border border-white rounded-full items-center mt-5"
+            style={{ height: 48, justifyContent: 'center' }}
+          >
+            <Text className="text-actionDark font-sansBold text-sm">Trabaja con nosotros</Text>
+          </Pressable>
 
           <Pressable onPress={() => Linking.openURL(URL_POLITICA_PRIVACIDAD)}>
-            <Text className="text-inkMuted text-xs text-center mt-6">
+            <Text className="text-ink text-xs text-center mt-6 self-center bg-white/75 rounded-full px-4 py-2 overflow-hidden">
               Al continuar aceptas la{' '}
               <Text className="text-action font-sansMedium">política de privacidad</Text>.
             </Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );

@@ -5,10 +5,8 @@ import {
   Text,
   TextInput,
   Pressable,
-  Image,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   ScrollView,
   Linking,
 } from 'react-native';
@@ -17,6 +15,9 @@ import { URL_POLITICA_PRIVACIDAD, URL_AVISO_LEGAL, URL_TERMINOS } from '../../co
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import BotonDegradado from '../../components/BotonDegradado';
+import FondoAuth from '../../components/auth/FondoAuth';
+import LogoCristal from '../../components/auth/LogoCristal';
 import { supabase } from '../../services/supabase';
 import { colors } from '../../design-system/tokens';
 import type { AuthStackParamList } from '../../navigation/types';
@@ -196,6 +197,7 @@ export default function RegistroScreen() {
       className="flex-1 bg-canvas"
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
+      <FondoAuth />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -205,16 +207,12 @@ export default function RegistroScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="items-center mb-6">
-            <Image
-              source={require('../../../assets/branding/logo-3b-simbolo-negro.png')} resizeMode="contain"
-              style={{ width: 56, height: 56, borderRadius: 14 }}
-              className="mb-3"
-            />
-            <Text className="text-ink text-2xl font-sansBold">Crear cuenta</Text>
-            <Text className="text-inkMuted text-sm mt-1">Cuenta de Oficios</Text>
+            <LogoCristal tamano={64} />
+            <Text className="text-white text-2xl font-sansBold">Crear cuenta</Text>
+            <Text className="text-white/85 text-sm mt-1">Cuenta de Oficios</Text>
           </View>
 
-          <View className="bg-white/90 rounded-2xl p-5 border border-white shadow-lg shadow-blue-700/20">
+          <View className="bg-white/80 rounded-3xl p-5 border border-white">
             {errorGeneral !== null && (
               <View className="bg-errorTint rounded-lg px-3 py-2 mb-4 flex-row items-center gap-2">
                 <Feather name="alert-circle" size={17} color={colors.error} />
@@ -234,7 +232,7 @@ export default function RegistroScreen() {
             />
             <View className="flex-row gap-2 mb-1">
               <View className="w-20">
-                <View className="flex-row items-center bg-surface border border-border rounded-xl px-2">
+                <View className="flex-row items-center bg-white/75 border border-white rounded-full px-2">
                   <TextInput
                     value={prefijoPais}
                     onChangeText={setPrefijoPais}
@@ -247,7 +245,7 @@ export default function RegistroScreen() {
                 </View>
               </View>
               <View className="flex-1">
-                <View className="flex-row items-center bg-surface border border-border rounded-xl px-3">
+                <View className="flex-row items-center bg-white/75 border border-white rounded-full px-3">
                   <Feather name="phone" size={17} color={colors.inkSubtle} />
                   <TextInput
                     value={valores.telefono}
@@ -320,7 +318,7 @@ export default function RegistroScreen() {
               error={errores.email}
               editable={!cargando}
             />
-            <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+            <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
               <Feather name="lock" size={17} color={colors.inkSubtle} />
               <TextInput
                 value={valores.password}
@@ -353,22 +351,13 @@ export default function RegistroScreen() {
 
             <AvisoDocumentos documentos={catalogo.documentos} />
 
-            <Pressable
+            <BotonDegradado
+              etiqueta={cargando ? 'Creando cuenta…' : 'Crear cuenta'}
+              icono="user-plus"
+              cargando={cargando}
               onPress={handleCrearCuenta}
-              disabled={cargando}
-              className="bg-action rounded-xl py-3 items-center mt-3"
-            >
-              <View className="flex-row items-center justify-center gap-2">
-                {cargando ? (
-                  <ActivityIndicator color={colors.white} />
-                ) : (
-                  <Feather name="user-plus" size={17} color={colors.white} />
-                )}
-                <Text className="text-white font-sansBold text-sm">
-                  {cargando ? 'Creando cuenta…' : 'Crear cuenta'}
-                </Text>
-              </View>
-            </Pressable>
+              style={{ marginTop: 12 }}
+            />
 
             <Text className="text-inkMuted text-xs text-center mt-3">
               Al crear la cuenta aceptas el{' '}
@@ -389,7 +378,7 @@ export default function RegistroScreen() {
 
           <Pressable
             onPress={() => navigation.navigate('Login')}
-            className="self-center mt-6"
+            className="self-center mt-6 bg-white/75 rounded-full px-5 py-2.5"
             disabled={cargando}
           >
             <Text className="text-inkMuted text-sm">
@@ -413,7 +402,7 @@ function Campo({
 } & ComponentProps<typeof TextInput>) {
   return (
     <>
-      <View className="flex-row items-center bg-surface border border-border rounded-xl mb-1 px-3">
+      <View className="flex-row items-center bg-white/75 border border-white rounded-full mb-1 px-3">
         <Feather name={icono} size={17} color={colors.inkSubtle} />
         <TextInput
           placeholderTextColor={colors.inkSubtle}
