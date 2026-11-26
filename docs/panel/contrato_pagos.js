@@ -54,16 +54,18 @@ function ctPintar() {
   const filas = plazos.length ? plazos : [{ concepto: 'Anticipo', importe_cents: '', fecha_prevista: '' }, { concepto: 'Final de obra', importe_cents: '', fecha_prevista: '' }];
   const imp = c ? (c.importe_cents / 100).toFixed(2).replace('.', ',') : (o.oferta_cents / 100).toFixed(2).replace('.', ',');
   const edit = !bloqueado && (!c || c.estado !== 'anulado');
+  const sinFin = !c || !c.fecha_fin;
   abrirVentana(`<h2>Contrato y pagos</h2><p><b>${esc(o.referencia || '')} ${esc(o.titulo)}</b> · ${esc(o.empresa)}</p>
     <h3>Contrato ${c ? ctPar(CT_EST, c.estado) : ''}</h3>
     <label class="campo" for="ct-imp">Importe acordado (€, sin IVA)</label><input type="text" inputmode="decimal" id="ct-imp" value="${imp}" ${edit ? '' : 'disabled'} />
     <p class="suave" id="ct-calc">Comisión ${esc(pctTxt(o.comision_pct))}.</p>
     <label class="campo" for="ct-ini">Inicio de obra</label><input type="date" id="ct-ini" value="${c && c.fecha_inicio ? c.fecha_inicio : ''}" ${edit ? '' : 'disabled'} />
-    <label class="campo" for="ct-fin">Fin previsto</label><input type="date" id="ct-fin" value="${c && c.fecha_fin ? c.fecha_fin : ''}" ${edit ? '' : 'disabled'} />
+    <label class="campo" for="ct-fin">Fin previsto</label><input type="date" id="ct-fin" value="${c && c.fecha_fin ? c.fecha_fin : ''}" ${edit && !sinFin ? '' : 'disabled'} />
+    <label style="display:block;margin-top:4px"><input type="checkbox" id="ct-sinfin" ${sinFin ? 'checked' : ''} ${edit ? '' : 'disabled'} /> No especificado (depende de la obra)</label>
     <label class="campo" for="ct-forma">Forma de pago pactada</label><input type="text" id="ct-forma" maxlength="300" placeholder="Transferencia a 7 días de cada certificación" value="${esc(c ? c.forma_pago || '' : '')}" ${edit ? '' : 'disabled'} />
     <label class="campo" for="ct-notas">Notas (sin números de tarjeta ni cuenta)</label><textarea id="ct-notas" rows="2" maxlength="500" ${edit ? '' : 'disabled'}>${esc(c ? c.notas || '' : '')}</textarea>
     <h3>Plazos de pago</h3>
-    <p class="suave">Lo que la contrata paga al subcontratista. La suma debe coincidir con el importe del contrato.</p>
+    <p class="suave">Lo que la contrata paga al subcontratista. La suma debe coincidir con el importe del contrato. La fecha prevista es opcional: déjala vacía si depende de la obra.</p>
     <div id="ct-plazos">${filas.map((p, i) => ctFilaEditable(p, i, edit)).join('')}</div>
     ${edit ? '<p><button class="btn peq" id="ct-mas">Añadir plazo</button> <span id="ct-suma" class="suave"></span></p>' : (bloqueado ? '<p class="suave">Hay pagos o facturas registrados: los plazos ya no se pueden rehacer.</p>' : '')}
     ${edit ? '<p><button class="btn primario" id="ct-guardar">Guardar contrato y plazos</button></p>' : ''}
@@ -73,6 +75,7 @@ function ctPintar() {
   ctRecalcular();
   if (edit) {
     $('#ct-imp').oninput = ctRecalcular;
+    $('#ct-sinfin').onchange = () => { $('#ct-fin').disabled = $('#ct-sinfin').checked; if ($('#ct-sinfin').checked) $('#ct-fin').value = ''; };
     $('#ct-plazos').oninput = ctRecalcular;
     $('#ct-mas').onclick = () => { const d = document.createElement('div'); d.innerHTML = ctFilaEditable({ concepto: '', importe_cents: '', fecha_prevista: '' }, $('#ct-plazos').children.length, true); $('#ct-plazos').appendChild(d.firstElementChild); };
     $('#ct-guardar').onclick = ctGuardar;
@@ -112,7 +115,7 @@ async function ctGuardar() {
   $('#ct-guardar').disabled = true;
   try {
     await rpc('panel_ct_guardar', { p_obra_id: o.obra_id, p_importe_cents: total, p_forma_pago: $('#ct-forma').value || null,
-      p_fecha_inicio: $('#ct-ini').value || null, p_fecha_fin: $('#ct-fin').value || null, p_notas: $('#ct-notas').value || null, p_plazos: plazos });
+      p_fecha_inicio: $('#ct-ini').value || null, p_fecha_fin: $('#ct-sinfin').checked ? null : ($('#ct-fin').value || null), p_notas: $('#ct-notas').value || null, p_plazos: plazos });
     aviso('Contrato guardado.');
     window.__ct.obras = await rpc('panel_ct_obras'); await ctCargarDetalle(o.obra_id);
   } catch (err) { $('#ct-guardar').disabled = false; errorVentana(err); }
@@ -133,7 +136,7 @@ function ctBloqueSeguimiento(c, plazos) {
     <p class="suave">Solo PDF, hasta 15 MB. Las versiones anteriores se conservan.</p>
     <h3>Seguimiento</h3>
     <div class="tabla-caja"><table class="t"><thead><tr><th>Plazo</th><th>Previsto</th><th>Importe al sub.</th><th>Comisión 3B</th><th>Pago de la contrata</th><th>Factura de comisión</th></tr></thead><tbody>${
-      plazos.map((p) => `<tr><td data-l="Plazo"><b>${esc(p.orden)}.</b> ${esc(p.concepto)}</td><td data-l="Previsto">${fecha(p.fecha_prevista)}</td>
+      plazos.map((p) => `<tr><td data-l="Plazo"><b>${esc(p.orden)}.</b> ${esc(p.concepto)}</td><td data-l="Previsto">${p.fecha_prevista ? fecha(p.fecha_prevista) : 'Sin fecha'}</td>
         <td data-l="Importe">${eurosC(p.importe_cents)}<span class="sub">Neto ${eurosC(p.neto_cents)}</span></td><td data-l="Comisión">${eurosC(p.comision_cents)}</td>
         <td data-l="Pago">${ctPar(CT_PAGO, p.pago_estado)}${p.pago_estado === 'pagado' ? `<span class="sub">${fecha(p.pago_fecha)}${p.pago_referencia ? ' · ' + esc(p.pago_referencia) : ''}</span>` : (c.estado === 'firmado' ? `<button class="btn peq primario" data-ctp="pago" data-id="${esc(p.id)}">Marcar pagado</button>` : '')}</td>
         <td data-l="Factura">${ctPar(CT_COM, p.comision_estado)}${p.comision_estado !== 'pendiente' ? `<span class="sub">${esc(p.factura_numero)} · ${fecha(p.factura_fecha)}${p.comision_estado === 'cobrada' ? ' · cobrada ' + fecha(p.comision_cobro_fecha) : ''}</span>` : ''}${p.pago_estado === 'pagado' && p.comision_estado !== 'cobrada' ? `<button class="btn peq" data-ctp="com" data-id="${esc(p.id)}">${p.comision_estado === 'facturada' ? 'Marcar cobrada' : 'Registrar factura'}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
