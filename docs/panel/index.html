@@ -263,6 +263,7 @@
       <a href="#/contratos" data-nav="contratos"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Contratos</a>
       <a href="#/bolsa" data-nav="bolsa"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>Bolsa de empleo</a>
       <a href="#/precios" data-nav="precios"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Precios</a>
+      <a href="#/catalogo-particulares" data-nav="catalogo-particulares"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><path d="M17.5 14v7M14 17.5h7"/></svg>Catálogo particulares</a>
       <a href="#/reglas" data-nav="reglas"><svg viewBox="0 0 24 24"><path d="M19 5 5 19M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>Reglas de comisión</a>
       <a href="#/denuncias" data-nav="denuncias"><svg viewBox="0 0 24 24"><path d="M4 22V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>Denuncias <span class="n hidden" id="cnt-denuncias">0</span></a>
       <a href="#/correos" data-nav="correos"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>Correos</a>
@@ -282,6 +283,7 @@
 
 <script src="contratos.js"></script>
 <script src="contrato_pagos.js"></script>
+<script src="catalogo_admin.js"></script>
 <script src="bolsa.js"></script>
 <script src="comision_obra.js"></script>
 <script src="paquetes.js"></script>
@@ -462,6 +464,7 @@ async function enrutar() {
     else if (ruta === 'pagos') await vistaPagos(v);
     else if (ruta === 'pagos-manuales') await vistaPagosManuales(v);
     else if (ruta === 'contrato-pagos') await vistaContratoPagos(v);
+    else if (ruta === 'catalogo-particulares') await vistaCatalogoParticulares(v);
     else if (ruta === 'contratos') await vistaContratos(v);
     else if (ruta === 'bolsa') await vistaBolsa(v);
     else if (ruta === 'precios') await vistaPrecios(v);
