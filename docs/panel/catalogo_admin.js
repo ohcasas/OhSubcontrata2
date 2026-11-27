@@ -1,4 +1,4 @@
-// Catalogo de particulares: alta manual de partidas y precios. Requiere las migraciones 0094, 0101 y 0102.
+// Catalogo de particulares: alta manual de partidas y precios. Requiere las migraciones 0094, 0101, 0102 y 0104.
 // Cada partida tiene precio por acabado (basico, medio, alto) y por modalidad (con materiales / sin materiales).
 // Nada se ve en la app hasta que se marca «Publicada». El interruptor general del catalogo NO se cambia desde aqui.
 const CAT_ACAB = [['basico', 'Básico'], ['medio', 'Medio'], ['alto', 'Alto']];
@@ -103,18 +103,19 @@ function catVisibles() {
 // ====================== pantalla principal ======================
 async function vistaCatalogoParticulares(v) {
   catSprite();
-  let partidas, cats, ajustes, nuevas = 0;
+  let partidas, cats, ajustes, nuevas = 0, provNuevos = 0;
   try {
     partidas = await rpc('panel_cat_listar');
     const c = await sb.from('catalogo_categorias').select('codigo, nombre, es_formulario, orden').order('orden'); if (c.error) throw c.error;
     cats = c.data || [];
     const a = await sb.from('ajustes_catalogo').select('activo').eq('id', true).maybeSingle(); ajustes = a.data || { activo: false };
     try { nuevas = (await rpc('panel_cat_contactos')).filter((x) => x.estado === 'nuevo').length; } catch (e) { nuevas = 0; }
+    try { provNuevos = (await rpc('panel_prov_mensajes')).filter((x) => x.estado === 'nuevo').length; } catch (e) { provNuevos = 0; }
   } catch (e) {
     v.innerHTML = `<div class="cab"><div><h1>Catálogo de particulares</h1></div></div><div class="panel" style="padding:14px 18px">Todavía no está activada esta sección. Comprueba que están ejecutadas las migraciones 0094, 0101 y 0102 en Supabase. <span class="suave">(${esc(mensajeError(e))})</span></div>`;
     return;
   }
-  window.__cat = { partidas, cats: cats.filter((c) => !c.es_formulario), ajustes, nuevas, vista: 'partidas', sel: null, nueva: false, estado: '', cat: '', q: '', orden: 'manual',
+  window.__cat = { partidas, cats: cats.filter((c) => !c.es_formulario), ajustes, nuevas, provNuevos, prov: [], provMsgs: [], provSel: null, provNuevo: false, provQ: '', vista: 'partidas', sel: null, nueva: false, estado: '', cat: '', q: '', orden: 'manual',
     marcadas: new Set(), sucio: false, pv: { tab: 'detalle', ac: 'basico', mod: 'mano_obra_materiales', cant: null, cesta: [] } };
   catSucio(false);
   v.innerHTML = `<div class="cab"><div><h1>Catálogo de particulares</h1>
@@ -127,7 +128,7 @@ async function vistaCatalogoParticulares(v) {
   $('#cat-nueva').onclick = () => { if (!catSalir()) return; const C = window.__cat; C.vista = 'partidas'; C.sel = null; C.nueva = true; catTodo(); };
   if (!window.__catKey) { window.__catKey = true; document.addEventListener('keydown', (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's' || !document.getElementById('cat-cuerpo')) return;
-    const b = document.getElementById('cat-guardar') || document.getElementById('cat-g-guardar'); if (b && !b.disabled) { e.preventDefault(); b.click(); } }); }
+    const b = document.getElementById('cat-guardar') || document.getElementById('cat-g-guardar') || document.getElementById('cat-p-guardar'); if (b && !b.disabled) { e.preventDefault(); b.click(); } }); }
   catTodo();
 }
 
@@ -143,7 +144,7 @@ function catKpis() {
 
 function catTabs() {
   const C = window.__cat;
-  $('#cat-tabs').innerHTML = [['partidas', 'Partidas'], ['cuadricula', 'Cuadrícula de precios'], ['consultas', 'Consultas de proveedores' + (C.nuevas ? ` (${C.nuevas})` : '')]]
+  $('#cat-tabs').innerHTML = [['partidas', 'Partidas'], ['cuadricula', 'Cuadrícula de precios'], ['proveedores', 'Proveedores' + (C.provNuevos ? ` (${C.provNuevos})` : '')], ['consultas', 'Consultas de proveedores' + (C.nuevas ? ` (${C.nuevas})` : '')]]
     .map((t) => `<button class="${C.vista === t[0] ? 'activa' : ''}" data-catv="${t[0]}">${t[1]}</button>`).join('');
   $('#cat-tabs').onclick = (ev) => { const b = ev.target.closest('[data-catv]'); if (!b || !catSalir()) return; C.vista = b.dataset.catv; catTabs(); catCuerpo(); };
 }
@@ -151,6 +152,7 @@ function catTabs() {
 function catCuerpo() {
   const C = window.__cat;
   if (C.vista === 'consultas') return catConsultas($('#cat-cuerpo'));
+  if (C.vista === 'proveedores') return catProveedores();
   if (C.vista === 'cuadricula') return catCuadricula();
   catPartidas();
 }
@@ -506,6 +508,107 @@ async function catPublicarBorradores() {
     await rpc('panel_cat_guardar_precios', { p_partida: p.id, p_precios: precios, p_publicar: true, p_motivo: 'Publicación de borradores' }); ok++; } catch (e) { fallos.push(`${p.nombre}: ${mensajeError(e)}`); } }
   C.partidas = await rpc('panel_cat_listar'); catKpis(); catGridTabla();
   aviso(fallos.length ? `Publicadas ${ok}. Fallaron ${fallos.length}: ${fallos[0]}` : `${ok} partidas publicadas.`, fallos.length > 0);
+}
+
+// ====================== pestaña «Proveedores» (directorio para el cliente) ======================
+async function catProveedores() {
+  const C = window.__cat; const cu = $('#cat-cuerpo');
+  cu.innerHTML = '<p class="suave">Cargando proveedores…</p>';
+  try { C.prov = await rpc('panel_prov_listar'); C.provMsgs = await rpc('panel_prov_mensajes'); }
+  catch (e) { cu.innerHTML = `<div class="panel" style="padding:14px 18px">Esta pestaña necesita la migración 0104 en Supabase. <span class="suave">(${esc(mensajeError(e))})</span></div>`; return; }
+  C.provNuevos = C.provMsgs.filter((m) => m.estado === 'nuevo').length; catTabs();
+  catProvPintar();
+}
+
+function catProvPintar() {
+  const C = window.__cat; const cu = $('#cat-cuerpo'); const sel = C.prov.find((p) => p.id === C.provSel) || null;
+  const q = (C.provQ || '').trim().toLowerCase();
+  const lista = C.prov.filter((p) => (!q || p.nombre.toLowerCase().includes(q) || (p.zona || '').toLowerCase().includes(q)));
+  cu.innerHTML = `<div style="display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:14px;align-items:start" class="cat-prov-wrap">
+    <div class="panel"><div style="padding:12px"><input type="search" id="cat-pq" placeholder="Buscar proveedor o zona" value="${esc(C.provQ || '')}" style="width:100%" />
+      <div style="margin:8px 0"><button class="btn primario peq" id="cat-pnuevo">+ Nuevo proveedor</button></div>
+      <div id="cat-plista">${lista.length ? lista.map((p) => `<div class="cat-it ${p.id === C.provSel ? 'on' : ''}" data-pid="${esc(p.id)}" role="button" tabindex="0">${catIc(CAT_ICONO_CAT[p.categoria] || 'casa', 30)}
+        <span class="nm"><b>${esc(p.nombre)}</b><small>${esc(p.categoria_nombre || 'Sin categoría')}${p.zona ? ' · ' + esc(p.zona) : ''}${p.mensajes_nuevos ? ` · <b style="display:inline;color:var(--aviso)">${p.mensajes_nuevos} mensaje${p.mensajes_nuevos > 1 ? 's' : ''}</b>` : ''}</small></span>
+        <button class="cat-sw ${p.publicado ? 'on' : ''}" data-ptog type="button" aria-pressed="${p.publicado}" title="${p.publicado ? 'Visible para el cliente: pulsa para ocultar' : 'Oculto: pulsa para publicar'}"></button></div>`).join('')
+        : '<p class="suave peq">Todavía no hay proveedores. Pulsa «Nuevo proveedor».</p>'}</div></div></div>
+    <div id="cat-peditor"></div></div>
+    <div class="panel" style="margin-top:14px"><header><h2>Mensajes de clientes a proveedores</h2></header><div style="padding:12px" id="cat-pmsgs"></div></div>`;
+  $('#cat-pq').oninput = (e) => { C.provQ = e.target.value; const pos = e.target.selectionStart; catProvPintar(); const i = $('#cat-pq'); i.focus(); i.setSelectionRange(pos, pos); };
+  $('#cat-pnuevo').onclick = () => { if (!catSalir()) return; C.provSel = null; C.provNuevo = true; catProvPintar(); };
+  $('#cat-plista').onclick = async (ev) => {
+    const it = ev.target.closest('[data-pid]'); if (!it) return; const id = it.dataset.pid;
+    if (ev.target.closest('[data-ptog]')) { const p = C.prov.find((x) => x.id === id);
+      try { await rpc('panel_prov_publicar', { p_id: id, p_publicado: !p.publicado }); p.publicado = !p.publicado; aviso(p.publicado ? 'Proveedor publicado.' : 'Proveedor oculto.'); catProvPintar(); }
+      catch (e) { aviso(mensajeError(e), true); } return; }
+    if (id === C.provSel && !C.provNuevo) return; if (!catSalir()) return; C.provSel = id; C.provNuevo = false; catProvPintar(); };
+  catProvEditor(C.provNuevo ? null : sel, C.provNuevo || !!sel);
+  catProvMensajes();
+}
+
+function catProvEditor(d, abierto) {
+  const C = window.__cat; const e = $('#cat-peditor');
+  if (!abierto) { e.innerHTML = '<div class="panel" style="padding:18px"><p class="suave" style="margin:0">Elige un proveedor de la lista o pulsa «Nuevo proveedor». Aquí decides si aparece en la app del cliente y qué datos se enseñan.</p></div>'; return; }
+  const x = d || { id: '', nombre: '', categoria: '', zona: '', descripcion: '', telefono: '', email: '', web: '', consentimiento: false, mostrar_contacto: false, publicado: false, orden: 0 };
+  const v = (k) => esc(x[k] == null ? '' : x[k]);
+  e.innerHTML = `<div class="panel"><header style="flex-wrap:wrap;gap:8px"><h2 style="flex:1 1 100%">${d ? esc(d.nombre) : 'Nuevo proveedor'} <span class="cat-sucio hidden" id="cat-sucio">● Cambios sin guardar</span></h2></header>
+    <div style="padding:14px"><div class="cat-f"><div style="grid-column:span 2"><label for="cp-nombre">Nombre comercial</label><input type="text" id="cp-nombre" maxlength="120" value="${v('nombre')}" /></div>
+      <div><label for="cp-cat">Oficio (categoría)</label><select id="cp-cat"><option value="">Sin categoría</option>${C.cats.map((c) => `<option value="${esc(c.codigo)}" ${c.codigo === x.categoria ? 'selected' : ''}>${esc(c.nombre)}</option>`).join('')}</select></div></div>
+      <div class="cat-f"><div><label for="cp-zona">Zona (provincia o ciudad)</label><input type="text" id="cp-zona" maxlength="120" value="${v('zona')}" /></div>
+        <div style="grid-column:span 2"><label for="cp-desc">Descripción (la ve el cliente, máx. 600)</label><input type="text" id="cp-desc" maxlength="600" value="${v('descripcion')}" /></div></div>
+      <div class="cat-f"><div><label for="cp-tel">Teléfono</label><input type="text" id="cp-tel" inputmode="tel" maxlength="25" value="${v('telefono')}" /></div>
+        <div><label for="cp-email">Email</label><input type="text" id="cp-email" maxlength="120" value="${v('email')}" /></div>
+        <div><label for="cp-web">Web (https://…)</label><input type="text" id="cp-web" maxlength="200" value="${v('web')}" /></div></div>
+      <div style="margin-top:12px;display:grid;gap:8px">
+        <label><input type="checkbox" id="cp-cons" ${x.consentimiento ? 'checked' : ''} /> <b>Tengo el consentimiento de este proveedor</b> para aparecer en la app de 3B Conecta ${x.consentimiento_en ? `<span class="suave peq">(registrado ${esc(fechaHora(x.consentimiento_en))})</span>` : ''}</label>
+        <label><input type="checkbox" id="cp-mostrar" ${x.mostrar_contacto ? 'checked' : ''} /> Enseñar teléfono, email y web al cliente <span class="suave peq">(si no, solo puede escribirte a ti y tú se lo haces llegar)</span></label>
+        <label style="display:flex;gap:8px;align-items:center"><button type="button" class="cat-sw ${x.publicado ? 'on' : ''}" id="cp-pub" aria-pressed="${!!x.publicado}"></button> <b>Publicado</b> <span class="suave peq">(visible en la app cuando el catálogo esté encendido)</span></label></div>
+      <div class="cat-f" style="grid-template-columns:140px 1fr;margin-top:10px"><div><label for="cp-orden">Orden en la lista</label><input type="text" inputmode="numeric" id="cp-orden" value="${v('orden')}" /></div>
+        <div class="suave peq" style="align-self:end">Sin puntuaciones ni ránking automático: el orden lo decides tú.</div></div>
+      <div class="cat-pcard" id="cp-prev" style="margin-top:14px"></div>
+      <div class="cat-av" id="cp-av"></div>
+      <p style="margin:12px 0 0"><button class="btn primario" id="cat-p-guardar" title="Ctrl+S">Guardar proveedor</button> <button class="btn" id="cp-deshacer">Deshacer</button></p></div></div>`;
+  const leer = () => { const g = (i) => $('#' + i).value.trim(); return { nombre: g('cp-nombre'), cat: g('cp-cat'), zona: g('cp-zona'), desc: g('cp-desc'), tel: g('cp-tel'), email: g('cp-email'), web: g('cp-web'),
+    cons: $('#cp-cons').checked, mostrar: $('#cp-mostrar').checked, pub: $('#cp-pub').classList.contains('on'), orden: g('cp-orden') }; };
+  const refrescar = () => { const f = leer(); const av = [];
+    if (f.pub && !f.cons) av.push('Para publicar necesitas marcar el consentimiento del proveedor.');
+    if (f.mostrar && !f.cons) av.push('Para enseñar sus datos de contacto necesitas su consentimiento.');
+    if (f.web && !/^https?:\/\//i.test(f.web)) av.push('La web debe empezar por https://');
+    if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) av.push('El email no parece válido.');
+    if (f.tel && !/^[0-9+() .-]{6,25}$/.test(f.tel)) av.push('El teléfono solo puede llevar números, espacios, +, ( ) y guiones.');
+    const a = $('#cp-av'); a.className = 'cat-av' + (av.length ? ' mal' : ''); a.innerHTML = av.map(esc).join('<br>');
+    const cat = (C.cats.find((c) => c.codigo === f.cat) || {}).nombre || '';
+    $('#cp-prev').innerHTML = `${catIc(CAT_ICONO_CAT[f.cat] || 'casa', 44)}<div class="nm"><b>${esc(f.nombre || 'Nombre del proveedor')}</b><small>${esc(cat)}${f.zona ? ' · ' + esc(f.zona) : ''}</small>
+      <small>${esc(f.desc)}</small>${f.mostrar ? `<small>${esc([f.tel, f.email, f.web].filter(Boolean).join(' · ') || 'Sin datos de contacto')}</small>` : '<small><i>El cliente solo podrá escribirte a ti.</i></small>'}</div>`;
+    return av; };
+  e.oninput = () => { catSucio(true); refrescar(); };
+  e.onchange = (ev) => { if (ev.target.id === 'cp-cons' && !ev.target.checked) { $('#cp-mostrar').checked = false; $('#cp-pub').classList.remove('on'); } catSucio(true); refrescar(); };
+  e.onclick = async (ev) => { const b = ev.target.closest('button'); if (!b) return;
+    if (b.id === 'cp-pub') { b.classList.toggle('on'); b.setAttribute('aria-pressed', b.classList.contains('on')); catSucio(true); refrescar(); return; }
+    if (b.id === 'cp-deshacer') { catSucio(false); catProvPintar(); return; }
+    if (b.id !== 'cat-p-guardar') return;
+    const f = leer(); const av = refrescar();
+    if (f.nombre.length < 2) { aviso('Escribe el nombre del proveedor.', true); return; }
+    if (av.length) { aviso(av[0], true); return; }
+    const orden = f.orden === '' ? 0 : Number(f.orden); if (!Number.isInteger(orden)) { aviso('El orden debe ser un número entero.', true); return; }
+    b.disabled = true;
+    try { const id = await rpc('panel_prov_guardar', { p_id: d ? d.id : null, p_nombre: f.nombre, p_categoria: f.cat || null, p_zona: f.zona || null, p_descripcion: f.desc || null,
+        p_telefono: f.tel || null, p_email: f.email || null, p_web: f.web || null, p_consentimiento: f.cons, p_mostrar_contacto: f.mostrar, p_publicado: f.pub, p_orden: orden });
+      C.prov = await rpc('panel_prov_listar'); C.provSel = id; C.provNuevo = false; catSucio(false); catProvPintar(); aviso(f.pub ? 'Proveedor guardado y publicado.' : 'Proveedor guardado (oculto).'); }
+    catch (x) { aviso(mensajeError(x), true); b.disabled = false; } };
+  refrescar();
+}
+
+function catProvMensajes() {
+  const C = window.__cat; const e = $('#cat-pmsgs'); const l = C.provMsgs;
+  const pill = { nuevo: ['Nuevo', 'aviso'], reenviado: ['Reenviado', 'ok'], descartado: ['Descartado', 'neutro'] };
+  e.innerHTML = (l.length ? `<p class="suave peq" style="margin:0 0 8px">«Reenviado» significa que ya se lo has hecho llegar tú al proveedor. El panel no envía correos ni mensajes. El cliente aceptó que se comparta su mensaje y su teléfono.</p>
+    <div class="tabla-caja"><table class="t"><thead><tr><th>Estado</th><th>Fecha</th><th>Cliente</th><th>Proveedor</th><th>Mensaje</th><th></th></tr></thead><tbody>${l.map((m) => `<tr><td><span class="e ${pill[m.estado][1]}">${pill[m.estado][0]}</span></td>
+      <td>${esc(fechaHora(m.creado))}</td><td>${esc(m.persona || '—')}<br><span class="suave peq">${esc(m.telefono || '')}</span></td><td>${esc(m.proveedor)}<br><span class="suave peq">${esc([m.proveedor_telefono, m.proveedor_email].filter(Boolean).join(' · '))}</span></td>
+      <td style="max-width:360px">${esc(m.mensaje)}</td><td style="white-space:nowrap">${m.estado === 'nuevo' ? `<button class="btn peq" data-pm="${esc(m.id)}|reenviado">Marcar reenviado</button> <button class="btn peq" data-pm="${esc(m.id)}|descartado">Descartar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`
+    : '<p class="suave peq" style="margin:0">Todavía no hay mensajes. Cuando un cliente escriba a un proveedor, aparecerá aquí.</p>');
+  e.onclick = async (ev) => { const b = ev.target.closest('[data-pm]'); if (!b) return; const [id, est] = b.dataset.pm.split('|');
+    try { await rpc('panel_prov_mensaje_gestionar', { p_id: id, p_estado: est }); C.prov = await rpc('panel_prov_listar'); C.provMsgs = await rpc('panel_prov_mensajes'); C.provNuevos = C.provMsgs.filter((m) => m.estado === 'nuevo').length; catTabs(); catProvPintar(); aviso('Mensaje marcado como ' + est + '.'); }
+    catch (x) { aviso(mensajeError(x), true); } };
 }
 
 // ---------------- Pegar varias partidas desde Excel -----------------

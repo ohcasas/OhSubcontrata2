@@ -162,3 +162,35 @@ export async function contactarCatalogo(partidaId: string | null, mensaje: strin
   if (error) throw error;
   return data as string;
 }
+
+// ---------------------------------------------------------------------------
+// Directorio de proveedores (migración 0104). Administración decide quién aparece y qué datos se enseñan.
+export type ProveedorCatalogo = {
+  id: string;
+  nombre: string;
+  categoria: string | null;
+  categoria_nombre: string | null;
+  zona: string | null;
+  descripcion: string | null;
+  /** Solo vienen informados si Administración marcó los datos de contacto como visibles. */
+  telefono: string | null;
+  email: string | null;
+  web: string | null;
+};
+
+export async function listarProveedores(categoria: string | null): Promise<ProveedorCatalogo[]> {
+  const { data, error } = await supabase.rpc('catalogo_proveedores_listar', { p_categoria: categoria });
+  if (error) throw error;
+  return (Array.isArray(data) ? data : []) as ProveedorCatalogo[];
+}
+
+/** El mensaje llega a Administración, que lo hace llegar al proveedor. No se envía ningún correo automático. */
+export async function escribirAProveedor(proveedorId: string, mensaje: string, aceptaCompartir: boolean): Promise<string> {
+  const { data, error } = await supabase.rpc('catalogo_proveedor_escribir', {
+    p_proveedor: proveedorId,
+    p_mensaje: mensaje,
+    p_acepta: aceptaCompartir,
+  });
+  if (error) throw error;
+  return data as string;
+}

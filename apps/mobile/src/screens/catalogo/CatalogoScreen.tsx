@@ -8,6 +8,7 @@ import { formatearMoneda } from '../../utils/moneda';
 import { mensajeDeError } from '../../services/peticiones';
 import { usePagosActivos } from '../../services/pagosActivos';
 import { iconoCatalogo } from './iconosCatalogo';
+import ProveedoresCatalogo from './ProveedoresCatalogo';
 import {
   ETIQUETA_ACABADO,
   contactarCatalogo,
@@ -34,7 +35,8 @@ type Vista =
   | { t: 'presupuesto' }
   | { t: 'enviado' }
   | { t: 'otro' }
-  | { t: 'contacto'; partida: PartidaCatalogo | null };
+  | { t: 'contacto'; partida: PartidaCatalogo | null }
+  | { t: 'proveedores' };
 
 const ORDEN_ACABADO: Acabado[] = ['unico', 'basico', 'medio', 'alto'];
 const ORDEN_MODALIDAD: Modalidad[] = ['mano_obra_materiales', 'solo_mano_obra'];
@@ -169,6 +171,7 @@ export default function CatalogoScreen({ modo = 'particular' }: { modo?: 'partic
   if (vista.t === 'otro') {
     return <Personalizado onVolver={() => setVista({ t: 'inicio' })} onEnviado={() => setVista({ t: 'enviado' })} />;
   }
+  if (vista.t === 'proveedores') return <ProveedoresCatalogo onVolver={() => setVista({ t: 'inicio' })} />;
   if (vista.t === 'contacto') {
     return <Contacto partida={vista.partida} onVolver={() => setVista({ t: 'inicio' })} />;
   }
@@ -179,6 +182,7 @@ export default function CatalogoScreen({ modo = 'particular' }: { modo?: 'partic
         categoria.es_formulario ? setVista(proveedor ? { t: 'contacto', partida: null } : { t: 'otro' }) : setVista({ t: 'categoria', categoria })
       }
       onCesta={() => setVista({ t: 'presupuesto' })}
+      onProveedores={proveedor ? undefined : () => setVista({ t: 'proveedores' })}
     />
   );
 }
@@ -230,10 +234,12 @@ function Inicio({
   enCesta,
   onCategoria,
   onCesta,
+  onProveedores,
 }: {
   enCesta: number;
   onCategoria: (c: CategoriaCatalogo) => void;
   onCesta: () => void;
+  onProveedores?: () => void;
 }) {
   const [categorias, setCategorias] = useState<CategoriaCatalogo[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -281,6 +287,21 @@ function Inicio({
               </Pressable>
             ))}
           </View>
+          {onProveedores !== undefined && (
+            <Pressable
+              onPress={onProveedores}
+              accessibilityRole="button"
+              className="bg-white/80 rounded-3xl border border-white p-4 mb-4 flex-row items-center"
+              style={SOMBRA}
+            >
+              <Feather name="users" size={22} color={colors.action} />
+              <View className="flex-1 px-3">
+                <Text className="text-ink text-[15px] font-sansBold">Proveedores</Text>
+                <Text className="text-inkMuted text-xs mt-0.5">Profesionales a los que puedes escribir directamente.</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={colors.inkMuted} />
+            </Pressable>
+          )}
           <BotonCesta n={enCesta} onPress={onCesta} />
           <Text className="text-inkMuted text-[13px] mt-4">{AVISO_ESTIMACION}</Text>
         </ScrollView>
