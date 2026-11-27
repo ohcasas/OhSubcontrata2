@@ -1,6 +1,7 @@
 /**
  * Catálogo de precios para particulares (migración 0094).
  *
+ * Cada línea del pedido lleva su propio «con / sin materiales» (migración 0103).
  * Todo pasa por funciones de Supabase que comprueban quién llama. El servidor calcula la estimación con los
  * precios publicados por Administración: esta app NUNCA envía precios, solo partidas, acabado y cantidad.
  * Mientras el catálogo esté apagado en Supabase (ajustes_catalogo.activo), no se muestra nada.
@@ -37,6 +38,8 @@ export type PartidaCatalogo = {
   cantidad_defecto: number;
   cantidad_min: number;
   cantidad_max: number;
+  /** Icono propio de la partida (lo elige Administración); si falta se usa el de la categoría. */
+  icono?: string | null;
   precios: PrecioPartida[] | null;
 };
 
@@ -46,9 +49,15 @@ export type LineaCesta = {
   nombre: string;
   unidad: string;
   acabado: Acabado;
+  /** Con o sin materiales, elegido en CADA línea (migración 0103). */
+  modalidad: Modalidad;
+  /** Modalidades que tienen precio publicado para este acabado (para poder cambiar en la cesta). */
+  modalidades: Modalidad[];
   cantidad: number;
   cantidad_min: number;
   cantidad_max: number;
+  icono?: string | null;
+  categoria?: string;
 };
 
 export type LineaEstimada = {
@@ -56,6 +65,7 @@ export type LineaEstimada = {
   nombre: string;
   unidad: string;
   acabado: Acabado;
+  modalidad?: Modalidad;
   cantidad: number;
   precio_bajo: number | null;
   precio_alto: number | null;
@@ -107,20 +117,24 @@ export async function listarPartidas(categoria: string): Promise<PartidaCatalogo
   return (Array.isArray(data) ? data : []) as PartidaCatalogo[];
 }
 
-export async function estimarCesta(lineas: LineaCesta[], modalidad: Modalidad): Promise<Estimacion> {
+/** Lo único que viaja al servidor de cada línea: partida, acabado, con/sin materiales y cantidad (nunca precios). */
+const lineasParaServidor = (lineas: LineaCesta[]) =>
+  lineas.map((l) => ({ partida_id: l.partida_id, acabado: l.acabado, modalidad: l.modalidad, cantidad: l.cantidad }));
+
+export async function estimarCesta(lineas: LineaCesta[]): Promise<Estimacion> {
   const { data, error } = await supabase.rpc('catalogo_estimar', {
-    p_lineas: lineas.map((l) => ({ partida_id: l.partida_id, acabado: l.acabado, cantidad: l.cantidad })),
-    p_modalidad: modalidad,
+    p_lineas: lineasParaServidor(lineas),
+    p_modalidad: null,
   });
   if (error) throw error;
   return data as Estimacion;
 }
 
-export async function enviarSolicitudCatalogo(lineas: LineaCesta[], modalidad: Modalidad): Promise<string> {
+export async function enviarSolicitudCatalogo(lineas: LineaCesta[]): Promise<string> {
   const { data, error } = await supabase.rpc('catalogo_enviar_solicitud', {
     p_tipo: 'catalogo',
-    p_modalidad: modalidad,
-    p_lineas: lineas.map((l) => ({ partida_id: l.partida_id, acabado: l.acabado, cantidad: l.cantidad })),
+    p_modalidad: null,
+    p_lineas: lineasParaServidor(lineas),
   });
   if (error) throw error;
   return data as string;
@@ -139,6 +153,12 @@ export async function enviarSolicitudPersonalizada(datos: {
     p_superficie: datos.superficie,
     p_plazo: datos.plazo,
   });
+  if (error) throw error;
+  return data as string;
+}
+/** Un proveedor escribe a 3B Conecta sobre una partida (o en general). No se envía ningún correo: lo ve Administración en el panel. */
+export async function contactarCatalogo(partidaId: string | null, mensaje: string): Promise<string> {
+  const { data, error } = await supabase.rpc('catalogo_contactar', { p_partida: partidaId, p_mensaje: mensaje });
   if (error) throw error;
   return data as string;
 }
