@@ -51,8 +51,11 @@ export type ReferidorTabParamList = {
 };
 
 export type ParticularTabParamList = {
+  // Con el catálogo apagado solo existen Peticiones y Perfil; con él encendido se añaden Inicio, Buscar y Pedido (estilo Uber).
+  Inicio: undefined;
+  Buscar: { categoria?: string; foco?: boolean; t?: number } | undefined;
+  Pedido: undefined;
   Peticiones: undefined;
-  Catalogo: undefined;
   Perfil: undefined;
 };
 

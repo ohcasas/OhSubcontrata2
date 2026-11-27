@@ -20,7 +20,7 @@ const SOMBRA = {
  * enseñan sus datos de contacto. Sin puntuaciones ni ránking: el orden lo fija Administración.
  * Escribir a un proveedor envía el mensaje a Administración, que lo hace llegar; la app no manda correos.
  */
-export default function ProveedoresCatalogo({ onVolver }: { onVolver: () => void }) {
+export default function ProveedoresCatalogo({ onVolver, abrirId }: { onVolver: () => void; abrirId?: string }) {
   const [lista, setLista] = useState<ProveedorCatalogo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,12 @@ export default function ProveedoresCatalogo({ onVolver }: { onVolver: () => void
   useEffect(() => {
     let vivo = true;
     listarProveedores(null)
-      .then((l) => vivo && setLista(l))
+      .then((l) => {
+        if (!vivo) return;
+        setLista(l);
+        // Venir desde Inicio o Buscar con un proveedor ya elegido: se abre directamente
+        if (abrirId !== undefined) setAbierto(l.find((x) => x.id === abrirId) ?? null);
+      })
       .catch((e) => vivo && setError(mensajeDeError(e)))
       .finally(() => vivo && setCargando(false));
     return () => {
@@ -50,9 +55,9 @@ export default function ProveedoresCatalogo({ onVolver }: { onVolver: () => void
   return (
     <View className="flex-1 bg-canvas">
       <ScreenHeader title="Proveedores" subtitle="Profesionales para tu obra" />
-      <Pressable onPress={onVolver} accessibilityRole="button" accessibilityLabel="Catálogo" className="flex-row items-center gap-1 px-4 pb-2">
+      <Pressable onPress={onVolver} accessibilityRole="button" accessibilityLabel="Atrás" className="flex-row items-center gap-1 px-4 pb-2">
         <Feather name="chevron-left" size={18} color={colors.action} />
-        <Text className="text-action text-sm font-sansSemiBold">Catálogo</Text>
+        <Text className="text-action text-sm font-sansSemiBold">Atrás</Text>
       </Pressable>
       {cargando ? (
         <View className="flex-1 items-center justify-center">

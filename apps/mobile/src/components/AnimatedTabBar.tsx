@@ -39,7 +39,7 @@ const ETIQUETAS: Record<string, string> = {
  */
 export default function AnimatedTabBar({ state, navigation, icons, inactiveColor = '#5B6E84', badges }: Props) {
   const insets = useSafeAreaInsets();
-  const muchas = state.routes.length > 5;
+  const muchas = state.routes.length >= 5;
 
   return (
     <View style={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom, 12), paddingTop: 4, backgroundColor: '#F2F7FF' }}>

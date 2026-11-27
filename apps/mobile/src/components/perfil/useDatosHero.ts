@@ -146,7 +146,7 @@ export function useDatosHero(rol: string | null, userId: string | null, nombre: 
           const accesos: Acceso[] = [{ etiqueta: 'Peticiones', icono: 'home', destino: 'Peticiones' }];
           if (catalogo) {
             tarjetas.push({ icono: 'grid', titulo: 'Catálogo', valor: 'Presupuesto', subtitulo: 'Calcula tu reforma', dibujo: 'ondas', gama: 'cielo' });
-            accesos.push({ etiqueta: 'Catálogo', icono: 'grid', destino: 'Catalogo' });
+            accesos.push({ etiqueta: 'Catálogo', icono: 'grid', destino: 'Inicio' });
           }
           d = {
             etiqueta: 'Peticiones activas',
@@ -199,3 +199,5 @@ export function useDatosHero(rol: string | null, userId: string | null, nombre: 
 
   return datos;
 }
+
+
